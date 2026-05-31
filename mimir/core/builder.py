@@ -12,10 +12,12 @@ logger = logging.getLogger(__name__)
 
 
 def build_sources(settings: Settings) -> list[Source]:
-    sources: list[Source] = [
-        StooqSource(),
-        SecEdgarSource(user_agent=settings.sec_user_agent),
-    ]
+    # SEC EDGAR needs only a User-Agent (no signup); the rest need a free key.
+    sources: list[Source] = [SecEdgarSource(user_agent=settings.sec_user_agent)]
+    if settings.stooq_api_key:
+        sources.append(StooqSource(api_key=settings.stooq_api_key))
+    else:
+        logger.warning("skipping source 'stooq': STOOQ_API_KEY is not set")
     if settings.dart_api_key:
         sources.append(DartSource(api_key=settings.dart_api_key))
     else:

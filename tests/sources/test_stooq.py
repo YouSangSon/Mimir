@@ -1,8 +1,10 @@
 from datetime import UTC, datetime
 
+import pytest
 import requests
 import responses
 
+from mimir.core.errors import FetchError
 from mimir.core.source import Cadence, Dataset, FetchContext, LegalStatus, Market
 from mimir.sources.stooq import StooqSource
 
@@ -35,3 +37,19 @@ def test_stooq_meta_is_official_daily_prices():
     assert StooqSource.meta.dataset is Dataset.PRICES
     assert StooqSource.meta.cadence is Cadence.DAILY
     assert StooqSource.meta.legal_status is LegalStatus.OFFICIAL
+    assert StooqSource.meta.requires_secret == "STOOQ_API_KEY"
+
+
+@responses.activate
+def test_stooq_raises_on_non_csv_response():
+    # When the apikey is missing/invalid, Stooq returns an instructional message,
+    # not CSV. That must surface as a failure, not a silent zero-row success.
+    responses.add(
+        responses.GET,
+        "https://stooq.com/q/d/l/",
+        body="Get your apikey:\n\n1. Open ...",
+        status=200,
+    )
+    src = StooqSource(session=requests.Session())
+    with pytest.raises(FetchError):
+        list(src.fetch(_ctx(["AAPL"])))

@@ -28,7 +28,7 @@ def test_run_collect_writes_data_and_status(tmp_path: Path):
 
     summary = run_collect(
         cadence="daily",
-        env={},
+        env={"STOOQ_API_KEY": "test-key"},  # enable Stooq so prices are collected
         watchlist={"us": ["AAPL"], "kr": []},
         data_root=tmp_path / "data",
         status_path=tmp_path / "reports/status.html",

@@ -18,7 +18,7 @@ def test_backfill_stooq_loads_history(tmp_path: Path):
     appended = run_backfill(
         source_id="stooq",
         since=date(2018, 1, 1),
-        env={},
+        env={"STOOQ_API_KEY": "test-key"},
         watchlist={"us": ["AAPL"], "kr": []},
         data_root=tmp_path / "data",
         now=datetime(2026, 5, 31, tzinfo=UTC),
