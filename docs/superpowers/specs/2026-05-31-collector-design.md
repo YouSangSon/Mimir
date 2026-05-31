@@ -244,9 +244,11 @@ class Source(Protocol):
 | 소스 | 데이터 | 인증 | 무료 | rate limit | 합법성 | 라이브러리 |
 |---|---|---|---|---|---|---|
 | **SEC EDGAR** | 공시(10-K/Q/8-K), companyfacts | UA 헤더(연락처) | ✅ | **10 req/s** (공식) | ✅ 스크립트 접근 명시 허용 | `sec-edgar-api`/raw |
-| **Stooq** | 전 종목 EOD CSV(대량) | 불필요 | ✅ | 미공시 | ✅ 무료 CSV | `pandas-datareader` |
+| **Stooq** | per-symbol EOD CSV | 무료 `apikey`(캡차 발급)¹ | ✅ | 미공시 | ✅ 무료 | `requests`(직접) |
 | **FRED** | 거시 시계열 | 무료 키 | ✅ | **2 req/s** (공식, 초과시 429) | ✅ 공식, 출처표기 | `fredapi` |
 | (보강) Finnhub | per-symbol 시세·펀더멘털 | 무료 키 | ✅ | 60/min (공식) | personal-use | `finnhub-python` |
+
+> ¹ **구현 중 발견(2026-05-31)**: Stooq의 per-symbol CSV 엔드포인트(`/q/d/l/`)는 이제 무료 `apikey`를 요구한다(캡차로 1회 발급, 파라미터명 `apikey` 확인됨). 따라서 Stooq는 DART처럼 키가 없으면 스킵된다. 키 없이 동작하는 유일한 소스는 SEC EDGAR(UA만 필요). 키 발급이 번거로우면 Increment 2에서 Twelve Data(무료 키, time_series) 등으로 가격원 보강 가능.
 
 - **1차 가격원으로 yfinance(야후)는 제외** — 야후 ToS가 자동수집을 금지(그레이). Stooq로 대체.
 
@@ -358,8 +360,8 @@ class Source(Protocol):
 
 ## 16. 기술 스택 & 툴링
 
-- **언어/런타임**: Python 3.12
-- **핵심 의존성**: `requests`, `feedparser`, `pydantic`, `pyyaml`, `pandas-datareader`(Stooq), `pykrx`, `OpenDartReader`, `fredapi`
+- **언어/런타임**: Python 3.14 (asdf `.tool-versions`로 핀)
+- **핵심 의존성(Increment 1)**: `requests`, `pydantic`, `pyyaml`. 이후 증분: `feedparser`, `pykrx`, `OpenDartReader`, `fredapi` 등
 - **개발 툴**: `pytest`, `responses`(HTTP 모킹), `ruff`(lint/format), `mypy`(타입), `coverage`
 - **패키징**: `pyproject.toml`, src-layout 권장
 - **CI**: GitHub Actions에서 lint+type+test 게이트

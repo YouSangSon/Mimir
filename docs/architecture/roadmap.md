@@ -102,7 +102,7 @@ Mímir는 북유럽 신화에서 지혜의 샘을 지키는 존재다. 이 프�
 
 | 시장 | 가격 | 공시/기업 | 거시지표 | 뉴스 | 합법성 |
 |---|---|---|---|---|---|
-| 🇺🇸 US | Stooq 대량 CSV (키 불필요) | SEC EDGAR (10 req/s, UA 헤더) | FRED (무료 키, 2 req/s) | SEC RSS, IR RSS | ✅ 깨끗 |
+| 🇺🇸 US | Stooq (무료 apikey, 캡차 발급) | SEC EDGAR (10 req/s, UA 헤더) | FRED (무료 키, 2 req/s) | SEC RSS, IR RSS | ✅ 깨끗 |
 | 🇰🇷 KR | pykrx (OHLCV) | DART OpenAPI (무료 키) | 한국은행 ECOS (무료 키) | 공식 RSS, Naver 검색 API | ⚠️ pykrx만 그레이존 |
 
 소스별 상세(인증·한도·라이선스·라이브러리)는 S1 설계문서의 "데이터 소스 카탈로그" 참고.
