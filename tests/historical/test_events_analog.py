@@ -40,3 +40,10 @@ def test_summarize_reports_median_and_pct_positive():
     assert s.n == 2
     assert s.pct_positive == 1.0
     assert s.median_return > 0
+
+
+def test_summarize_drops_horizon_below_min_n():
+    bars = _bars([100, 90, 99, 90, 99])  # events at idx 1 and 3
+    # h=1: n=2 (kept). h=3: idx1->idx4 exists, idx3->idx6 out of range => n=1 (dropped at min_n=2).
+    stats = summarize(bars, [1, 3], horizons=(1, 3), min_n=2)
+    assert {s.horizon for s in stats} == {1}

@@ -8,8 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import yaml
-
+from mimir.config import load_sources_config, load_watchlist
 from mimir.core.builder import build_sources
 from mimir.core.orchestrator import Orchestrator, RunSummary
 from mimir.core.registry import Registry
@@ -22,12 +21,6 @@ from mimir.storage.jsonl_store import JsonlStore
 
 DEFAULT_DATA_ROOT = Path("data")
 DEFAULT_STATUS_PATH = Path("reports/status.html")
-
-
-def _load_yaml(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
 def run_collect(
@@ -76,14 +69,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config_dir = Path(args.config_dir)
-    watchlist = _load_yaml(config_dir / "watchlist.yaml") or {"us": [], "kr": []}
-    sources_config = _load_yaml(config_dir / "sources.yaml")
-
     summary = run_collect(
         cadence=args.cadence,
         env=os.environ,
-        watchlist=watchlist,
-        sources_config=sources_config,
+        watchlist=load_watchlist(config_dir),
+        sources_config=load_sources_config(config_dir),
     )
     print(f"[mimir] {args.cadence}: {[r.model_dump() for r in summary.results]}")
     return 1 if summary.had_failures else 0

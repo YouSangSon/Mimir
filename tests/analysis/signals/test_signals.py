@@ -2,7 +2,6 @@ import itertools
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from mimir.analysis.reader import DataReader
 from mimir.analysis.signals.base import SignalDirection
 from mimir.analysis.signals.filing_event import FilingEventSignal
 from mimir.analysis.signals.macro_regime import MacroRegimeSignal
@@ -10,6 +9,7 @@ from mimir.analysis.signals.news_volume import NewsVolumeSignal
 from mimir.analysis.signals.price_momentum import PriceMomentumSignal
 from mimir.core.source import Dataset, Market
 from mimir.storage.jsonl_store import JsonlStore
+from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
 
 AS_OF = date(2026, 5, 31)
@@ -79,6 +79,12 @@ def test_news_volume_matches_symbol_in_title(tmp_path: Path):
 def test_news_volume_none_when_no_mentions(tmp_path: Path):
     recs = [_rec(Dataset.NEWS, None, 31, {"title": "Unrelated", "summary": ""})]
     assert NewsVolumeSignal().evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs)) is None
+
+
+def test_news_volume_word_boundary_avoids_substring_match(tmp_path: Path):
+    # ticker "A" must NOT match the "A" inside "Apple" (word-boundary matching).
+    recs = [_rec(Dataset.NEWS, None, 31, {"title": "Apple announced earnings", "summary": ""})]
+    assert NewsVolumeSignal().evaluate("A", Market.US, AS_OF, _reader(tmp_path, recs)) is None
 
 
 def test_macro_regime_rising_rate_is_bearish(tmp_path: Path):

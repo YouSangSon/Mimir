@@ -1,17 +1,20 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Callable
 from datetime import UTC, date, datetime
 
-from mimir.analysis.reader import DataReader
-from mimir.core.source import Market
+from mimir.core.source import Dataset, Market
 from mimir.historical.analog import DEFAULT_HORIZONS, summarize
 from mimir.historical.events import detect_sharp_drops, detect_volume_spikes
 from mimir.historical.schema import HistoricalInsight, to_record
-from mimir.historical.series import Bar, price_series
+from mimir.historical.series import Bar, bars_from_records
 from mimir.storage.jsonl_store import JsonlStore
+from mimir.storage.reader import DataReader
+from mimir.storage.schema import Record
 
 MIN_OCCURRENCES = 3
+MIN_HORIZON_N = 2  # drop a horizon's stat if it has fewer forward observations
 EXAMPLE_HORIZON = 5
 EXAMPLE_LIMIT = 3
 MARKET_BY_KEY = {"us": Market.US, "kr": Market.KR}
@@ -52,16 +55,22 @@ class HistoricalEngine:
         captured_at = captured_at or datetime.now(UTC)
         insights: list[HistoricalInsight] = []
         records = []
+        # Read the whole price dataset once and bucket by symbol, instead of
+        # re-scanning per symbol (was O(M) full scans -> O(M^2 * N)).
+        by_symbol: dict[str, list[Record]] = defaultdict(list)
+        for rec in self._reader.read(Dataset.PRICES, until=as_of):
+            if rec.symbol:
+                by_symbol[rec.symbol].append(rec)
         for key, market in MARKET_BY_KEY.items():
             for symbol in watchlist.get(key, []):
-                series = price_series(self._reader, symbol, until=as_of)
+                series = bars_from_records(by_symbol.get(symbol, []))
                 if len(series) < 2:
                     continue
                 for event_type, detector in EVENT_DETECTORS.items():
                     idxs = detector(series)
                     if len(idxs) < MIN_OCCURRENCES:
                         continue
-                    stats = summarize(series, idxs, DEFAULT_HORIZONS)
+                    stats = summarize(series, idxs, DEFAULT_HORIZONS, min_n=MIN_HORIZON_N)
                     if not stats:
                         continue
                     insight = HistoricalInsight(
@@ -76,5 +85,6 @@ class HistoricalEngine:
                     )
                     insights.append(insight)
                     records.append(to_record(insight, captured_at))
-        self._store.append(records)
+        # historical insights are regenerated each run -> last-write-wins
+        self._store.append(records, overwrite=True)
         return insights

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import re
 from datetime import date, timedelta
 
-from mimir.analysis.reader import DataReader
 from mimir.analysis.signals.base import SignalDirection, SignalResult
 from mimir.core.source import Dataset, Market
+from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
 
 BASELINE_DAYS = 7
@@ -12,8 +13,12 @@ WEIGHT = 0.5
 
 
 def _mentions(rec: Record, symbol: str) -> bool:
-    text = ((rec.payload.get("title") or "") + " " + (rec.payload.get("summary") or "")).lower()
-    return symbol.lower() in text
+    # Word-boundary match (case-insensitive) so short tickers like "A"/"ON"/"ALL"
+    # don't match "a"/"on"/"all" inside ordinary prose. Note: official feeds rarely
+    # carry tickers, so this stays mostly inert until ticker-tagged feeds / an LLM
+    # signal land (see docs/IMPROVEMENTS.md).
+    text = (rec.payload.get("title") or "") + " " + (rec.payload.get("summary") or "")
+    return re.search(rf"\b{re.escape(symbol)}\b", text, re.IGNORECASE) is not None
 
 
 class NewsVolumeSignal:

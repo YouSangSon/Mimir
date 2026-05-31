@@ -6,8 +6,8 @@ from typing import Protocol
 
 from pydantic import BaseModel
 
-from mimir.analysis.reader import DataReader
 from mimir.core.source import Market
+from mimir.storage.reader import DataReader
 
 
 class SignalDirection(StrEnum):

@@ -6,7 +6,7 @@ from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.schema import Record
 
 
-def _rec(key: str, day: int) -> Record:
+def _rec(key: str, day: int, close: float = 1.0) -> Record:
     return Record(
         source="stooq",
         dataset=Dataset.PRICES,
@@ -15,7 +15,7 @@ def _rec(key: str, day: int) -> Record:
         ts=datetime(2026, 5, day, tzinfo=UTC),
         captured_at=datetime(2026, 5, 31, tzinfo=UTC),
         idempotency_key=key,
-        payload={"close": 1.0},
+        payload={"close": close},
     )
 
 
@@ -47,3 +47,28 @@ def test_read_all_yields_records(tmp_path: Path):
     store.append([_rec("k1", 29), _rec("k2", 30)])
     keys = {r.idempotency_key for r in store.read_all(Dataset.PRICES)}
     assert keys == {"k1", "k2"}
+
+
+def test_append_overwrite_is_last_write_wins(tmp_path: Path):
+    store = JsonlStore(root=tmp_path)
+    store.append([_rec("k1", 29, close=1.0)])
+    store.append([_rec("k1", 29, close=99.0)], overwrite=True)  # same key, revised payload
+    recs = list(store.read_all(Dataset.PRICES))
+    assert len(recs) == 1  # not duplicated
+    assert recs[0].payload["close"] == 99.0  # newest value wins
+
+
+def test_read_window_prunes_to_date_range(tmp_path: Path):
+    from datetime import date
+
+    store = JsonlStore(root=tmp_path)
+    store.append([_rec("k27", 27), _rec("k29", 29), _rec("k31", 31)])
+    # both bounds -> only partitions in [29, 30] are opened
+    keys = {
+        r.idempotency_key
+        for r in store.read_window(Dataset.PRICES, since=date(2026, 5, 29), until=date(2026, 5, 30))
+    }
+    assert keys == {"k29"}
+    # until-only fallback still cuts off later partitions
+    keys2 = {r.idempotency_key for r in store.read_window(Dataset.PRICES, until=date(2026, 5, 29))}
+    assert keys2 == {"k27", "k29"}

@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 
-from mimir.analysis.reader import DataReader
 from mimir.analysis.schema import Insight, to_record
 from mimir.analysis.scorer import score
 from mimir.analysis.signals.base import Signal
 from mimir.core.source import Market
 from mimir.storage.jsonl_store import JsonlStore
+from mimir.storage.reader import DataReader
 
 MARKET_BY_KEY = {"us": Market.US, "kr": Market.KR}
 
@@ -50,5 +50,6 @@ class AnalysisEngine:
                 )
                 insights.append(insight)
                 records.append(to_record(insight, captured_at))
-        self._store.append(records)
+        # insights are regenerated each run -> last-write-wins (newest computation)
+        self._store.append(records, overwrite=True)
         return insights

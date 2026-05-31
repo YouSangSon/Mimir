@@ -1,9 +1,9 @@
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from mimir.analysis.reader import DataReader
 from mimir.core.source import Dataset, Market
 from mimir.storage.jsonl_store import JsonlStore
+from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
 
 

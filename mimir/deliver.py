@@ -7,7 +7,6 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
-from mimir.analysis.reader import DataReader
 from mimir.analysis.schema import Insight
 from mimir.core.source import Cadence, Dataset
 from mimir.historical.schema import HistoricalInsight
@@ -22,6 +21,7 @@ from mimir.report.telegram import send_ping
 from mimir.settings import Settings
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.paths import DEFAULT_ROOT
+from mimir.storage.reader import DataReader
 
 
 class DeliveryResult(dict[str, Any]):

@@ -32,12 +32,17 @@ def _median(values: list[float]) -> float:
 
 
 def summarize(
-    series: list[Bar], idxs: list[int], horizons: tuple[int, ...] = DEFAULT_HORIZONS
+    series: list[Bar],
+    idxs: list[int],
+    horizons: tuple[int, ...] = DEFAULT_HORIZONS,
+    min_n: int = 1,
 ) -> list[HorizonStat]:
     stats: list[HorizonStat] = []
     for h in horizons:
         rets = forward_returns(series, idxs, h)
-        if not rets:
+        # Drop horizons with too few forward observations: a "median over 20d"
+        # computed from n=1 reads as robust but isn't. n is also exposed below.
+        if len(rets) < min_n:
             continue
         pct_positive = sum(1 for r in rets if r > 0) / len(rets)
         stats.append(

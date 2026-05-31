@@ -1,10 +1,10 @@
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from mimir.analysis.reader import DataReader
 from mimir.core.source import Dataset, Market
 from mimir.historical.engine import HistoricalEngine
 from mimir.storage.jsonl_store import JsonlStore
+from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
 
 # 12 sessions with sharp drops at idx 2, 5, 8 (each ~-10%), each followed by recoveries.

@@ -3,10 +3,10 @@ from pathlib import Path
 
 from mimir.analysis.builder import build_signals
 from mimir.analysis.engine import AnalysisEngine
-from mimir.analysis.reader import DataReader
 from mimir.analysis.signals.base import SignalDirection
 from mimir.core.source import Dataset, Market
 from mimir.storage.jsonl_store import JsonlStore
+from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
 
 AS_OF = date(2026, 5, 31)

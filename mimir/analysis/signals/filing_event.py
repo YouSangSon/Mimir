@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from mimir.analysis.reader import DataReader
 from mimir.analysis.signals.base import SignalDirection, SignalResult
 from mimir.core.source import Dataset, Market
+from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
 
 LOOKBACK_DAYS = 3
