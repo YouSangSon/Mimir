@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from mimir.settings import Settings
 
 
@@ -12,3 +14,19 @@ def test_settings_reads_env():
 def test_settings_defaults_sec_user_agent():
     s = Settings.from_env({})
     assert "Mimir" in s.sec_user_agent
+
+
+def test_settings_auto_loads_dotenv(tmp_path: Path, monkeypatch):
+    # With env=None, a local .env in the working dir is auto-loaded.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text("DART_API_KEY=fromdotenv\n", encoding="utf-8")
+    monkeypatch.delenv("DART_API_KEY", raising=False)
+    assert Settings.from_env().dart_api_key == "fromdotenv"
+
+
+def test_real_env_overrides_dotenv(tmp_path: Path, monkeypatch):
+    # CI Secrets / exported vars must win over .env (override=False).
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text("DART_API_KEY=fromdotenv\n", encoding="utf-8")
+    monkeypatch.setenv("DART_API_KEY", "fromrealenv")
+    assert Settings.from_env().dart_api_key == "fromrealenv"

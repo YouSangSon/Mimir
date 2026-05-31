@@ -45,13 +45,16 @@ python -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
 
 # 2. 설정
-cp .env.example .env          # 원하는 무료 키만 채우면 됨
+cp .env.example .env          # 원하는 무료 키만 채우면 됨 (자동 로드됨, gitignore됨)
 #   config/watchlist.yaml      추적 종목(US 티커 / KR 종목코드)
 #   config/sources.yaml        소스 on/off · GRAY 소스 정책
 
-# 3. 수집 실행 (cadence: hourly | daily | weekly | monthly)
-.venv/bin/python -m mimir.collect --cadence daily
+# 3. 전체 파이프라인 실행 (수집→분석→과거패턴→리포트)
+.venv/bin/python -m mimir.run --cadence daily   # cadence: hourly|daily|weekly|monthly
+#   또는 단계별로: mimir.collect / mimir.analyze / mimir.history / mimir.deliver
 ```
+
+`.env`는 실행 시 현재 디렉터리에서 자동 로드된다(키는 절대 커밋되지 않음). CI에서는 GitHub Actions Secrets가 우선한다.
 
 과거 이력을 한 번에 적재(backfill)한다.
 
