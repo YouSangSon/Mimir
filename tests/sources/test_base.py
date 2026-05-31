@@ -31,3 +31,22 @@ def test_http_get_retries_then_succeeds_on_5xx():
         sleep=lambda s: None,
     )
     assert resp.text == "ok"
+
+
+@responses.activate
+def test_http_get_raises_after_retry_exhaustion():
+    responses.add(responses.GET, "https://x.test/down", status=503)
+    with pytest.raises(FetchError):
+        http_get(
+            "https://x.test/down", session=requests.Session(), max_retries=2, sleep=lambda s: None
+        )
+
+
+@responses.activate
+def test_http_get_retries_on_429_then_succeeds():
+    responses.add(responses.GET, "https://x.test/limited", status=429)
+    responses.add(responses.GET, "https://x.test/limited", body="ok", status=200)
+    resp = http_get(
+        "https://x.test/limited", session=requests.Session(), max_retries=1, sleep=lambda s: None
+    )
+    assert resp.text == "ok"

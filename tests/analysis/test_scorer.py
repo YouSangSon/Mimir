@@ -35,10 +35,12 @@ def test_opposing_signals_net_toward_neutral():
     assert s.direction is SignalDirection.NEUTRAL
 
 
-def test_neutral_attention_signal_raises_stars_without_direction():
+def test_neutral_activity_is_low_stars_but_high_attention():
+    # A flurry of direction-less activity must NOT masquerade as a high-conviction call.
     s = score([_r(SignalDirection.NEUTRAL, strength=1.0, confidence=1.0, weight=1.0)])
     assert s.direction is SignalDirection.NEUTRAL
-    assert s.stars >= 4  # high attention even though direction is neutral
+    assert s.stars <= 2  # no directional conviction -> low stars
+    assert s.attention >= 0.9  # but the activity is surfaced separately
 
 
 def test_reasons_are_prefixed_with_signal():

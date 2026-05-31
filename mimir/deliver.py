@@ -9,7 +9,7 @@ from typing import Any
 
 from mimir.analysis.reader import DataReader
 from mimir.analysis.schema import Insight
-from mimir.core.source import Dataset
+from mimir.core.source import Cadence, Dataset
 from mimir.historical.schema import HistoricalInsight
 from mimir.report.daily_report import (
     DEFAULT_REPORTS_ROOT,
@@ -59,7 +59,7 @@ def run_deliver(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mimir.deliver")
-    parser.add_argument("--cadence", default="daily")
+    parser.add_argument("--cadence", default="daily", choices=[c.value for c in Cadence])
     parser.add_argument("--date", help="YYYY-MM-DD (default: today UTC)")
     parser.add_argument("--data-root", default=str(DEFAULT_ROOT))
     parser.add_argument("--reports-root", default=str(DEFAULT_REPORTS_ROOT))

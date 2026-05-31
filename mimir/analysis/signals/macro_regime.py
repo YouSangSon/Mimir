@@ -35,10 +35,10 @@ class MacroRegimeSignal:
         by_series: dict[str, list[Record]] = {}
         for r in recs:
             by_series.setdefault(r.symbol or "", []).append(r)
-        series = max(by_series.values(), key=len)
-        if len(series) < 2:
+        best = max(by_series.values(), key=lambda recs: len(recs))
+        if len(best) < 2:
             return None
-        series.sort(key=lambda r: r.ts)
+        series = sorted(best, key=lambda r: r.ts)
 
         first, last = series[0].payload["value"], series[-1].payload["value"]
         delta = last - first

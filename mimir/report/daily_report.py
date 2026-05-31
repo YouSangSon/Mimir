@@ -30,7 +30,8 @@ def _card(ins: Insight) -> str:
   <div class="card-head">
     <span class="sym">{html.escape(ins.symbol)}</span>
     <span class="badge" style="background:{color}">{label}</span>
-    <span class="stars" title="confidence {ins.confidence}">{_stars(ins.stars)}</span>
+    <span class="attn" title="activity, regardless of direction">활동 {ins.attention:.0%}</span>
+    <span class="stars" title="conviction · confidence {ins.confidence}">{_stars(ins.stars)}</span>
   </div>
   <ul class="reasons">{reasons}</ul>
 </div>"""
@@ -64,6 +65,7 @@ def build_report_html(
     cadence: str = "daily",
     historical: list[HistoricalInsight] | None = None,
 ) -> str:
+    cadence = html.escape(cadence)
     ordered = sorted(insights, key=lambda i: (-i.stars, i.symbol))
     if ordered:
         body = "\n".join(_card(i) for i in ordered)
@@ -90,7 +92,8 @@ def build_report_html(
  .card-head{{display:flex;align-items:center;gap:.6rem}}
  .sym{{font-weight:700;font-size:1.1rem}}
  .badge{{color:#fff;border-radius:6px;padding:.1rem .5rem;font-size:.8rem}}
- .stars{{color:#fbbf24;margin-left:auto;font-size:1.1rem}}
+ .attn{{margin-left:auto;color:#94a3b8;font-size:.8rem}}
+ .stars{{color:#fbbf24;font-size:1.1rem}}
  .reasons{{margin:.5rem 0 0;color:#cbd5e1;font-size:.9rem}}
  .examples{{color:#94a3b8;font-size:.82rem}}
  .evt{{color:#a5b4fc;font-size:.9rem}}

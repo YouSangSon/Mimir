@@ -64,8 +64,11 @@ class DartSource(BaseSource):
             code = item.get("stock_code")
             if code not in wanted:
                 continue
-            rcept_no = item["rcept_no"]
-            ts = datetime.strptime(item["rcept_dt"], "%Y%m%d").replace(tzinfo=UTC)
+            rcept_no = item.get("rcept_no")
+            rcept_dt = item.get("rcept_dt")
+            if not rcept_no or not rcept_dt:
+                continue  # missing keys: skip this item, don't abort the batch
+            ts = datetime.strptime(rcept_dt, "%Y%m%d").replace(tzinfo=UTC)
             yield RawRecord(
                 symbol=code,
                 ts=ts,

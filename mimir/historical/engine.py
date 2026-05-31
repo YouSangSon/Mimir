@@ -54,7 +54,7 @@ class HistoricalEngine:
         records = []
         for key, market in MARKET_BY_KEY.items():
             for symbol in watchlist.get(key, []):
-                series = price_series(self._reader, symbol)
+                series = price_series(self._reader, symbol, until=as_of)
                 if len(series) < 2:
                     continue
                 for event_type, detector in EVENT_DETECTORS.items():

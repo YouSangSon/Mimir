@@ -18,6 +18,11 @@ logger = logging.getLogger(__name__)
 
 def build_sources(settings: Settings) -> list[Source]:
     # Keyless (no signup): SEC EDGAR (UA only) and RSS (official feeds).
+    if "@" not in settings.sec_user_agent:
+        logger.warning(
+            "MIMIR_SEC_USER_AGENT has no contact email; SEC EDGAR may return 403. "
+            "Set it to e.g. 'Your Name you@example.com'."
+        )
     sources: list[Source] = [
         SecEdgarSource(user_agent=settings.sec_user_agent),
         RssSource(),

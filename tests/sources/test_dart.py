@@ -63,3 +63,32 @@ def test_dart_meta():
     assert DartSource.meta.dataset is Dataset.FILINGS
     assert DartSource.meta.legal_status is LegalStatus.OFFICIAL
     assert DartSource.meta.requires_secret == "DART_API_KEY"
+
+
+@responses.activate
+def test_dart_error_status_raises():
+    import pytest
+
+    from mimir.core.errors import FetchError
+
+    responses.add(
+        responses.GET,
+        "https://opendart.fss.or.kr/api/list.json",
+        body=json.dumps({"status": "010", "message": "등록되지 않은 키입니다."}),
+        status=200,
+    )
+    src = DartSource(api_key="dummy", session=requests.Session())
+    with pytest.raises(FetchError):
+        list(src.fetch(_ctx()))
+
+
+@responses.activate
+def test_dart_no_data_status_is_empty():
+    responses.add(
+        responses.GET,
+        "https://opendart.fss.or.kr/api/list.json",
+        body=json.dumps({"status": "013", "message": "조회된 데이터가 없습니다."}),
+        status=200,
+    )
+    src = DartSource(api_key="dummy", session=requests.Session())
+    assert list(src.fetch(_ctx())) == []

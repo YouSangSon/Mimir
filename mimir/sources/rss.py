@@ -65,11 +65,15 @@ class RssSource(BaseSource):
             parsed = self._parse_fn(resp.text)
             for entry in parsed.entries:
                 link = entry.get("link")
-                if not link:
+                ts = _entry_ts(entry)
+                if not link or ts is None:
+                    # No stable publish date -> skip. Stamping ctx.now would land
+                    # the same article in a different partition each run, defeating
+                    # dedup and inflating news-volume counts.
                     continue
                 yield RawRecord(
                     symbol=None,
-                    ts=_entry_ts(entry, ctx.now),
+                    ts=ts,
                     idempotency_key=f"rss:{link}",
                     payload={
                         "title": entry.get("title"),
@@ -82,9 +86,9 @@ class RssSource(BaseSource):
                 )
 
 
-def _entry_ts(entry: Any, fallback: datetime) -> datetime:
+def _entry_ts(entry: Any) -> datetime | None:
     parsed = entry.get("published_parsed")
     if parsed is not None:
         # feedparser normalizes published_parsed to UTC; timegm treats it as UTC.
         return datetime.fromtimestamp(calendar.timegm(parsed), tz=UTC)
-    return fallback
+    return None

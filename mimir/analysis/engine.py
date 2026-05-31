@@ -44,6 +44,7 @@ class AnalysisEngine:
                     direction=sc.direction,
                     stars=sc.stars,
                     confidence=sc.confidence,
+                    attention=sc.attention,
                     signals=results,
                     reasons=sc.reasons,
                 )

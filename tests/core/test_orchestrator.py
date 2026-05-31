@@ -70,3 +70,42 @@ def test_records_are_persisted(tmp_path: Path):
     orch.run(Cadence.DAILY, _ctx())
     keys = {r.idempotency_key for r in store.read_all(Dataset.PRICES)}
     assert keys == {"ok:AAPL:1"}
+
+
+class _TwoRecordSource:
+    meta = _meta("two")
+
+    def fetch(self, ctx: FetchContext):
+        for i in (1, 2):
+            yield RawRecord(
+                symbol="AAPL",
+                ts=datetime(2026, 5, 29, tzinfo=UTC),
+                idempotency_key=f"two:AAPL:{i}",
+                payload={"close": float(i)},
+            )
+
+
+def test_one_invalid_record_is_counted_not_fatal(tmp_path: Path, monkeypatch):
+    # The orchestrator's core resilience guarantee: a bad record is counted as
+    # invalid and skipped, but the good ones in the same batch still persist.
+    from mimir.core import orchestrator as orch_mod
+    from mimir.core.errors import NormalizationError
+
+    real = orch_mod.normalize
+    calls = {"n": 0}
+
+    def flaky_normalize(raw, meta, *, captured_at):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise NormalizationError("bad record")
+        return real(raw, meta, captured_at=captured_at)
+
+    monkeypatch.setattr(orch_mod, "normalize", flaky_normalize)
+    store = JsonlStore(root=tmp_path)
+    orch = Orchestrator(Registry([_TwoRecordSource()]), store, Manifest(root=tmp_path))
+    summary = orch.run(Cadence.DAILY, _ctx())
+    result = summary.results[0]
+    assert result.ok is True
+    assert result.fetched == 2
+    assert result.stored == 1
+    assert result.invalid == 1

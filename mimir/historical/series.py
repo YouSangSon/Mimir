@@ -13,10 +13,14 @@ class Bar(NamedTuple):
     volume: float | None
 
 
-def price_series(reader: DataReader, symbol: str) -> list[Bar]:
-    """Chronologically ordered close/volume bars for a symbol from stored prices."""
+def price_series(reader: DataReader, symbol: str, until: date | None = None) -> list[Bar]:
+    """Chronologically ordered close/volume bars for a symbol from stored prices.
+
+    `until` bounds the series to bars on/before that date, so an event-study run
+    with a past as_of cannot see future bars (no look-ahead on replay/backfill).
+    """
     bars: list[Bar] = []
-    for rec in sorted(reader.read(Dataset.PRICES, symbol=symbol), key=lambda r: r.ts):
+    for rec in sorted(reader.read(Dataset.PRICES, symbol=symbol, until=until), key=lambda r: r.ts):
         close = rec.payload.get("close")
         if close is None:
             continue

@@ -64,6 +64,8 @@ class SecEdgarSource(BaseSource):
         dates = recent.get("filingDate", [])
         docs = recent.get("primaryDocument", [])
         for i, accession in enumerate(accessions):
+            if i >= len(dates) or not dates[i]:
+                continue  # malformed parallel arrays: skip rather than abort the batch
             day = dates[i]
             ts = datetime.strptime(day, "%Y-%m-%d").replace(tzinfo=UTC)
             no_dashes = accession.replace("-", "")
