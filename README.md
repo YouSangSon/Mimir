@@ -7,11 +7,11 @@
 KR·US 시장의 공개 데이터(공시·가격·거시·뉴스)를 GitHub Actions에서 무료로 수집해<br/>
 repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 리포트로 만들어 텔레그램으로 전달하는 파이프라인.
 
-![status](https://img.shields.io/badge/status-S1%E2%80%93S3%20implemented-7c3aed)
+![status](https://img.shields.io/badge/status-S1%E2%80%93S4%20implemented-7c3aed)
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-84%20passing%20%C2%B7%2091%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-94%20passing%20%C2%B7%2090%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -183,6 +183,7 @@ mimir.collect  --cadence {hourly|daily|weekly|monthly} [--config-dir config]
 mimir.backfill --source <id> --since YYYY-MM-DD [--config-dir config]
 mimir.analyze  [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
 mimir.deliver  [--cadence daily] [--date YYYY-MM-DD] [--reports-root reports]
+mimir.history  [--symbol S] [--date YYYY-MM-DD] [--data-root data]
 ```
 
 ```bash
@@ -225,7 +226,7 @@ TDD를 따르며, HTTP 소스는 `responses`로, pykrx 같은 라이브러리 �
 | **S1 Collector** | 데이터 수집 & 저장 (7개 소스, git-as-DB, cron) | ✅ 완료 (Inc 1+2) |
 | **S2 Analysis & Scoring** | 규칙 기반 → 하이브리드 ⭐별점(방향성+확신도) 인사이트 | ✅ 구현 (규칙 기반, LLM 후속) |
 | **S3 Delivery & Reporting** | 풍부한 일일 HTML 리포트 + 매시간/매일/매주/매월 텔레그램 다이제스트 | ✅ 구현 |
-| **S4 Historical / Event-Analog** | "과거 비슷한 일이 있었을 때 어떤 종목이 올랐/내렸나" | 계획 |
+| **S4 Historical / Event-Analog** | "과거 비슷한 일이 있었을 때 어떤 종목이 올랐/내렸나" | ✅ 구현 (event-study) |
 | **S5 Automated Trading** | 전략·체결·리스크(페이퍼 먼저). 분석은 시그널만 발행, 실행 엔진이 소비 | 미래 |
 
 전체 그림은 [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md)를 기준으로 관리한다.
@@ -238,7 +239,7 @@ TDD를 따르며, HTTP 소스는 `responses`로, pykrx 같은 라이브러리 �
 | :--- | :--- |
 | **인사이트/별점** | S2 진행 예정 — 현재는 원천 데이터 수집까지 |
 | **KR 가격** | pykrx는 GRAY·선택 설치(`[kr]`). 키 없이 동작하는 가격원은 Stooq(무료 apikey 필요) |
-| **과거패턴 분석** | S4 — 백필로 이력을 쌓은 뒤 구축 |
+| **과거패턴 분석** | S4 구현(event-study). 표본 `n`이 충분한 가격 이력이 필요 — 백필 권장 |
 | **자동매매** | S5(미래). 지금은 경계만 설계(분석/실행 분리) |
 | **API 한도** | 일부 무료 키의 일일 한도는 발급 콘솔에서 확인 필요 |
 
@@ -252,6 +253,7 @@ TDD를 따르며, HTTP 소스는 `responses`로, pykrx 같은 라이브러리 �
 | [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector 설계(아키텍처·소스 카탈로그·완료기준) |
 | [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring 설계(시그널·스코어러·Insight) |
 | [`docs/superpowers/specs/2026-05-31-delivery-design.md`](docs/superpowers/specs/2026-05-31-delivery-design.md) | S3 Delivery & Reporting 설계(HTML 리포트·다이제스트) |
+| [`docs/superpowers/specs/2026-05-31-historical-design.md`](docs/superpowers/specs/2026-05-31-historical-design.md) | S4 Historical / Event-Analog 설계(이벤트·사후수익) |
 | [`docs/superpowers/plans/2026-05-31-s1-collector.md`](docs/superpowers/plans/2026-05-31-s1-collector.md) | S1 구현 계획(TDD, 태스크별) |
 | [`.env.example`](.env.example) | 필요한(선택) 무료 키 목록 |
 
