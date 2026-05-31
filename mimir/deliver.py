@@ -10,6 +10,7 @@ from typing import Any
 from mimir.analysis.reader import DataReader
 from mimir.analysis.schema import Insight
 from mimir.core.source import Dataset
+from mimir.historical.schema import HistoricalInsight
 from mimir.report.daily_report import (
     DEFAULT_REPORTS_ROOT,
     build_report_html,
@@ -39,8 +40,10 @@ def run_deliver(
     reader = DataReader(JsonlStore(root=data_root))
     records = reader.read(Dataset.INSIGHTS, since=as_of, until=as_of)
     insights = [Insight.model_validate(r.payload) for r in records]
+    hist_records = reader.read(Dataset.HISTORICAL, since=as_of, until=as_of)
+    historical = [HistoricalInsight.model_validate(r.payload) for r in hist_records]
 
-    html_doc = build_report_html(insights, as_of, cadence)
+    html_doc = build_report_html(insights, as_of, cadence, historical=historical)
     report_path = save_report(html_doc, as_of, reports_root)
     rebuild_index(reports_root)
 
@@ -49,7 +52,9 @@ def run_deliver(
     sent = send_ping(
         bot_token=settings.telegram_bot_token, chat_id=settings.telegram_chat_id, text=digest
     )
-    return DeliveryResult(report=report_path, insights=len(insights), sent=sent)
+    return DeliveryResult(
+        report=report_path, insights=len(insights), historical=len(historical), sent=sent
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
