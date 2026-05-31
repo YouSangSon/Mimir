@@ -1,8 +1,8 @@
-name: collect-daily
+name: collect-hourly
 on:
   schedule:
-    - cron: "23 21 * * 1-5"   # 21:23 UTC weekdays (off-peak minute); adjust as needed
-  workflow_dispatch:           # allow manual runs
+    - cron: "37 * * * *"   # every hour at :37 (off-peak minute; cron is best-effort)
+  workflow_dispatch:
 
 concurrency:
   group: collect
@@ -29,12 +29,12 @@ jobs:
           MIMIR_SEC_USER_AGENT: ${{ secrets.MIMIR_SEC_USER_AGENT }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python -m mimir.collect --cadence daily
+        run: python -m mimir.collect --cadence hourly
       - name: Commit data
         run: |
           git config user.name "mimir-bot"
           git config user.email "actions@users.noreply.github.com"
           git add data reports
-          git commit -m "data: daily $(date -u +%FT%TZ)" || exit 0
+          git commit -m "data: hourly $(date -u +%FT%TZ)" || exit 0
           git pull --rebase
           git push
