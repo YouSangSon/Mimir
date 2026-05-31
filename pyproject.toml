@@ -2,7 +2,7 @@
 name = "mimir"
 version = "0.1.0"
 description = "Free, legal investment-insight data collector"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "requests>=2.32",
     "pydantic>=2.7",
@@ -29,13 +29,13 @@ include = ["mimir*"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.14"
 strict = true
 ignore_missing_imports = true
 
