@@ -83,6 +83,21 @@ def test_ecos_redacts_api_key_in_http_errors():
     assert "***" in str(ei.value)
 
 
+@responses.activate
+def test_ecos_paginates_via_list_total_count():
+    def _row(t):
+        return {"STAT_CODE": "722Y001", "ITEM_CODE1": "0101000", "ITEM_NAME1": "기준금리",
+                "TIME": t, "DATA_VALUE": "3.50", "UNIT_NAME": "%"}
+
+    page1 = {"StatisticSearch": {"list_total_count": 150, "row": [_row("202601")]}}
+    page2 = {"StatisticSearch": {"list_total_count": 150, "row": [_row("202602")]}}
+    responses.add(responses.GET, URL_RE, body=json.dumps(page1), status=200)
+    responses.add(responses.GET, URL_RE, body=json.dumps(page2), status=200)
+    src = EcosSource(api_key="dummy", series=SERIES, session=requests.Session())
+    recs = list(src.fetch(_ctx()))
+    assert {r.payload["time"] for r in recs} == {"202601", "202602"}
+
+
 def test_ecos_meta():
     assert EcosSource.meta.market is Market.KR
     assert EcosSource.meta.dataset is Dataset.MACRO

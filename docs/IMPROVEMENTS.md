@@ -12,7 +12,7 @@
 - [x] **H3 RSS `ts=now` 폴백**: 발행일 없는 항목이 dedup 무력화·뉴스량 부풀림. → 발행일 없으면 skip.
 - [x] **H2 과거패턴 look-ahead**: `price_series`가 `as_of` 무시. → `until=as_of` 전달 + `triggered_today`를 as_of 기준으로.
 - [ ] **R1 news_volume 실데이터 무력**: 티커가 공식 피드 헤드라인에 안 나옴 + 짧은 티커 오매칭 + 발행일 윈도우. → 회사명 alias 맵 + 단어경계 매칭 + `captured_at` 윈도우 또는 종목별 피드. (LLM 시그널로 대체 가능 — 하이브리드 후속) **[후속: 설계 필요]**
-- [ ] **R2b DART/SEC 페이지네이션·백필**: DART는 시장 전체 100건만(워치리스트 누락); SEC는 `backfill_since` 무시 + 50건 캡(`files[]` 미사용). → DART는 corp_code별 조회 또는 `total_page` 루프; SEC는 `ctx` 주입 + `files[]` 페이징. **[후속: 소스 리워크]**
+- [x] **R2b DART/SEC 페이지네이션·백필**: DART는 `total_page` 루프(MAX_PAGES 가드)로 전 페이지 순회; SEC는 `ctx` 주입 + 백필 시 `files[]` 아카이브 페이징 + `filingDate >= since` 필터(50건 캡 제거). (Inc.3)
 - [x] **P-H1 DataReader 전체 재스캔**: → `JsonlStore.read_window(since,until)` 파티션 프루닝(S2 핫패스), S4는 PRICES 1회 읽어 symbol 버킷팅(load-once). (실행당 캐시는 `run.py` 단일 프로세스로 부분 완화)
 
 ## 🟡 MEDIUM
@@ -20,7 +20,7 @@
 - [x] **SEC UA 검증**: 기본 UA(@ 없음)는 403 가능. → `build_sources`에서 UA에 `@` 없으면 경고 로그.
 - [x] **cadence 미이스케이프 + deliver --cadence choices 없음**: → `html.escape(cadence)` + `choices`.
 - [x] **백필 격리/매니페스트**: `backfill`에 레코드별 `NormalizationError` 가드 추가(skip+count). (매니페스트는 후속)
-- [ ] **ECOS 페이지네이션**: 100행 캡(일간/장기 백필 손실). → `list_total_count` 루프. **[후속: 소스 리워크 H-C와 함께]**
+- [x] **ECOS 페이지네이션**: `list_total_count` 기반 인덱스 페이지 루프(MAX_PAGES 가드)로 100행 캡 제거. (Inc.3)
 - [x] **dedup first-write-wins (재생성 데이터셋)**: insights/historical은 `append(overwrite=True)`로 last-write-wins(당일 재실행=최신). 거시 개정(FRED/ECOS, orchestrator append-only)은 후속.
 - [x] **MIN_OCCURRENCES가 horizon별 n 미보장**: `summarize(min_n=)` + 엔진 `MIN_HORIZON_N=2`로 horizon별 최소 표본 게이트.
 

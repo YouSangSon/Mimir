@@ -1,5 +1,5 @@
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import requests
 import responses
@@ -55,3 +55,46 @@ def test_sec_edgar_emits_recent_filings():
 def test_sec_edgar_meta():
     assert SecEdgarSource.meta.dataset is Dataset.FILINGS
     assert SecEdgarSource.meta.legal_status is LegalStatus.OFFICIAL
+
+
+SUBMISSIONS_WITH_FILES = {
+    "filings": {
+        "recent": {
+            "accessionNumber": ["0000320193-26-000050"],
+            "form": ["8-K"],
+            "filingDate": ["2026-05-29"],
+            "primaryDocument": ["aapl-2026.htm"],
+        },
+        "files": [{"name": "CIK0000320193-submissions-001.json"}],
+    }
+}
+ARCHIVE_BLOCK = {
+    "accessionNumber": ["0000320193-19-000010"],
+    "form": ["10-K"],
+    "filingDate": ["2019-10-31"],
+    "primaryDocument": ["aapl-2019.htm"],
+}
+
+
+@responses.activate
+def test_sec_edgar_backfill_reads_archive_files():
+    responses.add(responses.GET, "https://www.sec.gov/files/company_tickers.json",
+                  body=json.dumps(TICKERS), status=200)
+    responses.add(responses.GET, "https://data.sec.gov/submissions/CIK0000320193.json",
+                  body=json.dumps(SUBMISSIONS_WITH_FILES), status=200)
+    responses.add(
+        responses.GET,
+        "https://data.sec.gov/submissions/CIK0000320193-submissions-001.json",
+        body=json.dumps(ARCHIVE_BLOCK),
+        status=200,
+    )
+    ctx = FetchContext(
+        watchlist={"us": ["AAPL"]},
+        now=datetime(2026, 5, 31, tzinfo=UTC),
+        backfill_since=date(2018, 1, 1),
+    )
+    src = SecEdgarSource(session=requests.Session(), user_agent="Mimir test@example.com")
+    recs = list(src.fetch(ctx))
+    accessions = {r.payload["accession"] for r in recs}
+    # both the recent filing and the older archived filing are returned
+    assert accessions == {"0000320193-26-000050", "0000320193-19-000010"}

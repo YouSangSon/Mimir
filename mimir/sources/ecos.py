@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import UTC, date, datetime
+from typing import Any
 
 import requests
 from pydantic import BaseModel
@@ -22,6 +23,8 @@ from mimir.sources.base import BaseSource
 
 BASE_URL = "https://ecos.bok.or.kr/api/StatisticSearch"
 NO_DATA_CODE = "INFO-200"
+PAGE_SIZE = 100
+MAX_PAGES = 100  # safety cap on pagination
 
 
 class EcosSeries(BaseModel):
@@ -82,14 +85,20 @@ class EcosSource(BaseSource):
         start = ctx.backfill_since or date(ctx.now.year - 1, 1, 1)
         end = ctx.now.date()
         for s in self._series:
+            yield from self._fetch_series(s, start, end)
+
+    def _fetch_series(self, s: EcosSeries, start: date, end: date) -> Iterable[RawRecord]:
+        page_start = 1
+        for _ in range(MAX_PAGES):
+            page_end = page_start + PAGE_SIZE - 1
             url = "/".join(
                 [
                     BASE_URL,
                     self._api_key,
                     "json",
                     "kr",
-                    "1",
-                    "100",
+                    str(page_start),
+                    str(page_end),
                     s.stat_code,
                     s.cycle,
                     _fmt(start, s.cycle),
@@ -108,23 +117,35 @@ class EcosSource(BaseSource):
             if "RESULT" in data:
                 code = data["RESULT"].get("CODE", "")
                 if code.startswith(NO_DATA_CODE):
-                    continue
+                    return
                 raise FetchError(f"ECOS error {code}: {data['RESULT'].get('MESSAGE')}")
-            for row in data.get("StatisticSearch", {}).get("row", []):
-                value = row.get("DATA_VALUE")
-                t = row.get("TIME")
-                if not t or value in (None, ""):
-                    continue
-                yield RawRecord(
-                    symbol=f"{s.stat_code}.{s.item_code}",
-                    ts=_parse_time(t),
-                    idempotency_key=f"ecos:{s.stat_code}:{s.item_code}:{t}",
-                    payload={
-                        "stat_code": s.stat_code,
-                        "item_code": s.item_code,
-                        "item_name": row.get("ITEM_NAME1"),
-                        "value": float(value),
-                        "unit": row.get("UNIT_NAME"),
-                        "time": t,
-                    },
-                )
+            search = data.get("StatisticSearch", {})
+            rows = search.get("row", [])
+            for row in rows:
+                rec = self._row_to_record(s, row)
+                if rec is not None:
+                    yield rec
+            total = int(search.get("list_total_count", 0) or 0)
+            if not rows or page_end >= total:
+                return
+            page_start = page_end + 1
+
+    @staticmethod
+    def _row_to_record(s: EcosSeries, row: dict[str, Any]) -> RawRecord | None:
+        value = row.get("DATA_VALUE")
+        t = row.get("TIME")
+        if not t or value is None or value == "":
+            return None
+        return RawRecord(
+            symbol=f"{s.stat_code}.{s.item_code}",
+            ts=_parse_time(t),
+            idempotency_key=f"ecos:{s.stat_code}:{s.item_code}:{t}",
+            payload={
+                "stat_code": s.stat_code,
+                "item_code": s.item_code,
+                "item_name": row.get("ITEM_NAME1"),
+                "value": float(value),
+                "unit": row.get("UNIT_NAME"),
+                "time": t,
+            },
+        )
