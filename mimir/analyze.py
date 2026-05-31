@@ -4,23 +4,15 @@ import argparse
 import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any
-
-import yaml
 
 from mimir.analysis.builder import build_signals
 from mimir.analysis.engine import AnalysisEngine
 from mimir.analysis.schema import Insight
+from mimir.config import load_watchlist
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.reader import DataReader
 
 DEFAULT_DATA_ROOT = Path("data")
-
-
-def _load_yaml(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
 def run_analyze(
@@ -43,10 +35,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-root", default=str(DEFAULT_DATA_ROOT))
     args = parser.parse_args(argv)
 
-    watchlist = _load_yaml(Path(args.config_dir) / "watchlist.yaml") or {"us": [], "kr": []}
     as_of = date.fromisoformat(args.date) if args.date else None
     insights = run_analyze(
-        watchlist=watchlist, data_root=Path(args.data_root), as_of=as_of
+        watchlist=load_watchlist(Path(args.config_dir)),
+        data_root=Path(args.data_root),
+        as_of=as_of,
     )
     for ins in insights:
         stars = "★" * ins.stars + "☆" * (5 - ins.stars)

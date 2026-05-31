@@ -4,21 +4,13 @@ import argparse
 import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any
 
-import yaml
-
+from mimir.config import load_watchlist
 from mimir.historical.engine import HistoricalEngine
 from mimir.historical.schema import HistoricalInsight
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.paths import DEFAULT_ROOT
 from mimir.storage.reader import DataReader
-
-
-def _load_yaml(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
 def run_history(
@@ -45,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.symbol:
         watchlist = {"us": [args.symbol], "kr": [args.symbol]}
     else:
-        watchlist = _load_yaml(Path(args.config_dir) / "watchlist.yaml") or {"us": [], "kr": []}
+        watchlist = load_watchlist(Path(args.config_dir))
 
     as_of = date.fromisoformat(args.date) if args.date else None
     insights = run_history(watchlist=watchlist, data_root=Path(args.data_root), as_of=as_of)
