@@ -30,6 +30,13 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python -m mimir.collect --cadence monthly
+      - name: Analyze & deliver
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python -m mimir.analyze
+          python -m mimir.deliver --cadence monthly
       - name: Commit data
         run: |
           git config user.name "mimir-bot"
