@@ -1,5 +1,6 @@
-import pytest
 from datetime import UTC, datetime
+
+import pytest
 
 from mimir.core.errors import NormalizationError
 from mimir.core.normalize import normalize

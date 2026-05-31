@@ -1,31 +1,32 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date, datetime
-from enum import Enum
-from typing import Any, Iterable, Protocol, runtime_checkable
+from enum import StrEnum
+from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel
 
 
-class Cadence(str, Enum):
+class Cadence(StrEnum):
     HOURLY = "hourly"
     DAILY = "daily"
     WEEKLY = "weekly"
     MONTHLY = "monthly"
 
 
-class LegalStatus(str, Enum):
+class LegalStatus(StrEnum):
     OFFICIAL = "official"
     GRAY = "gray"
 
 
-class Market(str, Enum):
+class Market(StrEnum):
     US = "US"
     KR = "KR"
     GLOBAL = "GLOBAL"
 
 
-class Dataset(str, Enum):
+class Dataset(StrEnum):
     PRICES = "prices"
     FILINGS = "filings"
     MACRO = "macro"

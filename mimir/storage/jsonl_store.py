@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable, Iterator
 from pathlib import Path
-from typing import Iterable, Iterator
 
 from mimir.core.source import Dataset
 from mimir.storage.paths import DEFAULT_ROOT, partition_path

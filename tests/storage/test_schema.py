@@ -1,6 +1,6 @@
-import pytest
 from datetime import UTC, datetime
 
+import pytest
 from pydantic import ValidationError
 
 from mimir.core.source import Dataset, Market
