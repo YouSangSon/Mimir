@@ -2,7 +2,6 @@ import itertools
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from mimir.analysis.reader import DataReader
 from mimir.analysis.signals.base import SignalDirection
 from mimir.analysis.signals.filing_event import FilingEventSignal
 from mimir.analysis.signals.macro_regime import MacroRegimeSignal
@@ -10,6 +9,7 @@ from mimir.analysis.signals.news_volume import NewsVolumeSignal
 from mimir.analysis.signals.price_momentum import PriceMomentumSignal
 from mimir.core.source import Dataset, Market
 from mimir.storage.jsonl_store import JsonlStore
+from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
 
 AS_OF = date(2026, 5, 31)

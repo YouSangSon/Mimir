@@ -47,3 +47,19 @@ def test_read_all_yields_records(tmp_path: Path):
     store.append([_rec("k1", 29), _rec("k2", 30)])
     keys = {r.idempotency_key for r in store.read_all(Dataset.PRICES)}
     assert keys == {"k1", "k2"}
+
+
+def test_read_window_prunes_to_date_range(tmp_path: Path):
+    from datetime import date
+
+    store = JsonlStore(root=tmp_path)
+    store.append([_rec("k27", 27), _rec("k29", 29), _rec("k31", 31)])
+    # both bounds -> only partitions in [29, 30] are opened
+    keys = {
+        r.idempotency_key
+        for r in store.read_window(Dataset.PRICES, since=date(2026, 5, 29), until=date(2026, 5, 30))
+    }
+    assert keys == {"k29"}
+    # until-only fallback still cuts off later partitions
+    keys2 = {r.idempotency_key for r in store.read_window(Dataset.PRICES, until=date(2026, 5, 29))}
+    assert keys2 == {"k27", "k29"}

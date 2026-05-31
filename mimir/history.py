@@ -8,11 +8,11 @@ from typing import Any
 
 import yaml
 
-from mimir.analysis.reader import DataReader
 from mimir.historical.engine import HistoricalEngine
 from mimir.historical.schema import HistoricalInsight
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.paths import DEFAULT_ROOT
+from mimir.storage.reader import DataReader
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:

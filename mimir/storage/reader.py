@@ -8,7 +8,11 @@ from mimir.storage.schema import Record
 
 
 class DataReader:
-    """Read-only access to S1's stored JSONL, filtered by dataset/symbol/date window."""
+    """Read-only access to stored JSONL, filtered by dataset/symbol/date window.
+
+    Date bounds are pushed down to the store for partition pruning; the exact
+    `since`/`until` and `symbol` filters are re-applied here as a correctness guard.
+    """
 
     def __init__(self, store: JsonlStore) -> None:
         self._store = store
@@ -22,7 +26,7 @@ class DataReader:
         until: date | None = None,
     ) -> list[Record]:
         out: list[Record] = []
-        for rec in self._store.read_all(dataset):
+        for rec in self._store.read_window(dataset, since=since, until=until):
             if symbol is not None and rec.symbol != symbol:
                 continue
             day = rec.ts.date()
