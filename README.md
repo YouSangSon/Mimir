@@ -7,11 +7,11 @@
 KR·US 시장의 공개 데이터(공시·가격·거시·뉴스)를 GitHub Actions에서 무료로 수집해<br/>
 repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 리포트로 만들어 텔레그램으로 전달하는 파이프라인.
 
-![status](https://img.shields.io/badge/status-S1%20collector%20complete-7c3aed)
+![status](https://img.shields.io/badge/status-S1%20collector%20%2B%20S2%20scoring-7c3aed)
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-56%20passing%20%C2%B7%2092%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-77%20passing%20%C2%B7%2092%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -181,11 +181,14 @@ flowchart LR
 ```text
 mimir.collect  --cadence {hourly|daily|weekly|monthly} [--config-dir config]
 mimir.backfill --source <id> --since YYYY-MM-DD [--config-dir config]
+mimir.analyze  [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
 ```
 
 ```bash
 .venv/bin/python -m mimir.collect --cadence daily
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
+.venv/bin/python -m mimir.analyze --date 2026-05-31
+#   [mimir] AAPL bullish ★★★★☆ (conf 0.85)
 ```
 
 ---
@@ -215,7 +218,7 @@ TDD를 따르며, HTTP 소스는 `responses`로, pykrx 같은 라이브러리 �
 | 스펙 | 내용 | 상태 |
 | :--- | :--- | :--- |
 | **S1 Collector** | 데이터 수집 & 저장 (7개 소스, git-as-DB, cron) | ✅ 완료 (Inc 1+2) |
-| **S2 Analysis & Scoring** | 규칙 기반 → 하이브리드 ⭐별점(방향성+확신도) 인사이트 | 🔜 다음 |
+| **S2 Analysis & Scoring** | 규칙 기반 → 하이브리드 ⭐별점(방향성+확신도) 인사이트 | ✅ 구현 (규칙 기반, LLM 후속) |
 | **S3 Delivery & Reporting** | 풍부한 일일 HTML 리포트 + 매시간/매일/매주/매월 텔레그램 다이제스트 | 계획 |
 | **S4 Historical / Event-Analog** | "과거 비슷한 일이 있었을 때 어떤 종목이 올랐/내렸나" | 계획 |
 | **S5 Automated Trading** | 전략·체결·리스크(페이퍼 먼저). 분석은 시그널만 발행, 실행 엔진이 소비 | 미래 |
@@ -242,6 +245,7 @@ TDD를 따르며, HTTP 소스는 `responses`로, pykrx 같은 라이브러리 �
 | :--- | :--- |
 | [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) | 전체 프로그램 분해와 단계별 가치 전달 |
 | [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector 설계(아키텍처·소스 카탈로그·완료기준) |
+| [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring 설계(시그널·스코어러·Insight) |
 | [`docs/superpowers/plans/2026-05-31-s1-collector.md`](docs/superpowers/plans/2026-05-31-s1-collector.md) | S1 구현 계획(TDD, 태스크별) |
 | [`.env.example`](.env.example) | 필요한(선택) 무료 키 목록 |
 
