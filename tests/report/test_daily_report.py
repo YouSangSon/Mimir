@@ -21,15 +21,34 @@ def _insight(symbol="AAPL", stars=4, direction=SignalDirection.BULLISH) -> Insig
 
 
 def test_build_report_html_contains_insight():
-    h = build_report_html([_insight()], date(2026, 5, 31))
+    h = build_report_html([_insight()], date(2026, 5, 31))  # default lang = en
     assert "AAPL" in h
-    assert "강세" in h
+    assert "Bullish" in h
     assert "★★★★☆" in h
     assert "not financial advice" in h.lower()
 
 
 def test_build_report_html_empty_is_graceful():
     h = build_report_html([], date(2026, 5, 31))
+    assert "Nothing notable" in h
+
+
+def test_build_report_html_korean():
+    h = build_report_html([_insight()], date(2026, 5, 31), lang="ko")
+    assert 'lang="ko"' in h
+    assert "강세" in h  # Bullish
+    assert "투자 자문이 아닙니다" in h  # disclaimer
+
+
+def test_build_report_html_chinese():
+    h = build_report_html([_insight()], date(2026, 5, 31), lang="zh")
+    assert 'lang="zh"' in h
+    assert "看涨" in h  # Bullish
+    assert "不构成投资建议" in h  # disclaimer
+
+
+def test_build_report_html_empty_korean():
+    h = build_report_html([], date(2026, 5, 31), lang="ko")
     assert "특이사항 없음" in h
 
 

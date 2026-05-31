@@ -70,10 +70,10 @@ def test_run_deliver_includes_historical_section(tmp_path: Path):
         as_of=date(2026, 5, 31),
     )
     assert result["historical"] == 1
-    html = (reports_root / "2026/05/31.html").read_text()
-    assert "과거 사례" in html
+    html = (reports_root / "2026/05/31.html").read_text()  # default lang = en
+    assert "Historical cases" in html
     assert "sharp_drop" in html
-    assert "오늘 발생" in html  # triggered_today badge
+    assert "Triggered today" in html  # triggered_today badge
 
 
 def test_run_deliver_empty_is_graceful(tmp_path: Path):

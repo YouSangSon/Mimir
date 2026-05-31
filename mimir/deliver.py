@@ -17,6 +17,7 @@ from mimir.report.daily_report import (
     save_report,
 )
 from mimir.report.digest import build_digest
+from mimir.report.i18n import DEFAULT_LANG
 from mimir.report.telegram import send_ping
 from mimir.settings import Settings
 from mimir.storage.jsonl_store import JsonlStore
@@ -35,6 +36,7 @@ def run_deliver(
     data_root: Path = DEFAULT_ROOT,
     reports_root: Path = DEFAULT_REPORTS_ROOT,
     as_of: date | None = None,
+    lang: str = DEFAULT_LANG,
 ) -> DeliveryResult:
     as_of = as_of or datetime.now(UTC).date()
     reader = DataReader(JsonlStore(root=data_root))
@@ -43,12 +45,12 @@ def run_deliver(
     hist_records = reader.read(Dataset.HISTORICAL, since=as_of, until=as_of)
     historical = [HistoricalInsight.model_validate(r.payload) for r in hist_records]
 
-    html_doc = build_report_html(insights, as_of, cadence, historical=historical)
+    html_doc = build_report_html(insights, as_of, cadence, historical=historical, lang=lang)
     report_path = save_report(html_doc, as_of, reports_root)
-    rebuild_index(reports_root)
+    rebuild_index(reports_root, lang)
 
     settings = Settings.from_env(env)
-    digest = build_digest(insights, cadence, as_of)
+    digest = build_digest(insights, cadence, as_of, lang=lang)
     sent = send_ping(
         bot_token=settings.telegram_bot_token, chat_id=settings.telegram_chat_id, text=digest
     )
@@ -63,10 +65,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--date", help="YYYY-MM-DD (default: today UTC)")
     parser.add_argument("--data-root", default=str(DEFAULT_ROOT))
     parser.add_argument("--reports-root", default=str(DEFAULT_REPORTS_ROOT))
+    parser.add_argument("--config-dir", default="config")
     args = parser.parse_args(argv)
 
     import os
 
+    from mimir.config import load_sources_config
+
+    lang = load_sources_config(Path(args.config_dir)).get("lang", DEFAULT_LANG)
     as_of = date.fromisoformat(args.date) if args.date else None
     result = run_deliver(
         cadence=args.cadence,
@@ -74,6 +80,7 @@ def main(argv: list[str] | None = None) -> int:
         data_root=Path(args.data_root),
         reports_root=Path(args.reports_root),
         as_of=as_of,
+        lang=lang,
     )
     print(
         f"[mimir] deliver {args.cadence}: {result['insights']} insight(s) -> "

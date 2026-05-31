@@ -23,3 +23,24 @@ def test_render_writes_html_with_counts(tmp_path: Path):
     assert "dart" in html
     assert "boom" in html
     assert "not financial advice" in html.lower()
+
+
+def test_render_status_html_translated(tmp_path: Path):
+    run = RunRecord(
+        ran_at=datetime(2026, 5, 31, 12, 0, tzinfo=UTC),
+        cadence=Cadence.DAILY,
+        results=[SourceResult(source="stooq", ok=True, fetched=2, stored=2)],
+    )
+    out_ko = tmp_path / "ko.html"
+    render_status_html(run, out_ko, lang="ko")
+    ko = out_ko.read_text()
+    assert 'lang="ko"' in ko
+    assert "수집 상태" in ko  # collection status
+    assert "마지막 실행" in ko  # last run (exercises {time}/{cadence} format)
+    assert "수집=2 저장=2" in ko  # fetched/stored detail format
+
+    out_zh = tmp_path / "zh.html"
+    render_status_html(run, out_zh, lang="zh")
+    zh = out_zh.read_text()
+    assert 'lang="zh"' in zh
+    assert "采集状态" in zh
