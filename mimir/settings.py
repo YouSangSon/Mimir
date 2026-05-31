@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from collections.abc import Mapping
 
+from dotenv import find_dotenv, load_dotenv
 from pydantic import BaseModel
 
 DEFAULT_SEC_UA = "Mimir/0.1 (set MIMIR_SEC_USER_AGENT to your contact email)"
@@ -19,7 +20,13 @@ class Settings(BaseModel):
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Settings:
-        env = env if env is not None else os.environ
+        if env is None:
+            # Local convenience: populate os.environ from a (gitignored) .env file
+            # found from the current working directory upward. override=False ->
+            # real env vars (CI Secrets / exported) always win; in CI there is no
+            # .env so this is a no-op.
+            load_dotenv(find_dotenv(usecwd=True), override=False)
+            env = os.environ
         return cls(
             stooq_api_key=env.get("STOOQ_API_KEY"),
             dart_api_key=env.get("DART_API_KEY"),
