@@ -7,9 +7,14 @@ dependencies = [
     "requests>=2.32",
     "pydantic>=2.7",
     "pyyaml>=6.0",
+    "feedparser>=6.0",
 ]
 
 [project.optional-dependencies]
+# KR prices via pykrx (GRAY: scraping). Pulls pandas. Install with: pip install -e ".[kr]"
+kr = [
+    "pykrx>=1.0.45",
+]
 dev = [
     "pytest>=8.2",
     "responses>=0.25",

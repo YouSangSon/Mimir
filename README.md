@@ -16,7 +16,7 @@ Named after Mímir, the keeper of the well of wisdom in Norse myth.
 
 | Layer | Spec | State |
 |---|---|---|
-| **S1 Collector** — data collection & storage | [spec](docs/superpowers/specs/2026-05-31-collector-design.md) · [plan](docs/superpowers/plans/2026-05-31-s1-collector.md) | **Increment 1 implemented** |
+| **S1 Collector** — data collection & storage | [spec](docs/superpowers/specs/2026-05-31-collector-design.md) · [plan](docs/superpowers/plans/2026-05-31-s1-collector.md) | **Increments 1 + 2 implemented** |
 | S2 Analysis & Scoring (⭐) | — | planned |
 | S3 Delivery & Reporting (Telegram + HTML) | — | planned |
 | S4 Historical / Event-Analog | — | planned |
@@ -24,17 +24,22 @@ Named after Mímir, the keeper of the well of wisdom in Norse myth.
 
 See the full [program roadmap](docs/architecture/roadmap.md).
 
-### What Increment 1 collects
+### What S1 collects
 
-| Source | Market | Data | Auth | Legal |
-|---|---|---|---|---|
-| **SEC EDGAR** | 🇺🇸 US | filings (10-K/Q, 8-K) | User-Agent only (no signup) | ✅ official |
-| **Stooq** | 🇺🇸 US | EOD prices (OHLCV) | free `apikey` (captcha-issued) | ✅ free |
-| **DART** | 🇰🇷 KR | disclosures | free API key | ✅ official |
+| Source | Market | Dataset | Cadence | Auth | Legal |
+|---|---|---|---|---|---|
+| **SEC EDGAR** | 🇺🇸 US | filings (10-K/Q, 8-K) | daily | User-Agent only (no signup) | ✅ official |
+| **RSS** | 🌐 | news headlines | hourly | none (official feeds) | ✅ official |
+| **Stooq** | 🇺🇸 US | EOD prices (OHLCV) | daily | free `apikey` (captcha-issued) | ✅ free |
+| **DART** | 🇰🇷 KR | disclosures | daily | free API key | ✅ official |
+| **FRED** | 🇺🇸 US | macro series | daily | free API key | ✅ official |
+| **ECOS** | 🇰🇷 KR | macro series | daily | free API key | ✅ official |
+| **pykrx** | 🇰🇷 KR | OHLCV prices | daily | none (`pip install -e '.[kr]'`) | ⚠️ gray (scraping) |
 
-Out of the box (no keys) only **SEC EDGAR** runs. Add the free keys to enable
-Stooq and DART. KR prices (pykrx), macro (FRED/ECOS), and news arrive in
-Increment 2.
+Out of the box (no keys, package not installed) **SEC EDGAR + RSS** run. Add the
+free keys to enable Stooq/DART/FRED/ECOS; install the `kr` extra and keep
+`gray_enabled: true` for pykrx. `pykrx` is a scraping gray area — throttled,
+internal-analysis only, and switchable off via `gray_enabled: false`.
 
 ---
 
