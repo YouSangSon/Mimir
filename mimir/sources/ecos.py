@@ -97,7 +97,14 @@ class EcosSource(BaseSource):
                     s.item_code,
                 ]
             )
-            data = self.get(url).json()
+            try:
+                resp = self.get(url)
+            except FetchError as exc:
+                # ECOS embeds the key in the URL path, which http_get includes in
+                # its error message; redact it so the secret never reaches logs/
+                # the manifest/status.html/the committed repo.
+                raise FetchError(str(exc).replace(self._api_key, "***")) from None
+            data = resp.json()
             if "RESULT" in data:
                 code = data["RESULT"].get("CODE", "")
                 if code.startswith(NO_DATA_CODE):

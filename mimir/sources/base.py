@@ -33,7 +33,9 @@ def http_get(
         else:
             if resp.status_code < 400:
                 return resp
-            if 400 <= resp.status_code < 500:
+            # 429 (rate-limited) and 5xx are transient -> retry with backoff;
+            # other 4xx are caller errors -> fail fast.
+            if resp.status_code != 429 and 400 <= resp.status_code < 500:
                 raise FetchError(f"{url} -> HTTP {resp.status_code}")
             last_exc = FetchError(f"{url} -> HTTP {resp.status_code}")
         if attempt < max_retries:

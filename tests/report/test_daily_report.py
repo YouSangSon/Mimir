@@ -33,6 +33,15 @@ def test_build_report_html_empty_is_graceful():
     assert "특이사항 없음" in h
 
 
+def test_build_report_html_escapes_untrusted_data():
+    # A malicious filing name / news title must not inject markup into the report.
+    evil = _insight()
+    evil.reasons = ["<script>alert(1)</script>"]
+    h = build_report_html([evil], date(2026, 5, 31))
+    assert "<script>alert(1)</script>" not in h
+    assert "&lt;script&gt;" in h
+
+
 def test_save_report_and_rebuild_index(tmp_path: Path):
     save_report(build_report_html([_insight()], date(2026, 5, 31)), date(2026, 5, 31), tmp_path)
     assert (tmp_path / "2026/05/31.html").exists()

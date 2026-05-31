@@ -19,6 +19,7 @@ class Insight(BaseModel):
     direction: SignalDirection
     stars: int
     confidence: float
+    attention: float = 0.0
     signals: list[SignalResult]
     reasons: list[str]
     disclaimer: str = DISCLAIMER

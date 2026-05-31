@@ -72,6 +72,17 @@ def test_ecos_error_result_raises():
         list(src.fetch(_ctx()))
 
 
+@responses.activate
+def test_ecos_redacts_api_key_in_http_errors():
+    # The key lives in the URL path; an HTTP error must not leak it downstream.
+    responses.add(responses.GET, URL_RE, status=404)
+    src = EcosSource(api_key="SECRETKEY123", series=SERIES, session=requests.Session())
+    with pytest.raises(FetchError) as ei:
+        list(src.fetch(_ctx()))
+    assert "SECRETKEY123" not in str(ei.value)
+    assert "***" in str(ei.value)
+
+
 def test_ecos_meta():
     assert EcosSource.meta.market is Market.KR
     assert EcosSource.meta.dataset is Dataset.MACRO
