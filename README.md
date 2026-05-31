@@ -2,121 +2,123 @@
 
 # 🧭 Mimir
 
-**무료로, 합법적으로 모은 공개 데이터에서 투자 인사이트를 길어 올린다.**
+**English** · [한국어](README.ko.md) · [中文](README.zh.md)
 
-KR·US 시장의 공개 데이터(공시·가격·거시·뉴스)를 GitHub Actions에서 무료로 수집해<br/>
-repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 리포트로 만들어 텔레그램으로 전달하는 파이프라인.
+**Drawing investment insight from public data gathered for free and legally.**
+
+A pipeline that collects public data from the KR and US markets (filings, prices, macro, news) for free on GitHub Actions,<br/>
+stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rated insights and daily reports delivered over Telegram.
 
 ![status](https://img.shields.io/badge/status-S1%E2%80%93S4%20implemented-7c3aed)
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-103%20passing%20%C2%B7%2091%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-122%20passing%20%C2%B7%2091%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
-[🚀 빠른 시작](#-빠른-시작) · [✨ 주요 기능](#-주요-기능) · [🗃️ 데이터 소스](#️-데이터-소스) · [🧱 아키텍처](#-아키텍처) · [⏰ 스케줄 & 저장](#-스케줄--저장) · [🔒 합법성 & 안전](#-합법성--안전) · [🗺️ Roadmap](#️-roadmap) · [📚 더 읽기](#-더-읽기)
+[🚀 Quick Start](#-quick-start) · [✨ Features](#-features) · [🗃️ Data Sources](#️-data-sources) · [🧱 Architecture](#-architecture) · [⏰ Schedule & Storage](#-schedule--storage) · [🔒 Legality & Safety](#-legality--safety) · [🗺️ Roadmap](#️-roadmap) · [📚 Further Reading](#-further-reading)
 
 </div>
 
 ---
 
-> **왜 필요한가** — 투자 판단의 재료(공시, 가격, 금리, 뉴스)는 여러 곳에 흩어져 있고, 유료 데이터 벤더나 ToS를 어기는 스크래핑에 의존하기 쉽다. Mimir는 *공식 무료 API 우선*으로 합법적으로만 모아, 상시 서버 없이 GitHub Actions에서 돌리고, 데이터를 repo에 버전 관리되는 JSONL로 쌓는다. 그 위에 ⭐별점 인사이트·과거 사례 분석·일일 HTML 리포트·텔레그램 전달을 올리고, 최종적으로 분석과 실행을 분리한 자동매매의 기반이 된다.
+> **Why it matters** — The raw materials of an investment decision (filings, prices, interest rates, news) are scattered across many places, and it's easy to fall back on paid data vendors or scraping that violates Terms of Service. Mimir gathers everything legally, with a *free official API first* approach, runs on GitHub Actions without an always-on server, and accumulates the data in the repo as version-controlled JSONL. On top of that it layers ⭐ star-rated insights, historical-analog analysis, daily HTML reports, and Telegram delivery — ultimately becoming the foundation for automated trading that keeps analysis and execution separate.
 
-Mímir는 북유럽 신화에서 지혜의 샘을 지키는 존재다.
+Mímir is the guardian of the well of wisdom in Norse mythology.
 
 ---
 
-## 🚀 빠른 시작
+## 🚀 Quick Start
 
-### 요구사항
+### Requirements
 
-| 항목 | 필요 조건 | 비고 |
+| Item | Requirement | Notes |
 | :--- | :--- | :--- |
-| **Python** | `>=3.14` | `.tool-versions`로 asdf 핀(3.14.5) |
-| **가상환경** | `.venv` | `python -m venv .venv` |
-| **저장소** | 로컬 read/write | `data/`·`reports/`에 수집물·리포트 생성 |
-| **API 키** | 전부 선택 | 키 없으면 해당 소스는 스킵(매니페스트에 기록). 키 없이도 SEC EDGAR + RSS 동작 |
-| **GitHub** | 공개 repo 권장 | 공개 repo면 Actions 분(分) 무제한 |
+| **Python** | `>=3.14` | Pinned for asdf via `.tool-versions` (3.14.5) |
+| **Virtualenv** | `.venv` | `python -m venv .venv` |
+| **Repository** | Local read/write | Collected data and reports are written to `data/` and `reports/` |
+| **API keys** | All optional | Without a key, that source is skipped (recorded in the manifest). SEC EDGAR + RSS work even with no keys |
+| **GitHub** | Public repo recommended | Public repos get unlimited Actions minutes |
 
 ```bash
-# 1. 설치
+# 1. Install
 python -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
 
-# 2. 설정
-cp .env.example .env          # 원하는 무료 키만 채우면 됨 (자동 로드됨, gitignore됨)
-#   config/watchlist.yaml      추적 종목(US 티커 / KR 종목코드)
-#   config/sources.yaml        소스 on/off · GRAY 소스 정책
+# 2. Configure
+cp .env.example .env          # fill in only the free keys you want (auto-loaded, gitignored)
+#   config/watchlist.yaml      tracked symbols (US tickers / KR stock codes)
+#   config/sources.yaml        source on/off · GRAY source policy
 
-# 3. 전체 파이프라인 실행 (수집→분석→과거패턴→리포트)
+# 3. Run the full pipeline (collect → analyze → historical patterns → report)
 .venv/bin/python -m mimir.run --cadence daily   # cadence: hourly|daily|weekly|monthly
-#   또는 단계별로: mimir.collect / mimir.analyze / mimir.history / mimir.deliver
+#   or step by step: mimir.collect / mimir.analyze / mimir.history / mimir.deliver
 ```
 
-`.env`는 실행 시 현재 디렉터리에서 자동 로드된다(키는 절대 커밋되지 않음). CI에서는 GitHub Actions Secrets가 우선한다.
+`.env` is auto-loaded from the current directory at runtime (keys are never committed). In CI, GitHub Actions Secrets take precedence.
 
-과거 이력을 한 번에 적재(backfill)한다.
+Backfill historical data in one pass.
 
 ```bash
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
 ```
 
-수집 결과는 repo에 쌓이고, 최신 실행 현황은 한 장의 HTML로 본다.
+Collection results accumulate in the repo, and you can view the latest run status as a single HTML page.
 
 ```text
-data/<dataset>/YYYY/MM/DD.jsonl   # 수집물 (append-only)
-data/_manifest/YYYY/MM/DD.jsonl   # 실행 로그
-reports/status.html               # 소스별 수집 현황
+data/<dataset>/YYYY/MM/DD.jsonl   # collected data (append-only)
+data/_manifest/YYYY/MM/DD.jsonl   # run log
+reports/status.html               # per-source collection status
 ```
 
-> 💡 `collect`는 일부 소스가 실패해도 나머지를 계속 수집하고, 실패를 매니페스트에 남긴 뒤 exit code `1`로 신호한다. 한 소스의 장애가 파이프라인 전체를 멈추지 않는다.
+> 💡 If some sources fail, `collect` keeps collecting the rest, records the failures in the manifest, and signals with exit code `1`. A single source's outage does not halt the whole pipeline.
 
 ---
 
-## ✨ 주요 기능
+## ✨ Features
 
-### 🔌 수집 (Collector)
+### 🔌 Collection (Collector)
 
-| 기능 | 동작 |
+| Feature | Behavior |
 | :--- | :--- |
-| **소스 어댑터** | 공통 `Source` 프로토콜 뒤에 7개 소스를 격리 구현 (소스 추가 = 파일 하나 + 등록) |
-| **소스 격리** | 한 소스의 실패·포맷 변경이 다른 소스나 전체 실행을 멈추지 않음 |
-| **정규화 envelope** | 모든 소스가 pydantic으로 검증되는 공통 레코드로 수렴 (`prices`·`filings`·`macro`·`news`) |
-| **멱등 저장** | 같은 수집을 다시 돌려도 `idempotency_key`로 중복 없이 append |
-| **스로틀 + 합법성** | 소스별 `rate_limit`·`legal_status`를 코드로 강제 |
-| **백필** | Stooq·FRED·ECOS 등에서 과거 이력을 일괄 적재해 과거패턴 분석을 앞당김 |
+| **Source adapters** | 7 sources implemented in isolation behind a shared `Source` protocol (adding a source = one file + registration) |
+| **Source isolation** | One source's failure or format change never halts another source or the whole run |
+| **Normalized envelope** | Every source converges to a common record validated with pydantic (`prices` · `filings` · `macro` · `news`) |
+| **Idempotent storage** | Re-running the same collection appends without duplicates thanks to the `idempotency_key` |
+| **Throttle + legality** | Per-source `rate_limit` and `legal_status` are enforced in code |
+| **Backfill** | Bulk-loads historical data from Stooq, FRED, ECOS, and others to jump-start historical-pattern analysis |
 
-### ⏱️ 스케줄 & 전달
+### ⏱️ Schedule & Delivery
 
-| 기능 | 동작 |
+| Feature | Behavior |
 | :--- | :--- |
-| **무료 cron** | GitHub Actions `hourly/daily/weekly/monthly` 워크플로 (정시 혼잡을 피한 오프셋 분) |
-| **git-as-DB 커밋백** | 수집 후 데이터를 repo로 커밋(`concurrency` 가드 + rebase) |
-| **최소 가시성** | 데이터 현황 HTML + (옵션) "수집 완료" 텔레그램 핑 |
-| **시크릿 분리** | API 키·봇 토큰은 GitHub Actions Secrets로만, 절대 커밋하지 않음 |
+| **Free cron** | GitHub Actions `hourly/daily/weekly/monthly` workflows (offset minutes to avoid top-of-the-hour congestion) |
+| **git-as-DB commit-back** | After collection, data is committed back to the repo (`concurrency` guard + rebase) |
+| **Minimal visibility** | Data-status HTML + (optional) "collection complete" Telegram ping |
+| **Secret separation** | API keys and bot tokens live only in GitHub Actions Secrets, never committed |
 
 ---
 
-## 🗃️ 데이터 소스
+## 🗃️ Data Sources
 
-모든 소스는 무료이며, 합법성을 *소스 단위*로 판단한다. 공식 API를 우선하고, 스크래핑(pykrx)은 ⚠️로 명시하고 토글 가능하게 둔다.
+Every source is free, and legality is judged *per source*. Official APIs come first; scraping (pykrx) is flagged with ⚠️ and kept toggleable.
 
-| 소스 | 시장 | 데이터셋 | cadence | 인증 | 합법성 |
+| Source | Market | Dataset | Cadence | Auth | Legality |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **SEC EDGAR** | 🇺🇸 US | filings (10-K/Q·8-K) | daily | User-Agent만 (가입 불필요) | ✅ 공식(스크립트 접근 명시 허용) |
-| **RSS** | 🌐 | news 헤드라인 | hourly | 불필요 (공식 피드) | ✅ 공식 |
-| **Stooq** | 🇺🇸 US | EOD 가격(OHLCV) | daily | 무료 `apikey`(캡차 발급) | ✅ 무료 |
-| **DART** | 🇰🇷 KR | 공시 | daily | 무료 API 키 | ✅ 공식 |
-| **FRED** | 🇺🇸 US | 거시 시계열 | daily | 무료 API 키 | ✅ 공식 |
-| **ECOS** | 🇰🇷 KR | 거시 시계열 | daily | 무료 API 키 | ✅ 공식 |
-| **pykrx** | 🇰🇷 KR | OHLCV 가격 | daily | 불필요 (`pip install -e '.[kr]'`) | ⚠️ 그레이(스크래핑) |
+| **SEC EDGAR** | 🇺🇸 US | filings (10-K/Q · 8-K) | daily | User-Agent only (no signup) | ✅ Official (scripted access explicitly allowed) |
+| **RSS** | 🌐 | news headlines | hourly | None (official feeds) | ✅ Official |
+| **Stooq** | 🇺🇸 US | EOD prices (OHLCV) | daily | Free `apikey` (issued via captcha) | ✅ Free |
+| **DART** | 🇰🇷 KR | filings | daily | Free API key | ✅ Official |
+| **FRED** | 🇺🇸 US | macro time series | daily | Free API key | ✅ Official |
+| **ECOS** | 🇰🇷 KR | macro time series | daily | Free API key | ✅ Official |
+| **pykrx** | 🇰🇷 KR | OHLCV prices | daily | None (`pip install -e '.[kr]'`) | ⚠️ Gray (scraping) |
 
-키·패키지가 없으면 **SEC EDGAR + RSS**만 즉시 동작한다. 무료 키를 넣으면 Stooq/DART/FRED/ECOS가 켜지고, `[kr]` extra를 설치하면 pykrx가 켜진다. `yfinance`(야후)는 ToS가 자동수집을 금지하므로 1차 가격원에서 제외했다.
+With no keys or packages, only **SEC EDGAR + RSS** work right away. Adding free keys turns on Stooq/DART/FRED/ECOS, and installing the `[kr]` extra turns on pykrx. `yfinance` (Yahoo) is excluded as a primary price source because its ToS prohibits automated collection.
 
 ---
 
-## 🧱 아키텍처
+## 🧱 Architecture
 
 ```mermaid
 flowchart LR
@@ -125,7 +127,7 @@ flowchart LR
     Sources["sources/<br/>EDGAR · RSS · Stooq · DART<br/>FRED · ECOS · pykrx"]
     Core["core/<br/>registry · orchestrator · throttle · normalize"]
     Store["storage/<br/>JSONL (git-as-DB)"]
-    Manifest["manifest/<br/>실행 로그"]
+    Manifest["manifest/<br/>run log"]
     Report["report/<br/>status HTML · Telegram"]
 
     Cron --> Core
@@ -138,44 +140,44 @@ flowchart LR
     Manifest --> Report
 ```
 
-| 개념 | 설명 |
+| Concept | Description |
 | :--- | :--- |
-| **Source** | `fetch(ctx) → Iterable[RawRecord]`와 메타(market·dataset·cadence·legal·rate_limit)를 가진 어댑터 |
-| **RawRecord → Record** | 소스별 원본을 공통 envelope로 정규화(pydantic 검증), `idempotency_key`로 멱등 |
-| **Registry** | cadence와 GRAY 정책으로 "이번 틱에 돌릴 소스"를 선택 |
-| **Orchestrator** | 선택 → 스로틀 → fetch → 정규화 → 저장 → 매니페스트 (소스별 격리) |
-| **JsonlStore** | `data/<dataset>/YYYY/MM/DD.jsonl` 날짜 파티션 append-only 저장 |
-| **Manifest** | 매 실행을 한 줄씩 기록(무엇을·언제·몇 건·성공 여부) — 데이터 신뢰성의 근거 |
+| **Source** | An adapter with `fetch(ctx) → Iterable[RawRecord]` and metadata (market · dataset · cadence · legal · rate_limit) |
+| **RawRecord → Record** | Normalizes each source's raw output into the common envelope (validated with pydantic), made idempotent via `idempotency_key` |
+| **Registry** | Selects "which sources run this tick" based on cadence and GRAY policy |
+| **Orchestrator** | Select → throttle → fetch → normalize → store → manifest (isolated per source) |
+| **JsonlStore** | Append-only storage in date-partitioned `data/<dataset>/YYYY/MM/DD.jsonl` |
+| **Manifest** | Records every run one line at a time (what · when · how many · success or not) — the basis for data trustworthiness |
 
-소스 추가는 `sources/`에 어댑터 하나 + 빌더 등록으로 끝나고, 상위 레이어(분석·매매)는 저장된 envelope만 읽는다.
+Adding a source is done with a single adapter in `sources/` plus a builder registration, and the upper layers (analysis, trading) read only the stored envelope.
 
 ---
 
-## ⏰ 스케줄 & 저장
+## ⏰ Schedule & Storage
 
-| cadence | 워크플로 | 주 용도 |
+| Cadence | Workflow | Main use |
 | :--- | :--- | :--- |
-| **hourly** | `collect-hourly.yml` | 뉴스(RSS) |
-| **daily** | `collect-daily.yml` | 가격 EOD · 공시 · 거시 |
-| **weekly** | `collect-weekly.yml` | 저빈도 정리(예약) |
-| **monthly** | `collect-monthly.yml` | 저빈도 거시(예약) |
+| **hourly** | `collect-hourly.yml` | News (RSS) |
+| **daily** | `collect-daily.yml` | EOD prices · filings · macro |
+| **weekly** | `collect-weekly.yml` | Low-frequency cleanup (reserved) |
+| **monthly** | `collect-monthly.yml` | Low-frequency macro (reserved) |
 
-- **GitHub cron은 best-effort** — 정시(`0 * * * *`)는 혼잡하므로 오프셋 분(`:23`, `:37` 등)을 쓴다.
-- **저장은 날짜 파티션 JSONL** — 텍스트라 diff 친화적이고 append가 순수 추가 diff가 되어 git 비대화를 막는다. (SQLite/Parquet 바이너리 커밋은 피한다.)
-- **공개 repo** 사용 시 Actions 분 무제한. 매 실행이 커밋하므로 60일 비활성 자동 비활성화에도 안 걸린다.
+- **GitHub cron is best-effort** — the top of the hour (`0 * * * *`) is congested, so offset minutes (`:23`, `:37`, etc.) are used.
+- **Storage is date-partitioned JSONL** — being text, it's diff-friendly, and an append becomes a pure additive diff, preventing git bloat. (Committing SQLite/Parquet binaries is avoided.)
+- With a **public repo**, Actions minutes are unlimited. Since every run commits, it never trips the 60-day-inactivity auto-disable.
 
 ---
 
-## 🔒 합법성 & 안전
+## 🔒 Legality & Safety
 
-| 경계 | 동작 |
+| Boundary | Behavior |
 | :--- | :--- |
-| **소스 단위 합법성** | 각 소스가 `legal_status`(official/gray)·`rate_limit`을 메타로 들고 스로틀러가 강제 |
-| **공식 API 우선** | DART·SEC EDGAR·FRED·ECOS 같은 공식 무료 API를 1차로 사용 |
-| **GRAY 토글** | pykrx(스크래핑)는 스로틀 + 내부분석 한정, `sources.yaml`의 `gray_enabled: false`로 차단 가능 |
-| **시크릿 분리** | 모든 키/토큰은 `.env`(로컬)·Actions Secrets(CI)로만, 커밋 금지 |
-| **무침묵 실패** | 실패는 매니페스트에 기록하고 비제로 종료로 신호 — 조용히 삼키지 않음 |
-| **면책** | 모든 인사이트·평가에 "투자 권유가 아님(not financial advice)" 고지 포함 |
+| **Per-source legality** | Each source carries `legal_status` (official/gray) and `rate_limit` as metadata, enforced by the throttler |
+| **Official APIs first** | Official free APIs like DART, SEC EDGAR, FRED, and ECOS are used as the primary source |
+| **GRAY toggle** | pykrx (scraping) is throttled and limited to internal analysis; it can be blocked via `gray_enabled: false` in `sources.yaml` |
+| **Secret separation** | All keys/tokens live only in `.env` (local) and Actions Secrets (CI); never committed |
+| **No silent failures** | Failures are recorded in the manifest and signaled with a non-zero exit — never swallowed quietly |
+| **Disclaimer** | Every insight and rating includes a "not financial advice" notice |
 
 ---
 
@@ -190,79 +192,79 @@ mimir.history  [--symbol S] [--date YYYY-MM-DD] [--data-root data]
 ```
 
 ```bash
-.venv/bin/python -m mimir.collect --cadence daily     # 수집 → data/
-.venv/bin/python -m mimir.analyze --date 2026-05-31   # 분석 → insights/
+.venv/bin/python -m mimir.collect --cadence daily     # collect → data/
+.venv/bin/python -m mimir.analyze --date 2026-05-31   # analyze → insights/
 #   [mimir] AAPL bullish ★★★★☆ (conf 0.85)
-.venv/bin/python -m mimir.deliver --cadence daily     # 리포트+다이제스트
-#   reports/2026/05/31.html + reports/index.html (+ 텔레그램 발송)
+.venv/bin/python -m mimir.deliver --cadence daily     # report + digest
+#   reports/2026/05/31.html + reports/index.html (+ Telegram send)
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
 ```
 
-> 매일 워크플로는 `collect → analyze → deliver`를 체이닝하고 `data/`·`reports/`를 repo에 커밋한다. 일일 HTML 리포트는 `reports/YYYY/MM/DD.html`로 영구 보관되고 `reports/index.html`에서 열람한다.
+> The daily workflow chains `collect → analyze → deliver` and commits `data/` and `reports/` to the repo. The daily HTML report is kept permanently at `reports/YYYY/MM/DD.html` and browsed from `reports/index.html`.
 
 ---
 
-## 🧪 개발
+## 🧪 Development
 
 ```bash
 .venv/bin/ruff check .                          # lint (target py314)
-.venv/bin/mypy mimir                            # 타입 (strict)
-.venv/bin/coverage run -m pytest                # 테스트
-.venv/bin/coverage report --fail-under=80       # 커버리지 게이트
+.venv/bin/mypy mimir                            # types (strict)
+.venv/bin/coverage run -m pytest                # tests
+.venv/bin/coverage report --fail-under=80       # coverage gate
 ```
 
-| 항목 | 값 |
+| Item | Value |
 | :--- | :--- |
-| **테스트** | 56 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
-| **커버리지** | `mimir/` 92% (게이트 80%) |
+| **Tests** | 56 passing (adapters verified with recorded fixtures, no network) |
+| **Coverage** | `mimir/` 92% (gate 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
-| **CI** | `.github/workflows/ci.yml` — push/PR마다 lint·type·test·coverage |
+| **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |
 
-TDD를 따르며, HTTP 소스는 `responses`로, pykrx 같은 라이브러리 소스는 함수 주입으로 결정론적으로 테스트한다.
+It follows TDD, testing HTTP sources deterministically with `responses` and library sources like pykrx via function injection.
 
 ---
 
 ## 🗺️ Roadmap
 
-| 스펙 | 내용 | 상태 |
+| Spec | Description | Status |
 | :--- | :--- | :--- |
-| **S1 Collector** | 데이터 수집 & 저장 (7개 소스, git-as-DB, cron) | ✅ 완료 (Inc 1+2) |
-| **S2 Analysis & Scoring** | 규칙 기반 → 하이브리드 ⭐별점(방향성+확신도) 인사이트 | ✅ 구현 (규칙 기반, LLM 후속) |
-| **S3 Delivery & Reporting** | 풍부한 일일 HTML 리포트 + 매시간/매일/매주/매월 텔레그램 다이제스트 | ✅ 구현 |
-| **S4 Historical / Event-Analog** | "과거 비슷한 일이 있었을 때 어떤 종목이 올랐/내렸나" | ✅ 구현 (event-study) |
-| **S5 Automated Trading** | 전략·체결·리스크(페이퍼 먼저). 분석은 시그널만 발행, 실행 엔진이 소비 | 미래 |
+| **S1 Collector** | Data collection & storage (7 sources, git-as-DB, cron) | ✅ Done (Inc 1+2) |
+| **S2 Analysis & Scoring** | Rule-based → hybrid ⭐ star-rated insights (direction + confidence) | ✅ Implemented (rule-based, LLM to follow) |
+| **S3 Delivery & Reporting** | Rich daily HTML report + hourly/daily/weekly/monthly Telegram digest | ✅ Implemented |
+| **S4 Historical / Event-Analog** | "When something similar happened in the past, which stocks rose or fell?" | ✅ Implemented (event-study) |
+| **S5 Automated Trading** | Strategy, execution, risk (paper first). Analysis emits signals only; the execution engine consumes them | Future |
 
-전체 그림은 [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md)를 기준으로 관리한다.
-
----
-
-## ⚠️ 현재 한계
-
-| 영역 | 상태 |
-| :--- | :--- |
-| **인사이트/별점** | S2 진행 예정 — 현재는 원천 데이터 수집까지 |
-| **KR 가격** | pykrx는 GRAY·선택 설치(`[kr]`). 키 없이 동작하는 가격원은 Stooq(무료 apikey 필요) |
-| **과거패턴 분석** | S4 구현(event-study). 표본 `n`이 충분한 가격 이력이 필요 — 백필 권장 |
-| **자동매매** | S5(미래). 지금은 경계만 설계(분석/실행 분리) |
-| **API 한도** | 일부 무료 키의 일일 한도는 발급 콘솔에서 확인 필요 |
+The full picture is managed against [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md).
 
 ---
 
-## 📚 더 읽기
+## ⚠️ Current Limitations
 
-| 문서 | 내용 |
+| Area | Status |
 | :--- | :--- |
-| [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) | 전체 프로그램 분해와 단계별 가치 전달 |
-| [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector 설계(아키텍처·소스 카탈로그·완료기준) |
-| [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring 설계(시그널·스코어러·Insight) |
-| [`docs/superpowers/specs/2026-05-31-delivery-design.md`](docs/superpowers/specs/2026-05-31-delivery-design.md) | S3 Delivery & Reporting 설계(HTML 리포트·다이제스트) |
-| [`docs/superpowers/specs/2026-05-31-historical-design.md`](docs/superpowers/specs/2026-05-31-historical-design.md) | S4 Historical / Event-Analog 설계(이벤트·사후수익) |
-| [`docs/superpowers/specs/2026-05-31-trading-seam.md`](docs/superpowers/specs/2026-05-31-trading-seam.md) | S5 자동매매 seam(미래) — 분석/실행 분리·안전 모델 |
-| [`docs/superpowers/plans/2026-05-31-s1-collector.md`](docs/superpowers/plans/2026-05-31-s1-collector.md) | S1 구현 계획(TDD, 태스크별) |
-| [`.env.example`](.env.example) | 필요한(선택) 무료 키 목록 |
+| **Insights / star ratings** | S2 planned — currently only raw-data collection |
+| **KR prices** | pykrx is GRAY and optional to install (`[kr]`). The price source that works without keys is Stooq (free apikey required) |
+| **Historical-pattern analysis** | S4 implemented (event-study). Needs price history with a large enough sample `n` — backfill recommended |
+| **Automated trading** | S5 (future). For now only the boundary is designed (analysis/execution split) |
+| **API limits** | Daily limits for some free keys must be checked in the issuing console |
+
+---
+
+## 📚 Further Reading
+
+| Document | Contents |
+| :--- | :--- |
+| [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) | Full program breakdown and phased value delivery |
+| [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector design (architecture · source catalog · acceptance criteria) |
+| [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring design (signals · scorer · Insight) |
+| [`docs/superpowers/specs/2026-05-31-delivery-design.md`](docs/superpowers/specs/2026-05-31-delivery-design.md) | S3 Delivery & Reporting design (HTML report · digest) |
+| [`docs/superpowers/specs/2026-05-31-historical-design.md`](docs/superpowers/specs/2026-05-31-historical-design.md) | S4 Historical / Event-Analog design (events · post-event returns) |
+| [`docs/superpowers/specs/2026-05-31-trading-seam.md`](docs/superpowers/specs/2026-05-31-trading-seam.md) | S5 automated-trading seam (future) — analysis/execution split · safety model |
+| [`docs/superpowers/plans/2026-05-31-s1-collector.md`](docs/superpowers/plans/2026-05-31-s1-collector.md) | S1 implementation plan (TDD, per task) |
+| [`.env.example`](.env.example) | List of required (optional) free keys |
 
 ---
 
 ## License
 
-MIT License. 자세한 내용은 [`LICENSE`](LICENSE)를 확인해 주세요.
+MIT License. See [`LICENSE`](LICENSE) for details.

@@ -15,6 +15,7 @@ from mimir.core.source import Cadence
 from mimir.deliver import run_deliver
 from mimir.history import run_history
 from mimir.report.daily_report import DEFAULT_REPORTS_ROOT
+from mimir.report.i18n import DEFAULT_LANG
 from mimir.storage.paths import DEFAULT_ROOT
 
 
@@ -31,6 +32,7 @@ def run_pipeline(
     """Run the full cadence pipeline in one process: collect → analyze → history → deliver."""
     now = now or datetime.now(UTC)
     as_of: date = now.date()
+    lang = (sources_config or {}).get("lang", DEFAULT_LANG)
 
     collect_summary = run_collect(
         cadence=cadence,
@@ -44,7 +46,12 @@ def run_pipeline(
     insights = run_analyze(watchlist=watchlist, data_root=data_root, as_of=as_of, captured_at=now)
     historical = run_history(watchlist=watchlist, data_root=data_root, as_of=as_of, captured_at=now)
     delivery = run_deliver(
-        cadence=cadence, env=env, data_root=data_root, reports_root=reports_root, as_of=as_of
+        cadence=cadence,
+        env=env,
+        data_root=data_root,
+        reports_root=reports_root,
+        as_of=as_of,
+        lang=lang,
     )
     return {
         "collect_failures": collect_summary.had_failures,

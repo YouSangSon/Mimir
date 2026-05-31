@@ -14,6 +14,7 @@ from mimir.core.orchestrator import Orchestrator, RunSummary
 from mimir.core.registry import Registry
 from mimir.core.source import Cadence, FetchContext
 from mimir.manifest.manifest import Manifest, RunRecord
+from mimir.report.i18n import DEFAULT_LANG
 from mimir.report.status_html import render_status_html
 from mimir.report.telegram import send_ping
 from mimir.settings import Settings
@@ -36,6 +37,7 @@ def run_collect(
     now = now or datetime.now(UTC)
     settings = Settings.from_env(env)
     cfg = sources_config or {}
+    lang = cfg.get("lang", DEFAULT_LANG)
     registry = Registry(
         build_sources(settings),
         gray_enabled=cfg.get("gray_enabled", True),
@@ -49,7 +51,7 @@ def run_collect(
     summary = orchestrator.run(Cadence(cadence), ctx)
 
     render_status_html(
-        RunRecord(ran_at=now, cadence=Cadence(cadence), results=summary.results), status_path
+        RunRecord(ran_at=now, cadence=Cadence(cadence), results=summary.results), status_path, lang
     )
 
     ok = sum(1 for r in summary.results if r.ok)

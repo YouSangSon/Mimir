@@ -1,3 +1,4 @@
 # Toggle individual sources, and the global gray-source policy.
 gray_enabled: true        # set false to disable scraping-based (GRAY) sources like pykrx
 disabled_ids: []          # e.g. ["dart"] to turn one off
+lang: en                  # report/digest/status UI language: en | ko | zh

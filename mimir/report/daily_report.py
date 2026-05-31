@@ -5,17 +5,18 @@ import re
 from datetime import date
 from pathlib import Path
 
-from mimir.analysis.schema import DISCLAIMER, Insight
+from mimir.analysis.schema import Insight
 from mimir.analysis.signals.base import SignalDirection
 from mimir.historical.schema import HistoricalInsight
+from mimir.report.i18n import DEFAULT_LANG, t
 
 DEFAULT_REPORTS_ROOT = Path("reports")
 DATE_REPORT_RE = re.compile(r"\d{4}/\d{2}/\d{2}\.html$")
 
-DIRECTION_BADGE: dict[SignalDirection, tuple[str, str]] = {
-    SignalDirection.BULLISH: ("강세", "#16a34a"),
-    SignalDirection.BEARISH: ("약세", "#dc2626"),
-    SignalDirection.NEUTRAL: ("중립", "#6b7280"),
+DIRECTION_COLOR: dict[SignalDirection, str] = {
+    SignalDirection.BULLISH: "#16a34a",
+    SignalDirection.BEARISH: "#dc2626",
+    SignalDirection.NEUTRAL: "#6b7280",
 }
 
 
@@ -23,29 +24,40 @@ def _stars(n: int) -> str:
     return "★" * n + "☆" * (5 - n)
 
 
-def _card(ins: Insight) -> str:
-    label, color = DIRECTION_BADGE[ins.direction]
+def _card(ins: Insight, lang: str) -> str:
+    color = DIRECTION_COLOR[ins.direction]
+    label = t(f"direction_{ins.direction.value}", lang)
     reasons = "".join(f"<li>{html.escape(r)}</li>" for r in ins.reasons)
+    activity = t("activity_label", lang, pct=f"{ins.attention:.0%}")
     return f"""<div class="card">
   <div class="card-head">
     <span class="sym">{html.escape(ins.symbol)}</span>
     <span class="badge" style="background:{color}">{label}</span>
-    <span class="attn" title="activity, regardless of direction">활동 {ins.attention:.0%}</span>
-    <span class="stars" title="conviction · confidence {ins.confidence}">{_stars(ins.stars)}</span>
+    <span class="attn" title="{t("activity_tooltip", lang)}">{activity}</span>
+    <span class="stars" title="{t("conviction_tooltip", lang, confidence=ins.confidence)}">\
+{_stars(ins.stars)}</span>
   </div>
   <ul class="reasons">{reasons}</ul>
 </div>"""
 
 
-def _historical_card(h: HistoricalInsight) -> str:
+def _historical_card(h: HistoricalInsight, lang: str) -> str:
     trig = (
-        ' <span class="badge" style="background:#7c3aed">오늘 발생</span>'
+        f' <span class="badge" style="background:#7c3aed">{t("triggered_today_badge", lang)}</span>'
         if h.triggered_today
         else ""
     )
     rows = "".join(
-        f"<li>{s.horizon}d: median {s.median_return * 100:+.1f}%, "
-        f"양봉 {s.pct_positive * 100:.0f}% (n={s.n})</li>"
+        "<li>"
+        + t(
+            "historical_horizon_row",
+            lang,
+            horizon=s.horizon,
+            median=f"{s.median_return * 100:+.1f}",
+            pct_positive=f"{s.pct_positive * 100:.0f}",
+            n=s.n,
+        )
+        + "</li>"
         for s in h.horizons
     )
     examples = "".join(f"<li>{html.escape(e)}</li>" for e in h.examples)
@@ -64,26 +76,27 @@ def build_report_html(
     as_of: date,
     cadence: str = "daily",
     historical: list[HistoricalInsight] | None = None,
+    lang: str = DEFAULT_LANG,
 ) -> str:
     cadence = html.escape(cadence)
     ordered = sorted(insights, key=lambda i: (-i.stars, i.symbol))
     if ordered:
-        body = "\n".join(_card(i) for i in ordered)
+        body = "\n".join(_card(i, lang) for i in ordered)
     else:
-        body = '<p class="empty">특이사항 없음 — 오늘 생성된 인사이트가 없습니다.</p>'
+        body = f'<p class="empty">{t("report_empty", lang)}</p>'
     meta = (
-        f'{as_of.isoformat()} · {len(ordered)} insight(s) · '
-        f'<a href="../../index.html">← 전체 리포트</a>'
+        f"{as_of.isoformat()} · {t('report_meta_insight_count', lang, count=len(ordered))} · "
+        f'<a href="../../index.html">{t("report_meta_all_reports_link", lang)}</a>'
     )
     hist = historical or []
     if hist:
-        cards = "\n".join(_historical_card(h) for h in hist)
-        historical_section = f'<h2>📈 과거 사례 (event-study)</h2>\n{cards}'
+        cards = "\n".join(_historical_card(h, lang) for h in hist)
+        historical_section = f"<h2>{t('historical_section_heading', lang)}</h2>\n{cards}"
     else:
         historical_section = ""
     return f"""<!doctype html>
-<html lang="ko"><head><meta charset="utf-8">
-<title>Mimir {cadence} report {as_of.isoformat()}</title>
+<html lang="{lang}"><head><meta charset="utf-8">
+<title>{t("report_page_title", lang, cadence=cadence, date=as_of.isoformat())}</title>
 <style>
  body{{font-family:system-ui,-apple-system,sans-serif;margin:2rem;background:#0b0f17;color:#e5e7eb}}
  h1{{font-size:1.4rem}} a{{color:#7c3aed}}
@@ -102,11 +115,11 @@ def build_report_html(
  .dis{{color:#6b7280;font-size:.8rem;margin-top:2rem;border-top:1px solid #1f2937;padding-top:1rem}}
 </style></head>
 <body>
-<h1>🧭 Mimir — {cadence} report</h1>
+<h1>{t("report_heading", lang, cadence=cadence)}</h1>
 <p class="meta">{meta}</p>
 {body}
 {historical_section}
-<p class="dis">{DISCLAIMER}</p>
+<p class="dis">{t("disclaimer_report", lang)}</p>
 </body></html>"""
 
 
@@ -117,7 +130,7 @@ def save_report(html_doc: str, as_of: date, root: Path = DEFAULT_REPORTS_ROOT) -
     return path
 
 
-def rebuild_index(root: Path = DEFAULT_REPORTS_ROOT) -> Path:
+def rebuild_index(root: Path = DEFAULT_REPORTS_ROOT, lang: str = DEFAULT_LANG) -> Path:
     if not root.exists():
         root.mkdir(parents=True, exist_ok=True)
     reports = sorted(
@@ -130,12 +143,12 @@ def rebuild_index(root: Path = DEFAULT_REPORTS_ROOT) -> Path:
         f"{p.relative_to(root).as_posix().replace('.html', '').replace('/', '-')}</a></li>"
         for p in reports
     )
-    body = items or '<li class="empty">아직 리포트가 없습니다.</li>'
+    body = items or f'<li class="empty">{t("index_empty", lang)}</li>'
     doc = f"""<!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><title>Mimir reports</title>
+<html lang="{lang}"><head><meta charset="utf-8"><title>{t("index_page_title", lang)}</title>
 <style>body{{font-family:system-ui,sans-serif;margin:2rem;background:#0b0f17;color:#e5e7eb}}
 a{{color:#7c3aed}} li{{margin:.3rem 0}}</style></head>
-<body><h1>🧭 Mimir — reports</h1><ul>
+<body><h1>{t("index_heading", lang)}</h1><ul>
 {body}
 </ul></body></html>"""
     index = root / "index.html"
