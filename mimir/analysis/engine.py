@@ -50,5 +50,6 @@ class AnalysisEngine:
                 )
                 insights.append(insight)
                 records.append(to_record(insight, captured_at))
-        self._store.append(records)
+        # insights are regenerated each run -> last-write-wins (newest computation)
+        self._store.append(records, overwrite=True)
         return insights

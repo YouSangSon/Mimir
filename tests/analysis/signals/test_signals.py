@@ -81,6 +81,12 @@ def test_news_volume_none_when_no_mentions(tmp_path: Path):
     assert NewsVolumeSignal().evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs)) is None
 
 
+def test_news_volume_word_boundary_avoids_substring_match(tmp_path: Path):
+    # ticker "A" must NOT match the "A" inside "Apple" (word-boundary matching).
+    recs = [_rec(Dataset.NEWS, None, 31, {"title": "Apple announced earnings", "summary": ""})]
+    assert NewsVolumeSignal().evaluate("A", Market.US, AS_OF, _reader(tmp_path, recs)) is None
+
+
 def test_macro_regime_rising_rate_is_bearish(tmp_path: Path):
     recs = [
         _rec(Dataset.MACRO, "FEDFUNDS", 1, {"value": 4.0}),

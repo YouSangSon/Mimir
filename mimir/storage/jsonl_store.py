@@ -26,23 +26,54 @@ class JsonlStore:
             return set()
         return {rec.idempotency_key for rec in self._read_file(path)}
 
-    def append(self, records: Iterable[Record]) -> int:
+    def append(self, records: Iterable[Record], *, overwrite: bool = False) -> int:
+        """Persist records into date partitions.
+
+        Default is append-only with first-write-wins dedup (raw collected data is
+        immutable). `overwrite=True` gives last-write-wins by rewriting the
+        partition — use it for regenerated datasets (insights/historical) so a
+        same-day re-run reflects the newest computation instead of the first.
+        """
         by_path: dict[Path, list[Record]] = defaultdict(list)
         for rec in records:
             by_path[partition_path(rec.dataset, rec.ts.date(), self._root)].append(rec)
 
-        appended = 0
+        written = 0
         for path, recs in by_path.items():
             path.parent.mkdir(parents=True, exist_ok=True)
-            seen = self._existing_keys(path)
-            with path.open("a", encoding="utf-8") as fh:
-                for rec in recs:
-                    if rec.idempotency_key in seen:
-                        continue
-                    fh.write(rec.model_dump_json() + "\n")
-                    seen.add(rec.idempotency_key)
-                    appended += 1
+            written += (
+                self._append_overwrite(path, recs)
+                if overwrite
+                else self._append_only(path, recs)
+            )
+        return written
+
+    def _append_only(self, path: Path, recs: list[Record]) -> int:
+        seen = self._existing_keys(path)
+        appended = 0
+        with path.open("a", encoding="utf-8") as fh:
+            for rec in recs:
+                if rec.idempotency_key in seen:
+                    continue
+                fh.write(rec.model_dump_json() + "\n")
+                seen.add(rec.idempotency_key)
+                appended += 1
         return appended
+
+    def _append_overwrite(self, path: Path, recs: list[Record]) -> int:
+        merged: dict[str, Record] = {}
+        if path.exists():
+            for rec in self._read_file(path):
+                merged[rec.idempotency_key] = rec
+        new_keys = 0
+        for rec in recs:
+            if rec.idempotency_key not in merged:
+                new_keys += 1
+            merged[rec.idempotency_key] = rec  # last-write-wins
+        with path.open("w", encoding="utf-8") as fh:
+            for rec in merged.values():
+                fh.write(rec.model_dump_json() + "\n")
+        return new_keys
 
     def read_window(
         self, dataset: Dataset, *, since: date | None = None, until: date | None = None
