@@ -82,6 +82,35 @@ def test_dart_error_status_raises():
         list(src.fetch(_ctx()))
 
 
+def _item(rcept_no: str) -> dict:
+    return {
+        "corp_code": "00126380",
+        "corp_name": "삼성전자",
+        "stock_code": "005930",
+        "report_nm": "주요사항보고서",
+        "rcept_no": rcept_no,
+        "flr_nm": "삼성전자",
+        "rcept_dt": "20260529",
+        "rm": "",
+    }
+
+
+@responses.activate
+def test_dart_paginates_across_total_page():
+    page1 = {"status": "000", "total_page": 2, "list": [_item("20260529000001")]}
+    page2 = {"status": "000", "total_page": 2, "list": [_item("20260529000002")]}
+    responses.add(responses.GET, "https://opendart.fss.or.kr/api/list.json",
+                  body=json.dumps(page1), status=200)
+    responses.add(responses.GET, "https://opendart.fss.or.kr/api/list.json",
+                  body=json.dumps(page2), status=200)
+    src = DartSource(api_key="dummy", session=requests.Session())
+    recs = list(src.fetch(_ctx()))
+    assert {r.idempotency_key for r in recs} == {
+        "dart:20260529000001",
+        "dart:20260529000002",
+    }
+
+
 @responses.activate
 def test_dart_no_data_status_is_empty():
     responses.add(
