@@ -1,0 +1,44 @@
+[project]
+name = "mimir"
+version = "0.1.0"
+description = "Free, legal investment-insight data collector"
+requires-python = ">=3.14"
+dependencies = [
+    "requests>=2.32",
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "responses>=0.25",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "coverage>=7.5",
+    "types-requests",
+    "types-PyYAML",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["mimir*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+markers = ["integration: hits real network; deselected by default"]
+addopts = "-m 'not integration'"
