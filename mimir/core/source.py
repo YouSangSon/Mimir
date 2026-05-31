@@ -32,6 +32,7 @@ class Dataset(StrEnum):
     MACRO = "macro"
     NEWS = "news"
     INSIGHTS = "insights"
+    HISTORICAL = "historical"
 
 
 class RateLimit(BaseModel):
