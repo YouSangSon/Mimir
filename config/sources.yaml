@@ -1,4 +1,21 @@
 # Toggle individual sources, and the global gray-source policy.
 gray_enabled: true        # set false to disable scraping-based (GRAY) sources like pykrx
-disabled_ids: []          # e.g. ["dart"] to turn one off
+disabled_ids: []          # e.g. ["dart"] to turn one off (this is the way to disable a source)
 lang: en                  # report/digest/status UI language: en | ko | zh
+
+# (Optional) Per-source configuration. Omit a block to keep that source's built-in
+# default. Add series/feeds here to extend coverage WITHOUT editing Python.
+# A malformed block (wrong type, typo'd key) fails fast — it never silently falls back.
+#
+# sources:
+#   fred:
+#     # FRED series IDs (https://fred.stlouisfed.org). Default: [DGS10, FEDFUNDS, CPIAUCSL]
+#     series: ["DGS10", "FEDFUNDS", "CPIAUCSL", "T10Y2Y", "UNRATE"]
+#   ecos:
+#     # Bank of Korea ECOS series. Default: BOK base rate (722Y001 / 0101000).
+#     series:
+#       - { stat_code: "722Y001", cycle: "M", item_code: "0101000" }   # base rate
+#   rss:
+#     # Official, headline/metadata-only feeds. Default: SEC press releases.
+#     feeds:
+#       - { url: "https://www.sec.gov/news/pressreleases.rss", publisher: "SEC", market: "US" }

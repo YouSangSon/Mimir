@@ -49,7 +49,7 @@ python -m venv .venv
 # 2. Configure
 cp .env.example .env          # fill in only the free keys you want (auto-loaded, gitignored)
 #   config/watchlist.yaml      tracked symbols (US tickers / KR stock codes)
-#   config/sources.yaml        source on/off · GRAY source policy
+#   config/sources.yaml        source on/off · GRAY policy · series/feeds (extend coverage, no code)
 
 # 3. Run the full pipeline (collect → analyze → historical patterns → report)
 .venv/bin/python -m mimir.run --cadence daily   # cadence: hourly|daily|weekly|monthly

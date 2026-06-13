@@ -24,7 +24,7 @@
 
 | ID | 항목 | 차원 | 추적성 | 결정 | 산출물 |
 |---|---|---|---|---|---|
-| **A1** | 설정 기반 시리즈·피드 (FRED/ECOS series, RSS feeds) | 확장성 | 백로그 + README 약속 | **🛠 구현 (Increment 1)** | 코드 + 테스트 |
+| **A1** | 설정 기반 시리즈·피드 (FRED/ECOS series, RSS feeds) | 확장성 | 백로그 + README 약속 | **✅ 구현 완료 (Increment 1)** | 코드 + 테스트(144) |
 | **A2** | 시리즈 식별자 단일 진실원 (macro_regime ↔ 어댑터) | 확장성 | 백로그 | 📐 설계 (Increment 2) | [spec](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md) §9 |
 | **A3** | 선언적 소스 등록 (if-사다리 → 레지스트리/entry-point) | 아키텍처 | README 약속(부분) | 📐 설계 | [spec](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md) §8 |
 | **A4** | 데이터셋별 타입드 페이로드 스키마 (`dict[str,Any]` 제거) | 견고성 | 신규 | 📐 설계 | [spec](../superpowers/specs/2026-06-13-typed-payload-design.md) |

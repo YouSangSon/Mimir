@@ -49,7 +49,7 @@ python -m venv .venv
 # 2. 配置
 cp .env.example .env          # 只需填入想用的免费密钥（自动加载，已被 gitignore）
 #   config/watchlist.yaml      追踪标的（US 代码 / KR 证券代码）
-#   config/sources.yaml        数据源 on/off · GRAY 数据源策略
+#   config/sources.yaml        数据源 on/off · GRAY 策略 · 系列/订阅源（无需改代码即可扩展）
 
 # 3. 运行完整流水线（采集→分析→历史模式→报告）
 .venv/bin/python -m mimir.run --cadence daily   # cadence: hourly|daily|weekly|monthly

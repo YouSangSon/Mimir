@@ -39,11 +39,11 @@ class _SourcesBlock(BaseModel):
 def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
     """Read the optional ``raw['sources']`` block into a validated model.
 
-    Absent keys map to ``None`` ("keep the code default"); an explicit empty list
-    means "zero series" and is preserved. Malformed input — a non-mapping block,
-    a wrong-typed field, or a typo'd key/block name — raises
+    Absent keys map to ``None`` ("keep the code default"). Malformed input — a
+    non-mapping block, a wrong-typed field, or a typo'd key/block name — raises
     ``pydantic.ValidationError`` (``extra="forbid"`` rejects unknown keys), never
-    a silent fallback to defaults.
+    a silent fallback to defaults. To turn a source off entirely use
+    ``disabled_ids`` in sources.yaml, not an empty series list.
     """
     # Collapse only an absent/None block to defaults; any other non-mapping
     # (0, false, [], "x") is malformed and must raise — not silently fall back.

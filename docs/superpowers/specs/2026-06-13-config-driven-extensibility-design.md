@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC1 (확장성 카탈로그 A1)
 > **작성일**: 2026-06-13
-> **상태**: 승인 대기 → 구현 예정
+> **상태**: ✅ 구현 완료 (feat/config-driven-extensibility · 144 테스트 · ruff·mypy strict 클린)
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S1 Collector](2026-05-31-collector-design.md) · [ADR-0001](../../architecture/adr/0001-incremental-extensibility-and-deferral.md)
 
 ---
@@ -75,8 +75,9 @@ def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
     """raw['sources'] 블록을 검증된 모델로. 누락=None(기본값 유지). 위반=ValidationError→명확한 메시지."""
 ```
 
-- `None`은 "설정 안 됨 → 기본값 유지"를 의미(빈 리스트 `[]`와 구분 — 빈 리스트는 "시리즈 0개"라는 명시적 의도).
-- pydantic이 `EcosSeries`/`RssFeed` 항목 검증을 자동 수행(필수 필드 누락 시 실패).
+- `None`(키 부재)은 "설정 안 됨 → 기본값 유지"를 의미. 어댑터 생성자가 `series or list(DEFAULT_*)`라서 빈 리스트 `[]`도 기본값으로 수렴한다(별도 구분 없음). **소스를 끄려면 `[]`가 아니라 `disabled_ids`를 쓴다** — 이것이 의도된 단일 비활성화 경로다.
+- 최상위 `sources:`가 falsy 비-매핑(`0`/`false`/`[]`/`""`)이면 잘못된 설정으로 즉시 실패(무음 폴백 금지). 키 부재(YAML null)만 기본값으로 수렴.
+- pydantic이 `EcosSeries`/`RssFeed` 항목 + 미지 키(`extra="forbid"`)를 자동 검증(필수 필드 누락·오타 시 실패).
 
 ### 4.3 빌더 시그니처 변경
 
