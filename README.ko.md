@@ -13,7 +13,7 @@ repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 �
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-122%20passing%20%C2%B7%2091%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-145%20passing%20%C2%B7%2095%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -49,7 +49,7 @@ python -m venv .venv
 # 2. 설정
 cp .env.example .env          # 원하는 무료 키만 채우면 됨 (자동 로드됨, gitignore됨)
 #   config/watchlist.yaml      추적 종목(US 티커 / KR 종목코드)
-#   config/sources.yaml        소스 on/off · GRAY 소스 정책
+#   config/sources.yaml        소스 on/off · GRAY 정책 · 시리즈/피드 (코드 없이 커버리지 확장)
 
 # 3. 전체 파이프라인 실행 (수집→분석→과거패턴→리포트)
 .venv/bin/python -m mimir.run --cadence daily   # cadence: hourly|daily|weekly|monthly
@@ -215,8 +215,8 @@ mimir.history  [--symbol S] [--date YYYY-MM-DD] [--data-root data]
 
 | 항목 | 값 |
 | :--- | :--- |
-| **테스트** | 56 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
-| **커버리지** | `mimir/` 92% (게이트 80%) |
+| **테스트** | 145 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
+| **커버리지** | `mimir/` 95% (게이트 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — push/PR마다 lint·type·test·coverage |
 

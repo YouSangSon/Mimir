@@ -32,7 +32,7 @@
 - [x] **워크플로 4중복**: `_pipeline.yml`(workflow_call) + 4개 thin caller로 ~190줄 중복 제거.
 - [x] **단일 파이프라인 진입점**: `mimir/run.py run_pipeline`(collect→analyze→history→deliver 단일 프로세스).
 - [x] **news_volume 단어경계 매칭**: 짧은 티커 오매칭 제거(`\b{ticker}\b`). 단 공식 피드 ticker 부재/발행일 윈도우는 alias·종목별 피드·LLM 시그널로 후속.
-- [ ] **설정 기반 시리즈/피드**: FRED/ECOS series·RSS feeds·macro RATE_SERIES 하드코딩, adapter/signal 간 시리즈 식별자 중복. → `sources.yaml`에 노출 + 단일 상수 모듈. **[후속]**
+- [~] **설정 기반 시리즈/피드**: FRED/ECOS series·RSS feeds를 `sources.yaml`의 `sources:` 블록으로 노출 — 코드 수정 없이 확장. (Increment 1, [설계](architecture/improvement-catalog.md) A1) **남은 부분**: macro RATE_SERIES ↔ 어댑터 시리즈 식별자 중복(source→signal 경계, Increment 2 A2)은 후속.
 - [ ] **pykrx 타임아웃/재시도 없음**(BaseSource 미사용). GRAY라 LOW. **[후속]**
 - [ ] **GH Actions Node20 deprecation**: `actions/checkout@v4`·`setup-python@v5`가 Node20(2026-06-16 Node24 강제). 동작엔 문제 없음 — 안정 신버전 나오면 범프. **[후속, LOW]**
 

@@ -13,7 +13,7 @@
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-122%20passing%20%C2%B7%2091%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-145%20passing%20%C2%B7%2095%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -49,7 +49,7 @@ python -m venv .venv
 # 2. 配置
 cp .env.example .env          # 只需填入想用的免费密钥（自动加载，已被 gitignore）
 #   config/watchlist.yaml      追踪标的（US 代码 / KR 证券代码）
-#   config/sources.yaml        数据源 on/off · GRAY 数据源策略
+#   config/sources.yaml        数据源 on/off · GRAY 策略 · 系列/订阅源（无需改代码即可扩展）
 
 # 3. 运行完整流水线（采集→分析→历史模式→报告）
 .venv/bin/python -m mimir.run --cadence daily   # cadence: hourly|daily|weekly|monthly
@@ -215,8 +215,8 @@ mimir.history  [--symbol S] [--date YYYY-MM-DD] [--data-root data]
 
 | 项目 | 值 |
 | :--- | :--- |
-| **测试** | 56 passing（适配器以录制的 fixture 在无网络下验证） |
-| **覆盖率** | `mimir/` 92%（门槛 80%） |
+| **测试** | 145 passing（适配器以录制的 fixture 在无网络下验证） |
+| **覆盖率** | `mimir/` 95%（门槛 80%） |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — 每次 push/PR 执行 lint·type·test·coverage |
 

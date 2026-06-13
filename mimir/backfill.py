@@ -7,13 +7,17 @@ import sys
 from collections.abc import Mapping
 from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import Any
 
-from mimir.config import load_watchlist
+from pydantic import ValidationError
+
+from mimir.config import load_sources_config, load_watchlist, report_invalid_sources
 from mimir.core.builder import build_sources
 from mimir.core.errors import NormalizationError
 from mimir.core.normalize import normalize
 from mimir.core.source import FetchContext
 from mimir.settings import Settings
+from mimir.sources.config import parse_sources_config
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.schema import Record
 
@@ -28,11 +32,13 @@ def run_backfill(
     env: Mapping[str, str],
     watchlist: dict[str, list[str]],
     data_root: Path = DEFAULT_DATA_ROOT,
+    sources_config: dict[str, Any] | None = None,
     now: datetime | None = None,
 ) -> int:
     now = now or datetime.now(UTC)
     settings = Settings.from_env(env)
-    sources = {s.meta.id: s for s in build_sources(settings)}
+    config = parse_sources_config(sources_config or {})
+    sources = {s.meta.id: s for s in build_sources(settings, config)}
     if source_id not in sources:
         raise SystemExit(f"unknown or unavailable source: {source_id}")
     source = sources[source_id]
@@ -58,11 +64,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config-dir", default="config")
     args = parser.parse_args(argv)
 
+    config_dir = Path(args.config_dir)
+    sources_config = load_sources_config(config_dir)
+    try:  # validate config upfront; keep the except narrow so a downstream
+        parse_sources_config(sources_config)  # ValidationError isn't mislabeled
+    except ValidationError as exc:
+        return report_invalid_sources(exc)
     appended = run_backfill(
         source_id=args.source,
         since=date.fromisoformat(args.since),
         env=os.environ,
-        watchlist=load_watchlist(Path(args.config_dir)),
+        watchlist=load_watchlist(config_dir),
+        sources_config=sources_config,
     )
     print(f"[mimir] backfill {args.source}: appended {appended} records")
     return 0

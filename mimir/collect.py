@@ -8,7 +8,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from mimir.config import load_sources_config, load_watchlist
+from pydantic import ValidationError
+
+from mimir.config import load_sources_config, load_watchlist, report_invalid_sources
 from mimir.core.builder import build_sources
 from mimir.core.orchestrator import Orchestrator, RunSummary
 from mimir.core.registry import Registry
@@ -18,6 +20,7 @@ from mimir.report.i18n import DEFAULT_LANG
 from mimir.report.status_html import render_status_html
 from mimir.report.telegram import send_ping
 from mimir.settings import Settings
+from mimir.sources.config import parse_sources_config
 from mimir.storage.jsonl_store import JsonlStore
 
 DEFAULT_DATA_ROOT = Path("data")
@@ -39,7 +42,7 @@ def run_collect(
     cfg = sources_config or {}
     lang = cfg.get("lang", DEFAULT_LANG)
     registry = Registry(
-        build_sources(settings),
+        build_sources(settings, parse_sources_config(cfg)),
         gray_enabled=cfg.get("gray_enabled", True),
         disabled_ids=set(cfg.get("disabled_ids", [])),
     )
@@ -71,11 +74,16 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config_dir = Path(args.config_dir)
+    sources_config = load_sources_config(config_dir)
+    try:  # validate config upfront; keep the except narrow so a downstream
+        parse_sources_config(sources_config)  # ValidationError isn't mislabeled
+    except ValidationError as exc:
+        return report_invalid_sources(exc)
     summary = run_collect(
         cadence=args.cadence,
         env=os.environ,
         watchlist=load_watchlist(config_dir),
-        sources_config=load_sources_config(config_dir),
+        sources_config=sources_config,
     )
     print(f"[mimir] {args.cadence}: {[r.model_dump() for r in summary.results]}")
     return 1 if summary.had_failures else 0
