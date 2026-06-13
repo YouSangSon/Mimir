@@ -45,7 +45,10 @@ def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
     ``pydantic.ValidationError`` (``extra="forbid"`` rejects unknown keys), never
     a silent fallback to defaults.
     """
-    block = _SourcesBlock.model_validate(raw.get("sources") or {})
+    # Collapse only an absent/None block to defaults; any other non-mapping
+    # (0, false, [], "x") is malformed and must raise — not silently fall back.
+    raw_sources = raw.get("sources")
+    block = _SourcesBlock.model_validate({} if raw_sources is None else raw_sources)
     return SourcesConfig(
         fred_series=block.fred.series if block.fred else None,
         ecos_series=block.ecos.series if block.ecos else None,

@@ -86,3 +86,19 @@ def test_typo_in_source_block_name_raises_validation_error():
     # `sources.fed` (typo for `fred`) must not be silently ignored.
     with pytest.raises(ValidationError):
         parse_sources_config({"sources": {"fed": {}}})
+
+
+@pytest.mark.parametrize("bad", [0, False, [], ""])
+def test_falsy_non_mapping_sources_block_raises(bad: object):
+    # A falsy-but-present `sources:` (0/false/[]/"") is malformed and must raise —
+    # it must NOT collapse to defaults the way an absent/None block does.
+    with pytest.raises(ValidationError):
+        parse_sources_config({"sources": bad})
+
+
+def test_none_sources_block_yields_all_none():
+    # `sources:` with no value (YAML null) is absent -> defaults preserved.
+    cfg = parse_sources_config({"sources": None})
+    assert cfg.fred_series is None
+    assert cfg.ecos_series is None
+    assert cfg.rss_feeds is None
