@@ -65,16 +65,18 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config_dir = Path(args.config_dir)
-    try:
-        appended = run_backfill(
-            source_id=args.source,
-            since=date.fromisoformat(args.since),
-            env=os.environ,
-            watchlist=load_watchlist(config_dir),
-            sources_config=load_sources_config(config_dir),
-        )
+    sources_config = load_sources_config(config_dir)
+    try:  # validate config upfront; keep the except narrow so a downstream
+        parse_sources_config(sources_config)  # ValidationError isn't mislabeled
     except ValidationError as exc:
         return report_invalid_sources(exc)
+    appended = run_backfill(
+        source_id=args.source,
+        since=date.fromisoformat(args.since),
+        env=os.environ,
+        watchlist=load_watchlist(config_dir),
+        sources_config=sources_config,
+    )
     print(f"[mimir] backfill {args.source}: appended {appended} records")
     return 0
 

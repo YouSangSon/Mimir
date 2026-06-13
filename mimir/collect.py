@@ -74,15 +74,17 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config_dir = Path(args.config_dir)
-    try:
-        summary = run_collect(
-            cadence=args.cadence,
-            env=os.environ,
-            watchlist=load_watchlist(config_dir),
-            sources_config=load_sources_config(config_dir),
-        )
+    sources_config = load_sources_config(config_dir)
+    try:  # validate config upfront; keep the except narrow so a downstream
+        parse_sources_config(sources_config)  # ValidationError isn't mislabeled
     except ValidationError as exc:
         return report_invalid_sources(exc)
+    summary = run_collect(
+        cadence=args.cadence,
+        env=os.environ,
+        watchlist=load_watchlist(config_dir),
+        sources_config=sources_config,
+    )
     print(f"[mimir] {args.cadence}: {[r.model_dump() for r in summary.results]}")
     return 1 if summary.had_failures else 0
 
