@@ -8,9 +8,11 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
 from mimir.analyze import run_analyze
 from mimir.collect import run_collect
-from mimir.config import load_sources_config, load_watchlist
+from mimir.config import load_sources_config, load_watchlist, report_invalid_sources
 from mimir.core.source import Cadence
 from mimir.deliver import run_deliver
 from mimir.history import run_history
@@ -71,14 +73,17 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config_dir = Path(args.config_dir)
-    result = run_pipeline(
-        cadence=args.cadence,
-        env=os.environ,
-        watchlist=load_watchlist(config_dir),
-        data_root=Path(args.data_root),
-        reports_root=Path(args.reports_root),
-        sources_config=load_sources_config(config_dir),
-    )
+    try:
+        result = run_pipeline(
+            cadence=args.cadence,
+            env=os.environ,
+            watchlist=load_watchlist(config_dir),
+            data_root=Path(args.data_root),
+            reports_root=Path(args.reports_root),
+            sources_config=load_sources_config(config_dir),
+        )
+    except ValidationError as exc:
+        return report_invalid_sources(exc)
     print(
         f"[mimir] {args.cadence}: insights={result['insights']} "
         f"historical={result['historical']} report={result['report']} "

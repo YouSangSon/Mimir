@@ -8,7 +8,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from mimir.config import load_sources_config, load_watchlist
+from pydantic import ValidationError
+
+from mimir.config import load_sources_config, load_watchlist, report_invalid_sources
 from mimir.core.builder import build_sources
 from mimir.core.orchestrator import Orchestrator, RunSummary
 from mimir.core.registry import Registry
@@ -72,12 +74,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config_dir = Path(args.config_dir)
-    summary = run_collect(
-        cadence=args.cadence,
-        env=os.environ,
-        watchlist=load_watchlist(config_dir),
-        sources_config=load_sources_config(config_dir),
-    )
+    try:
+        summary = run_collect(
+            cadence=args.cadence,
+            env=os.environ,
+            watchlist=load_watchlist(config_dir),
+            sources_config=load_sources_config(config_dir),
+        )
+    except ValidationError as exc:
+        return report_invalid_sources(exc)
     print(f"[mimir] {args.cadence}: {[r.model_dump() for r in summary.results]}")
     return 1 if summary.had_failures else 0
 

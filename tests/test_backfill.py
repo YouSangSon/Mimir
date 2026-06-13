@@ -4,7 +4,7 @@ from pathlib import Path
 
 import responses
 
-from mimir.backfill import run_backfill
+from mimir.backfill import main, run_backfill
 
 CSV = (
     "Date,Open,High,Low,Close,Volume\n"
@@ -56,3 +56,19 @@ def test_backfill_fred_honors_configured_series(tmp_path: Path):
     record = json.loads(partition.read_text(encoding="utf-8").strip())
     assert record["idempotency_key"] == "fred:DGS10:2024-01-02"  # invariant 2
     assert record["payload"]["series_id"] == "DGS10"
+
+
+def test_main_reports_invalid_sources_yaml(tmp_path: Path, capsys):
+    # A malformed sources.yaml surfaces as a friendly `[mimir] invalid sources.yaml:`
+    # message and a non-zero exit (spec §5), not a raw pydantic traceback.
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "sources.yaml").write_text(
+        "sources:\n  fred:\n    serie: [DGS10]\n", encoding="utf-8"
+    )
+    (config_dir / "watchlist.yaml").write_text("us: []\nkr: []\n", encoding="utf-8")
+
+    rc = main(["--source", "fred", "--since", "2024-01-01", "--config-dir", str(config_dir)])
+
+    assert rc != 0
+    assert "[mimir] invalid sources.yaml:" in capsys.readouterr().err

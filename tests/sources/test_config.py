@@ -61,3 +61,28 @@ def test_ecos_series_item_missing_stat_code_raises():
     raw = {"sources": {"ecos": {"series": [{"cycle": "M", "item_code": "0101"}]}}}
     with pytest.raises(ValidationError):
         parse_sources_config(raw)
+
+
+def test_non_dict_source_block_raises_validation_error():
+    # `fred: "DGS10"` (a string where a {series: [...]} mapping is expected) must
+    # fail fast with a clear ValidationError, never a raw AttributeError.
+    with pytest.raises(ValidationError):
+        parse_sources_config({"sources": {"fred": "x"}})
+
+
+def test_non_dict_sources_block_raises_validation_error():
+    # `sources: "x"` (a string where a mapping is expected) is malformed config.
+    with pytest.raises(ValidationError):
+        parse_sources_config({"sources": "x"})
+
+
+def test_typo_in_source_field_key_raises_validation_error():
+    # `sources.fred.serie` (typo for `series`) must not be silently ignored.
+    with pytest.raises(ValidationError):
+        parse_sources_config({"sources": {"fred": {"serie": ["X"]}}})
+
+
+def test_typo_in_source_block_name_raises_validation_error():
+    # `sources.fed` (typo for `fred`) must not be silently ignored.
+    with pytest.raises(ValidationError):
+        parse_sources_config({"sources": {"fed": {}}})

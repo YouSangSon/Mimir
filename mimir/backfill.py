@@ -9,7 +9,9 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
-from mimir.config import load_sources_config, load_watchlist
+from pydantic import ValidationError
+
+from mimir.config import load_sources_config, load_watchlist, report_invalid_sources
 from mimir.core.builder import build_sources
 from mimir.core.errors import NormalizationError
 from mimir.core.normalize import normalize
@@ -63,13 +65,16 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config_dir = Path(args.config_dir)
-    appended = run_backfill(
-        source_id=args.source,
-        since=date.fromisoformat(args.since),
-        env=os.environ,
-        watchlist=load_watchlist(config_dir),
-        sources_config=load_sources_config(config_dir),
-    )
+    try:
+        appended = run_backfill(
+            source_id=args.source,
+            since=date.fromisoformat(args.since),
+            env=os.environ,
+            watchlist=load_watchlist(config_dir),
+            sources_config=load_sources_config(config_dir),
+        )
+    except ValidationError as exc:
+        return report_invalid_sources(exc)
     print(f"[mimir] backfill {args.source}: appended {appended} records")
     return 0
 
