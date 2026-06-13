@@ -25,9 +25,9 @@
 | ID | 항목 | 차원 | 추적성 | 결정 | 산출물 |
 |---|---|---|---|---|---|
 | **A1** | 설정 기반 시리즈·피드 (FRED/ECOS series, RSS feeds) | 확장성 | 백로그 + README 약속 | **✅ 구현 완료 (Increment 1)** | 코드 + 테스트(144) |
-| **A2** | 시리즈 식별자 단일 진실원 (macro_regime ↔ 어댑터) | 확장성 | 백로그 | 📐 설계 (Increment 2) | [spec](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md) §9 |
-| **A3** | 선언적 소스 등록 (if-사다리 → 레지스트리/entry-point) | 아키텍처 | README 약속(부분) | 📐 설계 | [spec](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md) §8 |
-| **A4** | 데이터셋별 타입드 페이로드 스키마 (`dict[str,Any]` 제거) | 견고성 | 신규 | 📐 설계 | [spec](../superpowers/specs/2026-06-13-typed-payload-design.md) |
+| **A4** | 데이터셋별 타입드 페이로드 스키마 (`dict[str,Any]` 제거) | 견고성 | 신규 | 📐 설계 (Increment 2) | [spec](../superpowers/specs/2026-06-13-typed-payload-design.md) |
+| **A2** | 시리즈 식별자 단일 진실원 (macro_regime ↔ 어댑터) | 확장성 | 백로그 | 📐 설계 (후속) | [spec](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md) §9 |
+| **A3** | 선언적 소스 등록 (if-사다리 → 레지스트리/entry-point) | 아키텍처 | README 약속(부분) | 📐 설계 (후속) | [spec](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md) §8 |
 | **B1** | 시그널 백테스트·평가 하네스 (사후수익 적중률) | 분석심화 | 신규(최고가치) | 📐 설계 | [spec](../superpowers/specs/2026-06-13-signal-backtest-design.md) |
 | **B2** | LLM 뉴스 감성 시그널 (news_volume 대체, 하이브리드) | 분석심화 | 로드맵 + 백로그 R1 | 📐 설계 (off-by-default seam) | [spec](../superpowers/specs/2026-06-13-llm-sentiment-seam-design.md) |
 | **C1** | 데이터 신선도·품질 닥터 (`mimir doctor`) | 운영 | "무음 실패 금지" 약속 | 📐 설계 (fast-follow 후보) | [spec](../superpowers/specs/2026-06-13-data-doctor-design.md) |
@@ -102,7 +102,7 @@ Mimir는 시그널을 *발행*하지만, 그 시그널이 실제로 무언가를
 Increment 1 (지금) ── 설정 기반 소스 척추 (A1)
    spec → plan → 구현(subagent-driven) → finish
         ▼
-Increment 2 ── 시리즈 단일 진실원 (A2) + 타입드 페이로드(A4)
+Increment 2 ── 타입드 페이로드 (A4)            [A2 시리즈 단일 진실원은 config spec §9에 설계]
 Increment 3 ── 데이터 닥터 (C1)
 Increment 4 ── 시그널 백테스트 하네스 (B1)   [분석/실행 분리의 신뢰 토대]
 Increment 5 ── LLM 감성 seam (B2)            [사용자가 키·비용 승인 시 승격]
