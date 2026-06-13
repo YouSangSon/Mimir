@@ -18,6 +18,7 @@ from mimir.report.i18n import DEFAULT_LANG
 from mimir.report.status_html import render_status_html
 from mimir.report.telegram import send_ping
 from mimir.settings import Settings
+from mimir.sources.config import parse_sources_config
 from mimir.storage.jsonl_store import JsonlStore
 
 DEFAULT_DATA_ROOT = Path("data")
@@ -39,7 +40,7 @@ def run_collect(
     cfg = sources_config or {}
     lang = cfg.get("lang", DEFAULT_LANG)
     registry = Registry(
-        build_sources(settings),
+        build_sources(settings, parse_sources_config(cfg)),
         gray_enabled=cfg.get("gray_enabled", True),
         disabled_ids=set(cfg.get("disabled_ids", [])),
     )
