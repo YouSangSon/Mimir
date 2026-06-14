@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict
 
 from mimir.analysis.signals.base import SignalDirection, SignalResult
 from mimir.core.source import Dataset, Market
-from mimir.storage.schema import Record
+
+if TYPE_CHECKING:
+    from mimir.storage.schema import Record
 
 DISCLAIMER = "For information only. Not financial advice."
 ANALYSIS_SOURCE = "mimir_analysis"
@@ -30,6 +33,10 @@ class Insight(BaseModel):
 
 
 def to_record(insight: Insight, captured_at: datetime) -> Record:
+    # Function-local import breaks the phase-4 cycle: storage.schema imports
+    # core.payloads (the Payload union), which imports this module for Insight.
+    from mimir.storage.schema import Record
+
     return Record(
         source=ANALYSIS_SOURCE,
         dataset=Dataset.INSIGHTS,
@@ -38,5 +45,5 @@ def to_record(insight: Insight, captured_at: datetime) -> Record:
         ts=datetime(insight.as_of.year, insight.as_of.month, insight.as_of.day, tzinfo=UTC),
         captured_at=captured_at,
         idempotency_key=f"insight:{insight.symbol}:{insight.as_of.isoformat()}",
-        payload=insight.model_dump(mode="json"),
+        payload=insight,  # already a typed payload; before-validator no-ops on a model
     )

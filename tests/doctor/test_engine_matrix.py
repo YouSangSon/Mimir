@@ -38,8 +38,7 @@ def test_stale_prices_is_critical_exit_one(tmp_path: Path):
     stale_day = date(2026, 6, 5)  # Fri; 6 business days before Mon 6/15
     write_partition(
         tmp_path, Dataset.PRICES, stale_day,
-        [make_record(Dataset.PRICES, stale_day, symbol="S0", key="p-stale",
-                     payload={"close": 1.0})],
+        [make_record(Dataset.PRICES, stale_day, symbol="S0", key="p-stale")],
     )
     report = run_doctor(store=store, watchlist=EMPTY_WATCHLIST, now=NOW)
     stale = _kinds(report, Dataset.PRICES, FindingKind.STALE)
@@ -79,13 +78,13 @@ def test_short_latest_prices_is_warn(tmp_path: Path):
         day = date.fromordinal(today.toordinal() - offset)
         write_partition(
             tmp_path, Dataset.PRICES, day,
-            [make_record(Dataset.PRICES, day, symbol=f"S{i}", key=f"p-{day}-{i}",
-                         payload={"close": 1.0}) for i in range(40)],
+            [make_record(Dataset.PRICES, day, symbol=f"S{i}", key=f"p-{day}-{i}")
+             for i in range(40)],
         )
     write_partition(
         tmp_path, Dataset.PRICES, today,
-        [make_record(Dataset.PRICES, today, symbol=f"S{i}", key=f"p-{today}-{i}",
-                     payload={"close": 1.0}) for i in range(3)],
+        [make_record(Dataset.PRICES, today, symbol=f"S{i}", key=f"p-{today}-{i}")
+         for i in range(3)],
     )
     report = run_doctor(store=store, watchlist=EMPTY_WATCHLIST, now=NOW)
     short = _kinds(report, Dataset.PRICES, FindingKind.SHORT)
@@ -103,8 +102,7 @@ def test_short_skipped_with_info_when_too_few_partitions(tmp_path: Path):
         day = date.fromordinal(today.toordinal() - offset)
         write_partition(
             tmp_path, Dataset.PRICES, day,
-            [make_record(Dataset.PRICES, day, symbol="S0", key=f"p-{day}",
-                         payload={"close": 1.0})],
+            [make_record(Dataset.PRICES, day, symbol="S0", key=f"p-{day}")],
         )
     report = run_doctor(store=store, watchlist=EMPTY_WATCHLIST, now=NOW)
     info = [f for f in _kinds(report, Dataset.PRICES, FindingKind.INFO)
@@ -123,8 +121,8 @@ def test_weekend_boundary_no_false_alarm(tmp_path: Path):
         day = date.fromordinal(friday.toordinal() - off)
         write_partition(
             tmp_path, Dataset.PRICES, day,
-            [make_record(Dataset.PRICES, day, symbol=f"S{i}", key=f"p-{day}-{i}",
-                         payload={"close": 1.0}) for i in range(10)],
+            [make_record(Dataset.PRICES, day, symbol=f"S{i}", key=f"p-{day}-{i}")
+             for i in range(10)],
         )
     report = run_doctor(store=store, watchlist=EMPTY_WATCHLIST, now=NOW)
     assert not _kinds(report, Dataset.PRICES, FindingKind.STALE)
@@ -137,8 +135,7 @@ def test_monthly_macro_series_not_false_alarmed(tmp_path: Path):
     cpi_day = date(2026, 5, 26)  # 20 calendar days before 6/15
     write_partition(
         tmp_path, Dataset.MACRO, cpi_day,
-        [make_record(Dataset.MACRO, cpi_day, symbol="CPIAUCSL", key="cpi",
-                     payload={"series_id": "CPIAUCSL", "value": 300.0})],
+        [make_record(Dataset.MACRO, cpi_day, symbol="CPIAUCSL", key="cpi")],
     )
     report = run_doctor(store=store, watchlist=EMPTY_WATCHLIST, now=NOW)
     cpi = [f for f in report.findings if f.scope == "CPIAUCSL"]
@@ -152,8 +149,7 @@ def test_unregistered_macro_series_reported_info_and_loose_cadence(tmp_path: Pat
     day = date(2026, 5, 26)
     write_partition(
         tmp_path, Dataset.MACRO, day,
-        [make_record(Dataset.MACRO, day, symbol="NEWSERIES", key="ns",
-                     payload={"series_id": "NEWSERIES", "value": 1.0})],
+        [make_record(Dataset.MACRO, day, symbol="NEWSERIES", key="ns")],
     )
     report = run_doctor(store=store, watchlist=EMPTY_WATCHLIST, now=NOW)
     info = [f for f in report.findings
@@ -172,20 +168,6 @@ def test_watchlist_gap_is_critical_missing(tmp_path: Path):
            and f.kind is FindingKind.MISSING]
     assert gap and gap[0].severity is Severity.CRITICAL
     assert report.exit_code == 1
-
-
-def test_schema_drift_missing_close_is_warn(tmp_path: Path):
-    store = write_fresh_tree(tmp_path, NOW)
-    # Latest prices partition: payload lacks `close`.
-    today = NOW.date()
-    write_partition(
-        tmp_path, Dataset.PRICES, today,
-        [make_record(Dataset.PRICES, today, symbol="S0", key="noclose", payload={"open": 1.0})],
-    )
-    report = run_doctor(store=store, watchlist=EMPTY_WATCHLIST, now=NOW)
-    schema = _kinds(report, Dataset.PRICES, FindingKind.SCHEMA)
-    assert schema and schema[0].severity is Severity.WARN
-    assert "close" in schema[0].message
 
 
 def test_fred_key_absent_still_flags_missing_macro(tmp_path: Path):

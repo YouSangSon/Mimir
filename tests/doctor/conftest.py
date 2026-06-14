@@ -10,6 +10,37 @@ from mimir.storage.paths import partition_path
 from mimir.storage.schema import Record
 
 
+def _default_payload(dataset: Dataset, symbol: str | None) -> dict[str, Any]:
+    """A minimal schema-conforming payload per dataset (Record.payload is the
+    typed union since INC2). Doctor checks are freshness/coverage only; payload
+    contents are irrelevant beyond being valid."""
+    if dataset is Dataset.PRICES:
+        return {
+            "open": 1.0, "high": 1.0, "low": 1.0, "close": 1.0,
+            "volume": 1.0, "currency": "USD", "interval": "1d",
+        }
+    if dataset is Dataset.MACRO:
+        return {"series_id": symbol or "DGS10", "value": 1.0, "period": "2026-01-15"}
+    if dataset is Dataset.NEWS:
+        return {
+            "title": "t", "url": "https://example.com/a", "publisher": "p",
+            "market": "US", "published_at": None, "summary": "",
+        }
+    if dataset is Dataset.FILINGS:
+        return {
+            "form_type": "8-K", "title": "8-K", "accession": "a",
+            "url": "https://example.com/f", "filed_at": "2026-01-15",
+        }
+    if dataset is Dataset.INSIGHTS:
+        return {
+            "symbol": symbol or "AAPL", "market": "US", "as_of": "2026-01-15",
+            "direction": "neutral", "stars": 0, "confidence": 0.0, "attention": 0.0,
+            "signals": [], "reasons": [],
+            "disclaimer": "For information only. Not financial advice.",
+        }
+    raise ValueError(f"no default payload for dataset {dataset!r}")
+
+
 def make_record(
     dataset: Dataset,
     day: date,
@@ -26,7 +57,7 @@ def make_record(
         ts=datetime(day.year, day.month, day.day, tzinfo=UTC),
         captured_at=datetime(day.year, day.month, day.day, tzinfo=UTC),
         idempotency_key=key,
-        payload=payload or {},
+        payload=payload if payload is not None else _default_payload(dataset, symbol),
     )
 
 
@@ -54,8 +85,7 @@ def write_fresh_tree(root: Path, now: datetime) -> JsonlStore:
     for offset in (4, 3, 2, 1, 0):
         day = date.fromordinal(today.toordinal() - offset)
         recs = [
-            make_record(Dataset.PRICES, day, symbol=f"S{i}", key=f"p-{day}-{i}",
-                        payload={"close": 1.0})
+            make_record(Dataset.PRICES, day, symbol=f"S{i}", key=f"p-{day}-{i}")
             for i in range(10)
         ]
         write_partition(root, Dataset.PRICES, day, recs)
@@ -67,7 +97,6 @@ def write_fresh_tree(root: Path, now: datetime) -> JsonlStore:
     # macro: DGS10 (daily) fresh today.
     write_partition(
         root, Dataset.MACRO, today,
-        [make_record(Dataset.MACRO, today, symbol="DGS10", key=f"m-{today}",
-                     payload={"series_id": "DGS10", "value": 4.0})],
+        [make_record(Dataset.MACRO, today, symbol="DGS10", key=f"m-{today}")],
     )
     return store

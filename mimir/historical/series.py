@@ -2,11 +2,16 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import date
-from typing import NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 from mimir.core.source import Dataset
-from mimir.storage.reader import DataReader
-from mimir.storage.schema import Record
+
+if TYPE_CHECKING:
+    # Annotation-only. This module (via Bar) is imported by historical.schema,
+    # which core.payloads imports; module-top storage imports would close that
+    # cycle. price_payload is imported function-locally in bars_from_records.
+    from mimir.storage.reader import DataReader
+    from mimir.storage.schema import Record
 
 
 class Bar(NamedTuple):

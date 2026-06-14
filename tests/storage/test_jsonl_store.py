@@ -15,7 +15,15 @@ def _rec(key: str, day: int, close: float = 1.0) -> Record:
         ts=datetime(2026, 5, day, tzinfo=UTC),
         captured_at=datetime(2026, 5, 31, tzinfo=UTC),
         idempotency_key=key,
-        payload={"close": close},
+        payload={
+            "open": close,
+            "high": close,
+            "low": close,
+            "close": close,
+            "volume": 1.0,
+            "currency": "USD",
+            "interval": "1d",
+        },
     )
 
 
@@ -55,7 +63,7 @@ def test_append_overwrite_is_last_write_wins(tmp_path: Path):
     store.append([_rec("k1", 29, close=99.0)], overwrite=True)  # same key, revised payload
     recs = list(store.read_all(Dataset.PRICES))
     assert len(recs) == 1  # not duplicated
-    assert recs[0].payload["close"] == 99.0  # newest value wins
+    assert recs[0].payload.close == 99.0  # newest value wins (typed payload)
 
 
 def test_read_window_prunes_to_date_range(tmp_path: Path):

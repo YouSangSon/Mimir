@@ -16,7 +16,15 @@ def _rec(symbol: str, day: int, dataset: Dataset = Dataset.PRICES) -> Record:
         ts=datetime(2026, 5, day, tzinfo=UTC),
         captured_at=datetime(2026, 5, 31, tzinfo=UTC),
         idempotency_key=f"{dataset.value}:{symbol}:{day}",
-        payload={"close": float(day)},
+        payload={
+            "open": float(day),
+            "high": float(day),
+            "low": float(day),
+            "close": float(day),
+            "volume": 1.0,
+            "currency": "USD",
+            "interval": "1d",
+        },
     )
 
 

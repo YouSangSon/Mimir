@@ -6,7 +6,6 @@ from datetime import date, datetime
 from mimir.core.source import Cadence, Dataset
 from mimir.doctor.expectations import (
     DEFAULT_MACRO_CADENCE,
-    EXPECTED_PAYLOAD_KEYS,
     MACRO_SERIES_CADENCE,
 )
 from mimir.doctor.freshness import staleness_age
@@ -213,27 +212,3 @@ def check_short_partition(store: JsonlStore, dataset: Dataset) -> list[Finding]:
     return []
 
 
-def check_payload_schema(store: JsonlStore, dataset: Dataset) -> list[Finding]:
-    """Shallow key-existence on the latest partition's records (§4.7)."""
-    required = EXPECTED_PAYLOAD_KEYS.get(dataset)
-    if not required:
-        return []
-    reader = DataReader(store)
-    dates = store.partition_dates(dataset)
-    if not dates:
-        return []
-    latest = dates[-1]
-    findings: list[Finding] = []
-    for rec in _records_on(reader, dataset, latest):
-        missing = required - rec.payload.keys()
-        if missing:
-            findings.append(
-                Finding(
-                    dataset=dataset, scope=rec.symbol, kind=FindingKind.SCHEMA,
-                    severity=Severity.WARN,
-                    message=f"'{dataset.value}' payload missing key(s): "
-                    f"{', '.join(sorted(missing))}",
-                    latest_ts=latest, business_days_stale=None,
-                )
-            )
-    return findings

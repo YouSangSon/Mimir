@@ -71,12 +71,12 @@ def test_cli_strict_escalates_warn_to_one(tmp_path: Path, monkeypatch, capsys):
         day = date.fromordinal(today.toordinal() - offset)
         write_partition(
             data_root, Dataset.PRICES, day,
-            [make_record(Dataset.PRICES, day, symbol=f"S{i}", key=f"p-{day}-{i}",
-                         payload={"close": 1.0}) for i in range(40)],
+            [make_record(Dataset.PRICES, day, symbol=f"S{i}", key=f"p-{day}-{i}")
+             for i in range(40)],
         )
     write_partition(
         data_root, Dataset.PRICES, today,
-        [make_record(Dataset.PRICES, today, symbol="S0", key="short", payload={"close": 1.0})],
+        [make_record(Dataset.PRICES, today, symbol="S0", key="short")],
     )
     config_dir = _write_config(tmp_path, us=[])
     base = ["--config-dir", str(config_dir), "--data-root", str(data_root)]
