@@ -1,0 +1,142 @@
+"""Typed per-dataset payload models + external dispatch (spec INC2).
+
+Replaces the untyped `payload: dict[str, Any]` with dataset-specific pydantic
+models so upstream key/type drift fails loudly at the boundary instead of
+silently yielding `None` downstream.
+
+Byte-identity invariant (spec §3): each model's field set and declaration order
+mirror the source adapter's payload dict exactly, and date-looking values stay
+`str`. Therefore `model.model_dump_json()` is byte-identical to the original
+dict's serialization, so on-disk JSONL never changes and `idempotency_key` is
+never affected.
+
+Dispatch is external (spec §4.2): the discriminator (`dataset`) lives on the
+`Record` envelope, never inside the payload (a tag key would break bytes).
+Source-specific branches (fred vs ecos, sec vs dart) are resolved structurally
+by `extra="forbid"` + disjoint required keys.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, ValidationError
+
+from mimir.analysis.schema import Insight
+from mimir.core.errors import PayloadSchemaError
+from mimir.core.source import Dataset
+from mimir.evaluation.schema import BucketStat
+from mimir.historical.schema import HistoricalInsight
+
+
+class _Payload(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+
+# --- PRICES (stooq + pykrx, single shape) ---
+class PricePayload(_Payload):
+    open: float | None
+    high: float | None
+    low: float | None
+    close: float | None
+    volume: float | None
+    currency: str  # "USD" | "KRW"
+    interval: str  # "1d"
+
+
+# --- MACRO (source-specific) ---
+class FredMacroPayload(_Payload):
+    series_id: str
+    value: float
+    period: str  # "YYYY-MM-DD" string, kept verbatim
+
+
+class EcosMacroPayload(_Payload):
+    stat_code: str
+    item_code: str
+    item_name: str | None
+    value: float
+    unit: str | None
+    time: str  # "YYYYMM" etc., ECOS raw string
+
+
+MacroPayload = FredMacroPayload | EcosMacroPayload
+
+
+# --- NEWS (rss, single shape) ---
+class NewsPayload(_Payload):
+    title: str | None
+    url: str
+    publisher: str
+    market: str  # "US" | "KR" | "GLOBAL" (distinct from envelope market)
+    published_at: str | None
+    summary: str  # may be "", never None (rss.py: `(... or "")[:SUMMARY_MAX]`)
+
+
+# --- FILINGS (source-specific) ---
+class SecFilingPayload(_Payload):
+    form_type: str | None
+    title: str | None
+    accession: str
+    url: str
+    filed_at: str  # "YYYY-MM-DD"
+
+
+class DartFilingPayload(_Payload):
+    form_type: str | None
+    title: str | None
+    corp_name: str | None
+    url: str
+    filed_at: str | None  # dart.py: item.get("rcept_dt") — may be None
+    flr_nm: str | None
+
+
+FilingPayload = SecFilingPayload | DartFilingPayload
+
+
+# insights/historical/evaluation reuse their existing models (no new model — a
+# second source of truth would drift). Each was given extra="forbid" in its own
+# module so drift in those payloads also fails loudly.
+Payload = (
+    PricePayload
+    | MacroPayload
+    | NewsPayload
+    | FilingPayload
+    | Insight
+    | HistoricalInsight
+    | BucketStat
+)
+
+# A dataset maps to one model or a tuple of source-specific candidates.
+PAYLOAD_BY_DATASET: dict[Dataset, type[BaseModel] | tuple[type[BaseModel], ...]] = {
+    Dataset.PRICES: PricePayload,
+    Dataset.MACRO: (FredMacroPayload, EcosMacroPayload),
+    Dataset.NEWS: NewsPayload,
+    Dataset.FILINGS: (SecFilingPayload, DartFilingPayload),
+    Dataset.INSIGHTS: Insight,
+    Dataset.HISTORICAL: HistoricalInsight,
+    Dataset.EVALUATION: BucketStat,
+}
+
+
+def parse_payload(dataset: Dataset, data: dict[str, Any]) -> Payload:
+    """Validate `data` against the model(s) registered for `dataset`.
+
+    For datasets with multiple source-specific candidates, try each: the first
+    that validates wins (resolution is unambiguous because the candidates have
+    disjoint required keys + extra="forbid"). If none match, raise
+    `PayloadSchemaError` — never silently fall back (spec §5).
+    """
+    candidates = PAYLOAD_BY_DATASET.get(dataset)
+    if candidates is None:
+        raise PayloadSchemaError(f"no payload model registered for dataset {dataset!r}")
+    models = candidates if isinstance(candidates, tuple) else (candidates,)
+    errors: list[str] = []
+    for model in models:
+        try:
+            return model.model_validate(data)  # type: ignore[return-value]
+        except ValidationError as exc:
+            errors.append(f"{model.__name__}: {exc.error_count()} error(s)")
+    raise PayloadSchemaError(
+        f"payload for dataset {dataset.value!r} matched no model ({'; '.join(errors)})"
+    )

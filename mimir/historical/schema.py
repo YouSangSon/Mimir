@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from mimir.core.source import Dataset, Market
 from mimir.historical.analog import HorizonStat
@@ -13,6 +13,9 @@ HISTORICAL_SOURCE = "mimir_historical"
 
 
 class HistoricalInsight(BaseModel):
+    # extra="forbid": typed payload (see core/payloads.py); drift fails at the boundary.
+    model_config = ConfigDict(extra="forbid")
+
     symbol: str
     market: Market
     as_of: date

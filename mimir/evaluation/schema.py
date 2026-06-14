@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from mimir.core.source import Dataset, Market
 from mimir.storage.schema import Record
@@ -20,6 +20,9 @@ class HorizonEval(BaseModel):
 
 
 class BucketStat(BaseModel):
+    # extra="forbid": typed payload (see core/payloads.py); drift fails at the boundary.
+    model_config = ConfigDict(extra="forbid")
+
     dimension: str  # "per_signal" | "per_direction" | "per_star"
     key: str  # e.g. "momentum" | "bullish" | "4"
     market: Market

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from mimir.analysis.signals.base import SignalDirection, SignalResult
 from mimir.core.source import Dataset, Market
@@ -13,6 +13,10 @@ ANALYSIS_SOURCE = "mimir_analysis"
 
 
 class Insight(BaseModel):
+    # extra="forbid": this is a typed payload (see core/payloads.py). Upstream drift
+    # in an insights payload must fail loudly at the boundary, not be silently dropped.
+    model_config = ConfigDict(extra="forbid")
+
     symbol: str
     market: Market
     as_of: date
