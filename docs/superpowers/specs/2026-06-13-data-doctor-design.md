@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC3 (카탈로그 C1)
 > **작성일**: 2026-06-13
-> **상태**: 설계(미구현) — fast-follow 후보
+> **상태**: ✅ 구현 완료 (Increment 3, MVP §9.1–§9.5 · 179 테스트 · ruff·mypy strict 클린). §6.3 HTML/i18n + 워크플로 연결은 후속.
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S1 Collector](2026-05-31-collector-design.md)
 
 ---

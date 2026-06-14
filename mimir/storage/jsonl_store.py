@@ -14,6 +14,24 @@ class JsonlStore:
     def __init__(self, root: Path = DEFAULT_ROOT) -> None:
         self._root = root
 
+    @property
+    def root(self) -> Path:
+        return self._root
+
+    def partition_dates(self, dataset: Dataset) -> list[date]:
+        """Read-only: sorted partition dates for a dataset (empty if absent).
+
+        Reconstructs the date from the `data/<dataset>/YYYY/MM/DD.jsonl` layout
+        (the inverse of `partition_path`); lexicographic path order is chronological.
+        """
+        base = self._root / dataset.value
+        if not base.exists():
+            return []
+        out: list[date] = []
+        for path in sorted(base.rglob("*.jsonl")):
+            out.append(date(int(path.parent.parent.name), int(path.parent.name), int(path.stem)))
+        return out
+
     def _read_file(self, path: Path) -> Iterator[Record]:
         with path.open("r", encoding="utf-8") as fh:
             for raw_line in fh:
