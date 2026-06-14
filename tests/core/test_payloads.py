@@ -9,11 +9,11 @@ path (observed, not hand-written), and the typed path must match it.
 
 from __future__ import annotations
 
-import json
 from datetime import date
 from typing import Any
 
 import pytest
+from pydantic import TypeAdapter
 
 from mimir.analysis.schema import Insight
 from mimir.analysis.signals.base import SignalDirection, SignalResult
@@ -152,13 +152,20 @@ def test_parse_payload_returns_correct_model_type(dataset, payload, model_type):
 
 @pytest.mark.parametrize("dataset, payload, model_type", GOLDEN_CASES)
 def test_golden_roundtrip_is_byte_identical(dataset, payload, model_type):
-    """Baseline from the dict path; typed path must match byte-for-byte."""
+    """Baseline from the OLD dict path; typed path must match byte-for-byte.
+
+    The make-or-break invariant (§8.1) is "old dict[str,Any] path bytes == new
+    typed path bytes". The baseline must therefore use pydantic's encoder the way
+    the former `payload: dict[str, Any]` field did — NOT stdlib json (whose float
+    formatting can diverge from pydantic's Rust serializer). TypeAdapter reproduces
+    that exact encoder, so the baseline is observed from pydantic, not assumed.
+    """
     parsed = parse_payload(dataset, payload)
     # condition 1+2: same keys, same order, same values
     assert parsed.model_dump(mode="json") == payload
     assert list(parsed.model_dump(mode="json").keys()) == list(payload.keys())
-    # byte-identity: pydantic compact encoder == the dict's compact JSON
-    baseline = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+    # byte-identity vs the old dict[str,Any] field's own serialization
+    baseline = TypeAdapter(dict[str, Any]).dump_json(payload).decode()
     assert parsed.model_dump_json() == baseline
 
 
