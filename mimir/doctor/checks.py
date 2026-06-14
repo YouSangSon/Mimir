@@ -98,9 +98,12 @@ def check_macro_series(store: JsonlStore, now: datetime) -> list[Finding]:
         # present (e.g. CPIAUCSL as MONTHLY, not the DAILY floor).
         if latest is None:
             continue
-        findings.append(
-            _series_freshness_finding(series, cadence, latest, now.date())
-        )
+        finding = _series_freshness_finding(series, cadence, latest, now.date())
+        # Match the dataset-level and unregistered-series convention: only surface
+        # problems. A fresh series is not a STALE finding (avoids a "stale but OK,
+        # 0 days old" contradiction).
+        if finding.severity is not Severity.OK:
+            findings.append(finding)
     for series in sorted(present - set(MACRO_SERIES_CADENCE)):
         findings.append(
             Finding(
