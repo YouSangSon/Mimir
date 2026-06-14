@@ -263,3 +263,13 @@ def test_narrowing_helper_raises_on_wrong_dataset():
     # asking for a price payload on a macro record must raise, never silently coerce
     with pytest.raises(PayloadSchemaError):
         price_payload(_rec(Dataset.MACRO, FRED_PAYLOAD))
+
+
+def test_macro_payload_raises_on_non_macro_record():
+    with pytest.raises(PayloadSchemaError):
+        macro_payload(_rec(Dataset.PRICES, PRICE_PAYLOAD))
+
+
+def test_filing_payload_raises_on_non_filing_record():
+    with pytest.raises(PayloadSchemaError):
+        filing_payload(_rec(Dataset.PRICES, PRICE_PAYLOAD))
