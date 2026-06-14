@@ -19,6 +19,10 @@
 
 [🚀 快速开始](#-快速开始) · [✨ 主要功能](#-主要功能) · [🗃️ 数据源](#️-数据源) · [🧱 架构](#-架构) · [⏰ 调度 & 存储](#-调度--存储) · [🔒 合法性 & 安全](#-合法性--安全) · [🗺️ Roadmap](#️-roadmap) · [📚 延伸阅读](#-延伸阅读)
 
+[![Mimir dashboard — data health, ⭐ star-rated insights, signal scorecard, historical analogs, and collection status (mock data)](docs/assets/dashboard.png)](docs/assets/dashboard.png)
+
+<sub>单页仪表盘 <code>python -m mimir.dashboard</code> → 静态 <code>reports/dashboard.html</code> — 使用模拟数据展示。</sub>
+
 </div>
 
 ---

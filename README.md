@@ -19,6 +19,10 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 
 [🚀 Quick Start](#-quick-start) · [✨ Features](#-features) · [🗃️ Data Sources](#️-data-sources) · [🧱 Architecture](#-architecture) · [⏰ Schedule & Storage](#-schedule--storage) · [🔒 Legality & Safety](#-legality--safety) · [🗺️ Roadmap](#️-roadmap) · [📚 Further Reading](#-further-reading)
 
+[![Mimir dashboard — data health, ⭐ star-rated insights, signal scorecard, historical analogs, and collection status (mock data)](docs/assets/dashboard.png)](docs/assets/dashboard.png)
+
+<sub>One-page dashboard via <code>python -m mimir.dashboard</code> → static <code>reports/dashboard.html</code> — shown with mock data.</sub>
+
 </div>
 
 ---

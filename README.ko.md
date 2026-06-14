@@ -19,6 +19,10 @@ repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 �
 
 [🚀 빠른 시작](#-빠른-시작) · [✨ 주요 기능](#-주요-기능) · [🗃️ 데이터 소스](#️-데이터-소스) · [🧱 아키텍처](#-아키텍처) · [⏰ 스케줄 & 저장](#-스케줄--저장) · [🔒 합법성 & 안전](#-합법성--안전) · [🗺️ Roadmap](#️-roadmap) · [📚 더 읽기](#-더-읽기)
 
+[![Mimir dashboard — data health, ⭐ star-rated insights, signal scorecard, historical analogs, and collection status (mock data)](docs/assets/dashboard.png)](docs/assets/dashboard.png)
+
+<sub><code>python -m mimir.dashboard</code> 한 장 대시보드 → 정적 <code>reports/dashboard.html</code> — 목업 데이터로 표시.</sub>
+
 </div>
 
 ---
