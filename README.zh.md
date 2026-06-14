@@ -13,7 +13,7 @@
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-145%20passing%20%C2%B7%2095%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-179%20passing%20%C2%B7%2096%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -189,6 +189,7 @@ mimir.backfill --source <id> --since YYYY-MM-DD [--config-dir config]
 mimir.analyze  [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
 mimir.deliver  [--cadence daily] [--date YYYY-MM-DD] [--reports-root reports]
 mimir.history  [--symbol S] [--date YYYY-MM-DD] [--data-root data]
+mimir.doctor   [--config-dir config] [--data-root data] [--format text|json] [--strict]
 ```
 
 ```bash
@@ -215,8 +216,8 @@ mimir.history  [--symbol S] [--date YYYY-MM-DD] [--data-root data]
 
 | 项目 | 值 |
 | :--- | :--- |
-| **测试** | 145 passing（适配器以录制的 fixture 在无网络下验证） |
-| **覆盖率** | `mimir/` 95%（门槛 80%） |
+| **测试** | 179 passing（适配器以录制的 fixture 在无网络下验证） |
+| **覆盖率** | `mimir/` 96%（门槛 80%） |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — 每次 push/PR 执行 lint·type·test·coverage |
 
