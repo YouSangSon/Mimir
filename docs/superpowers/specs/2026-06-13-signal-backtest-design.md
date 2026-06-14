@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC4 (카탈로그 B1)
 > **작성일**: 2026-06-13
-> **상태**: 설계(미구현) — 사용자 승인 시 plan→구현 승격
+> **상태**: ✅ 구현 완료 (Increment 4, MVP: evaluation engine + `mimir.evaluate` CLI · 208 테스트 · ruff·mypy strict 클린). §9 리포트 합류(deliver/daily_report/i18n)는 후속.
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S4 Historical](2026-05-31-historical-design.md)
 
 ---
