@@ -26,3 +26,31 @@ def test_manifest_writes_and_reads_back(tmp_path: Path):
 def test_source_result_ok_default_counts():
     r = SourceResult(source="x", ok=True)
     assert r.fetched == 0 and r.stored == 0 and r.invalid == 0 and r.error is None
+
+
+def test_latest_run_is_none_when_no_manifest(tmp_path: Path):
+    assert Manifest(root=tmp_path).latest_run() is None
+
+
+def test_latest_run_returns_last_appended_record_of_newest_day(tmp_path: Path):
+    m = Manifest(root=tmp_path)
+    m.write(
+        now=datetime(2026, 5, 30, 9, 0, tzinfo=UTC),
+        cadence=Cadence.DAILY,
+        results=[SourceResult(source="old", ok=True)],
+    )
+    m.write(
+        now=datetime(2026, 5, 31, 9, 0, tzinfo=UTC),
+        cadence=Cadence.DAILY,
+        results=[SourceResult(source="morning", ok=True)],
+    )
+    m.write(
+        now=datetime(2026, 5, 31, 18, 0, tzinfo=UTC),
+        cadence=Cadence.HOURLY,
+        results=[SourceResult(source="evening", ok=False, error="x")],
+    )
+
+    latest = Manifest(root=tmp_path).latest_run()
+    assert latest is not None
+    assert latest.cadence is Cadence.HOURLY
+    assert [r.source for r in latest.results] == ["evening"]
