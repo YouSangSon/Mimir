@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 from mimir.analysis.signals.base import SignalDirection, SignalResult
+from mimir.core.payloads import price_payload
 from mimir.core.source import Dataset, Market
 from mimir.storage.reader import DataReader
 
@@ -23,11 +24,8 @@ class PriceMomentumSignal:
             Dataset.PRICES, symbol=symbol, since=as_of - timedelta(days=WINDOW_DAYS), until=as_of
         )
         recs = sorted(window, key=lambda r: r.ts)
-        closes = [
-            (r.payload.get("close"), r.payload.get("volume"))
-            for r in recs
-            if r.payload.get("close") is not None
-        ]
+        payloads = [price_payload(r) for r in recs]
+        closes = [(p.close, p.volume) for p in payloads if p.close is not None]
         if len(closes) < 2:
             return None
 

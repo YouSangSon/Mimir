@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+from typing import TYPE_CHECKING
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from mimir.core.source import Dataset, Market
-from mimir.storage.schema import Record
+
+if TYPE_CHECKING:
+    from mimir.storage.schema import Record
 
 DISCLAIMER = "Backtest hit-rate is descriptive, not predictive. Not financial advice."
 EVALUATION_SOURCE = "mimir_evaluation"
@@ -20,6 +23,9 @@ class HorizonEval(BaseModel):
 
 
 class BucketStat(BaseModel):
+    # extra="forbid": typed payload (see core/payloads.py); drift fails at the boundary.
+    model_config = ConfigDict(extra="forbid")
+
     dimension: str  # "per_signal" | "per_direction" | "per_star"
     key: str  # e.g. "momentum" | "bullish" | "4"
     market: Market
@@ -35,6 +41,9 @@ class EvaluationReport(BaseModel):
 
 
 def to_record(stat: BucketStat, as_of: date, captured_at: datetime) -> Record:
+    # Function-local import breaks the phase-4 cycle (see analysis/schema.py).
+    from mimir.storage.schema import Record
+
     return Record(
         source=EVALUATION_SOURCE,
         dataset=Dataset.EVALUATION,
@@ -45,5 +54,5 @@ def to_record(stat: BucketStat, as_of: date, captured_at: datetime) -> Record:
         idempotency_key=(
             f"evaluation:{stat.dimension}:{stat.key}:{stat.market.value}:{as_of.isoformat()}"
         ),
-        payload=stat.model_dump(mode="json"),
+        payload=stat,  # already a typed payload; before-validator no-ops on a model
     )

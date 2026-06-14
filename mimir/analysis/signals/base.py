@@ -2,12 +2,17 @@ from __future__ import annotations
 
 from datetime import date
 from enum import StrEnum
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from pydantic import BaseModel
 
 from mimir.core.source import Market
-from mimir.storage.reader import DataReader
+
+if TYPE_CHECKING:
+    # Annotation-only (the Signal Protocol's reader param). A module-top import
+    # would create a cycle: core.payloads -> analysis.schema -> signals.base ->
+    # storage.reader -> jsonl_store -> storage.schema -> core.payloads.
+    from mimir.storage.reader import DataReader
 
 
 class SignalDirection(StrEnum):

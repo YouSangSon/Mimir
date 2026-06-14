@@ -16,7 +16,15 @@ def _rec(day: int) -> Record:
         ts=datetime(2026, 5, day, tzinfo=UTC),
         captured_at=datetime(2026, 5, 31, tzinfo=UTC),
         idempotency_key=f"k{day}",
-        payload={"close": 1.0},
+        payload={
+            "open": 1.0,
+            "high": 1.0,
+            "low": 1.0,
+            "close": 1.0,
+            "volume": 1.0,
+            "currency": "USD",
+            "interval": "1d",
+        },
     )
 
 

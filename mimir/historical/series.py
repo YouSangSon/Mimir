@@ -2,11 +2,16 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import date
-from typing import NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 from mimir.core.source import Dataset
-from mimir.storage.reader import DataReader
-from mimir.storage.schema import Record
+
+if TYPE_CHECKING:
+    # Annotation-only. This module (via Bar) is imported by historical.schema,
+    # which core.payloads imports; module-top storage imports would close that
+    # cycle. price_payload is imported function-locally in bars_from_records.
+    from mimir.storage.reader import DataReader
+    from mimir.storage.schema import Record
 
 
 class Bar(NamedTuple):
@@ -17,13 +22,18 @@ class Bar(NamedTuple):
 
 def bars_from_records(records: Iterable[Record]) -> list[Bar]:
     """Build a chronologically ordered close/volume series from price records."""
+    # Function-local import: this module defines Bar, which historical.schema (via
+    # analog) depends on, while core.payloads imports historical.schema — a
+    # module-top import here would close that cycle.
+    from mimir.core.payloads import price_payload
+
     bars: list[Bar] = []
     for rec in sorted(records, key=lambda r: r.ts):
-        close = rec.payload.get("close")
-        if close is None:
+        p = price_payload(rec)
+        if p.close is None:
             continue
-        volume = rec.payload.get("volume")
-        bars.append(Bar(rec.ts.date(), float(close), float(volume) if volume is not None else None))
+        volume = float(p.volume) if p.volume is not None else None
+        bars.append(Bar(rec.ts.date(), float(p.close), volume))
     return bars
 
 

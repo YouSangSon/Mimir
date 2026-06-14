@@ -7,6 +7,7 @@ from pathlib import Path
 
 from mimir.analysis.schema import Insight
 from mimir.config import load_sources_config, load_watchlist
+from mimir.core.payloads import Payload
 from mimir.core.source import Dataset
 from mimir.doctor.engine import run_doctor
 from mimir.evaluation.schema import BucketStat
@@ -32,7 +33,7 @@ def _latest_date(store: JsonlStore, dataset: Dataset, upper: date | None) -> dat
 
 def _load_latest(
     reader: DataReader, store: JsonlStore, dataset: Dataset, upper: date | None
-) -> list[dict[str, object]]:
+) -> list[Payload]:
     latest = _latest_date(store, dataset, upper)
     if latest is None:
         return []

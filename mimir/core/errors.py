@@ -11,3 +11,7 @@ class FetchError(MimirError):
 
 class NormalizationError(MimirError):
     """A raw record could not be normalized into a valid Record."""
+
+
+class PayloadSchemaError(MimirError):
+    """A payload dict did not match the typed schema for its dataset (drift)."""

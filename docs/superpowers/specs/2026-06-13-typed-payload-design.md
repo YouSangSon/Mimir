@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC2 (카탈로그 A4)
 > **작성일**: 2026-06-13
-> **상태**: 설계(미구현)
+> **상태**: ✅ 구현 완료 (Increment 2) — 4단계 롤아웃, 293 테스트 · 97% 커버리지 · mypy strict
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S1 Collector](2026-05-31-collector-design.md)
 
 ---

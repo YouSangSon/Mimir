@@ -21,7 +21,15 @@ def _price(symbol, day, close, volume) -> Record:
         ts=datetime(2026, 5, day, tzinfo=UTC),
         captured_at=datetime(2026, 5, 31, tzinfo=UTC),
         idempotency_key=f"p:{symbol}:{day}",
-        payload={"close": close, "volume": volume},
+        payload={
+            "open": close,
+            "high": close,
+            "low": close,
+            "close": close,
+            "volume": volume,
+            "currency": "USD",
+            "interval": "1d",
+        },
     )
 
 

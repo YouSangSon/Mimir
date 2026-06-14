@@ -39,8 +39,9 @@ def test_to_record_builds_evaluation_envelope():
     assert rec.symbol is None
     assert rec.ts == datetime(2026, 6, 13, tzinfo=UTC)
     assert rec.idempotency_key == "evaluation:per_signal:momentum:US:2026-06-13"
-    assert rec.payload["dimension"] == "per_signal"
-    assert rec.payload["horizons"][0]["hit_rate"] == 0.55
+    assert isinstance(rec.payload, BucketStat)
+    assert rec.payload.dimension == "per_signal"
+    assert rec.payload.horizons[0].hit_rate == 0.55
 
 
 def test_to_record_round_trips_through_json():

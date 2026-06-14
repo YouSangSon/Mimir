@@ -26,9 +26,7 @@ MACRO_SERIES_CADENCE: dict[str, Cadence] = {
 # Unregistered macro series fall back to the loosest cadence (silence over false alarm).
 DEFAULT_MACRO_CADENCE = Cadence.MONTHLY
 
-# §4.7 — shallow key-existence only. Type/range/cross-field checks belong to the
-# typed-payload spec (A4); the doctor is an early warning for structural drift.
-EXPECTED_PAYLOAD_KEYS: dict[Dataset, frozenset[str]] = {
-    Dataset.PRICES: frozenset({"close"}),
-    Dataset.MACRO: frozenset({"series_id", "value"}),
-}
+# NB: EXPECTED_PAYLOAD_KEYS / check_payload_schema were removed in INC2 (A4): payload
+# schema drift is now caught at the storage boundary by the typed Record.payload
+# union, so a shallow key-existence check here would be dead code (a drifted payload
+# can no longer be stored or read).

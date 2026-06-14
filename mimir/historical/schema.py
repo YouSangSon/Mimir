@@ -1,18 +1,24 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+from typing import TYPE_CHECKING
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from mimir.core.source import Dataset, Market
 from mimir.historical.analog import HorizonStat
-from mimir.storage.schema import Record
+
+if TYPE_CHECKING:
+    from mimir.storage.schema import Record
 
 DISCLAIMER = "Past performance does not guarantee future results. Not financial advice."
 HISTORICAL_SOURCE = "mimir_historical"
 
 
 class HistoricalInsight(BaseModel):
+    # extra="forbid": typed payload (see core/payloads.py); drift fails at the boundary.
+    model_config = ConfigDict(extra="forbid")
+
     symbol: str
     market: Market
     as_of: date
@@ -25,6 +31,9 @@ class HistoricalInsight(BaseModel):
 
 
 def to_record(insight: HistoricalInsight, captured_at: datetime) -> Record:
+    # Function-local import breaks the phase-4 cycle (see analysis/schema.py).
+    from mimir.storage.schema import Record
+
     return Record(
         source=HISTORICAL_SOURCE,
         dataset=Dataset.HISTORICAL,
@@ -35,5 +44,5 @@ def to_record(insight: HistoricalInsight, captured_at: datetime) -> Record:
         idempotency_key=(
             f"historical:{insight.symbol}:{insight.event_type}:{insight.as_of.isoformat()}"
         ),
-        payload=insight.model_dump(mode="json"),
+        payload=insight,  # already a typed payload; before-validator no-ops on a model
     )

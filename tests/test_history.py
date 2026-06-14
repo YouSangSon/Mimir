@@ -22,7 +22,15 @@ def test_run_history_writes_historical_insights(tmp_path: Path):
                 ts=datetime(2026, 5, day + 1, tzinfo=UTC),
                 captured_at=datetime(2026, 5, 31, tzinfo=UTC),
                 idempotency_key=f"p:AAPL:{day}",
-                payload={"close": float(c), "volume": 1000},
+                payload={
+                    "open": float(c),
+                    "high": float(c),
+                    "low": float(c),
+                    "close": float(c),
+                    "volume": 1000.0,
+                    "currency": "USD",
+                    "interval": "1d",
+                },
             )
             for day, c in enumerate(CLOSES)
         ]

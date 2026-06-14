@@ -30,5 +30,6 @@ def test_to_record_builds_historical_envelope():
     assert rec.dataset is Dataset.HISTORICAL
     assert rec.idempotency_key == "historical:AAPL:sharp_drop:2026-05-31"
     again = Record.model_validate_json(rec.model_dump_json())
-    assert again.payload["event_type"] == "sharp_drop"
-    assert again.payload["horizons"][0]["horizon"] == 5
+    assert isinstance(again.payload, HistoricalInsight)
+    assert again.payload.event_type == "sharp_drop"
+    assert again.payload.horizons[0].horizon == 5

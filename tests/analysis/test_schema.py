@@ -38,8 +38,10 @@ def test_to_record_builds_insights_envelope():
     assert rec.symbol == "AAPL"
     assert rec.idempotency_key == "insight:AAPL:2026-05-31"
     assert rec.ts == datetime(2026, 5, 31, tzinfo=UTC)
-    assert rec.payload["direction"] == "bullish"
-    assert rec.payload["stars"] == 4
+    assert isinstance(rec.payload, Insight)
+    assert rec.payload.direction == "bullish"
+    assert rec.payload.stars == 4
     # round-trips through JSON like any other Record
     again = Record.model_validate_json(rec.model_dump_json())
-    assert again.payload["as_of"] == "2026-05-31"
+    assert isinstance(again.payload, Insight)
+    assert again.payload.as_of == date(2026, 5, 31)

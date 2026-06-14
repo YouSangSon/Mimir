@@ -19,8 +19,7 @@ def test_watchlist_symbol_present_but_stale_is_flagged(tmp_path: Path):
     stale_day = date(2026, 6, 5)
     write_partition(
         tmp_path, Dataset.PRICES, stale_day,
-        [make_record(Dataset.PRICES, stale_day, symbol="AAPL", key="a",
-                     payload={"close": 1.0})],
+        [make_record(Dataset.PRICES, stale_day, symbol="AAPL", key="a")],
     )
     store = JsonlStore(root=tmp_path)
     findings = check_watchlist_coverage(store, {"us": ["AAPL"], "kr": []}, NOW)
@@ -33,8 +32,7 @@ def test_unregistered_macro_series_stale_emits_finding(tmp_path: Path):
     old_day = date(2026, 3, 27)  # 80 calendar days before 6/15
     write_partition(
         tmp_path, Dataset.MACRO, old_day,
-        [make_record(Dataset.MACRO, old_day, symbol="ZZZ", key="z",
-                     payload={"series_id": "ZZZ", "value": 1.0})],
+        [make_record(Dataset.MACRO, old_day, symbol="ZZZ", key="z")],
     )
     store = JsonlStore(root=tmp_path)
     findings = check_macro_series(store, NOW)

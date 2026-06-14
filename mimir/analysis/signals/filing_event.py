@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 from mimir.analysis.signals.base import SignalDirection, SignalResult
+from mimir.core.payloads import filing_payload
 from mimir.core.source import Dataset, Market
 from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
@@ -14,7 +15,7 @@ WEIGHT = 0.8
 
 
 def _is_important(rec: Record) -> bool:
-    form = rec.payload.get("form_type") or ""
+    form = filing_payload(rec).form_type or ""
     return form in IMPORTANT_US_FORMS or KR_IMPORTANT_KEYWORD in form
 
 
@@ -31,7 +32,7 @@ class FilingEventSignal:
             return None
         important = [r for r in recs if _is_important(r)]
         if important:
-            forms = ", ".join(sorted({(r.payload.get("form_type") or "?") for r in important}))
+            forms = ", ".join(sorted({(filing_payload(r).form_type or "?") for r in important}))
             return SignalResult(
                 signal=self.id,
                 direction=SignalDirection.NEUTRAL,

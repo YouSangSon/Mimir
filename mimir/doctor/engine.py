@@ -6,11 +6,10 @@ from mimir.core.source import Cadence, Dataset
 from mimir.doctor.checks import (
     check_dataset_freshness,
     check_macro_series,
-    check_payload_schema,
     check_short_partition,
     check_watchlist_coverage,
 )
-from mimir.doctor.expectations import EXPECTED_DATASETS, EXPECTED_PAYLOAD_KEYS
+from mimir.doctor.expectations import EXPECTED_DATASETS
 from mimir.doctor.report import DoctorReport, Finding, FindingKind
 from mimir.storage.jsonl_store import JsonlStore
 
@@ -38,8 +37,10 @@ def run_doctor(
     findings.extend(check_macro_series(store, now))
     findings.extend(check_watchlist_coverage(store, watchlist, now))
 
-    for dataset in EXPECTED_PAYLOAD_KEYS:
-        findings.extend(check_payload_schema(store, dataset))
+    # NB: payload schema-drift detection was removed here — it is now enforced at
+    # the storage boundary by the typed Record.payload union (INC2/A4). A drifted
+    # payload can no longer be stored or read, so a dedicated shallow key-existence
+    # check would never fire. See expectations.py's original A4 note.
 
     return DoctorReport(checked_at=now, data_root=str(store.root), findings=findings)
 

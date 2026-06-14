@@ -25,7 +25,7 @@
 | ID | 항목 | 차원 | 추적성 | 결정 | 산출물 |
 |---|---|---|---|---|---|
 | **A1** | 설정 기반 시리즈·피드 (FRED/ECOS series, RSS feeds) | 확장성 | 백로그 + README 약속 | **✅ 구현 완료 (Increment 1)** | 코드 + 테스트(144) |
-| **A4** | 데이터셋별 타입드 페이로드 스키마 (`dict[str,Any]` 제거) | 견고성 | 신규 | 📐 설계 (Increment 2) | [spec](../superpowers/specs/2026-06-13-typed-payload-design.md) |
+| **A4** | 데이터셋별 타입드 페이로드 스키마 (`dict[str,Any]` 제거) | 견고성 | 신규 | **✅ 구현 완료 (Increment 2)** | 코드 + 테스트(293) · [spec](../superpowers/specs/2026-06-13-typed-payload-design.md) |
 | **A2** | 시리즈 식별자 단일 진실원 (macro_regime ↔ 어댑터) | 확장성 | 백로그 | 📐 설계 (후속) | [spec](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md) §9 |
 | **A3** | 선언적 소스 등록 (if-사다리 → 레지스트리/entry-point) | 아키텍처 | README 약속(부분) | 📐 설계 (후속) | [spec](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md) §8 |
 | **B1** | 시그널 백테스트·평가 하네스 (사후수익 적중률) | 분석심화 | 신규(최고가치) | **✅ 구현 완료 (Increment 4, MVP)** | 코드 + 테스트(208) |
@@ -84,9 +84,11 @@ Mimir는 시그널을 *발행*하지만, 그 시그널이 실제로 무언가를
 
 ## 4. 견고성 (Robustness)
 
-### A4. 타입드 페이로드 스키마 — **지금 설계**
+### A4. 타입드 페이로드 스키마 — **✅ 구현 완료 (Increment 2)**
 
 `RawRecord.payload: dict[str, Any]`는 모든 다운스트림 시그널이 문자열 키(`payload["close"]`, `payload["value"]`)로 더듬게 한다. 스키마 드리프트가 조용히 실패한다. 데이터셋별 pydantic 페이로드 모델은 경계에서 드리프트를 잡는다. 가치 높으나 신규 → 설계. → [타입드 페이로드 설계문서](../superpowers/specs/2026-06-13-typed-payload-design.md).
+
+**구현(Increment 2).** `mimir/core/payloads.py`에 데이터셋별 6개 모델(`PricePayload`/`FredMacroPayload`/`EcosMacroPayload`/`NewsPayload`/`SecFilingPayload`/`DartFilingPayload`, 모두 `frozen=True, extra="forbid"`) + 유니온 별칭 + 외부 디스패치(`PAYLOAD_BY_DATASET`/`parse_payload`, 봉투 `dataset` 기준). insights/historical/evaluation은 기존 `Insight`/`HistoricalInsight`/`BucketStat` 재사용(+`extra="forbid"`). `Record.payload`는 `Payload` 유니온(`model_validator(mode="before")`로 dict→모델 파싱), `RawRecord.payload`는 dict 유지. `JsonlStore` 직렬화 무변경 → 온디스크 JSONL 바이트 동일(오버라이트 재실행 git churn 0, 골든 round-trip으로 고정). 시그널은 내로잉 헬퍼로 타입드 접근. 닥터의 얕은 `check_payload_schema`는 경계 검증이 대체하여 제거.
 
 ### C1. 데이터 신선도·품질 닥터 — **지금 설계 (fast-follow 후보)**
 
@@ -102,7 +104,7 @@ Mimir는 시그널을 *발행*하지만, 그 시그널이 실제로 무언가를
 Increment 1 (지금) ── 설정 기반 소스 척추 (A1)
    spec → plan → 구현(subagent-driven) → finish
         ▼
-Increment 2 ── 타입드 페이로드 (A4)            [A2 시리즈 단일 진실원은 config spec §9에 설계]
+Increment 2 ── 타입드 페이로드 (A4)            ✅ 구현 완료 (Record.payload 유니온; 바이트 동일)
 Increment 3 ── 데이터 닥터 (C1)               ✅ 구현 완료 (read-only `mimir doctor`)
 Increment 4 ── 시그널 백테스트 하네스 (B1)   ✅ 구현 완료 (MVP: engine+CLI; 리포트 합류 후속)
 Increment 5 ── LLM 감성 seam (B2)            [사용자가 키·비용 승인 시 승격]
