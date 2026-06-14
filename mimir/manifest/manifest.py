@@ -37,3 +37,24 @@ class Manifest:
         with path.open("a", encoding="utf-8") as fh:
             fh.write(record.model_dump_json() + "\n")
         return record
+
+    def latest_run(self) -> RunRecord | None:
+        """Read-only: the most recent run on the newest partition, or None.
+
+        A day's partition accumulates multiple runs (write appends), so the last
+        line of the latest-date file is the freshest record.
+        """
+        base = self._root / "_manifest"
+        if not base.exists():
+            return None
+        partitions = sorted(base.rglob("*.jsonl"))
+        if not partitions:
+            return None
+        lines = [
+            line
+            for line in partitions[-1].read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        if not lines:
+            return None
+        return RunRecord.model_validate_json(lines[-1])
