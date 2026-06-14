@@ -18,7 +18,7 @@ by `extra="forbid"` + disjoint required keys.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -27,6 +27,13 @@ from mimir.core.errors import PayloadSchemaError
 from mimir.core.source import Dataset
 from mimir.evaluation.schema import BucketStat
 from mimir.historical.schema import HistoricalInsight
+
+if TYPE_CHECKING:
+    # Annotation-only: the narrowing helpers below take a Record but only ever
+    # isinstance-check its `.payload` against a concrete model, so Record is never
+    # needed at runtime here. Importing it at module top would create a cycle in
+    # phase 4 (storage.schema -> core.payloads -> ... -> storage.schema).
+    from mimir.storage.schema import Record
 
 
 class _Payload(BaseModel):
@@ -140,3 +147,51 @@ def parse_payload(dataset: Dataset, data: dict[str, Any]) -> Payload:
     raise PayloadSchemaError(
         f"payload for dataset {dataset.value!r} matched no model ({'; '.join(errors)})"
     )
+
+
+# --- Narrowing helpers (spec §4.5) ---
+# A monomorphic Record with a union payload does not auto-narrow under mypy
+# strict. These give signals typed access; a type mismatch raises (never a silent
+# None fallback). They accept the phase-1..3 dict payload too, parsing on demand,
+# so they work before and after the phase-4 union switch.
+
+
+def _narrow[M: BaseModel](rec: Record, dataset: Dataset, model: type[M]) -> M:
+    payload = rec.payload
+    parsed = payload if isinstance(payload, BaseModel) else parse_payload(dataset, payload)
+    if not isinstance(parsed, model):
+        raise PayloadSchemaError(
+            f"expected {model.__name__} for dataset {rec.dataset.value!r}, "
+            f"got {type(parsed).__name__}"
+        )
+    return parsed
+
+
+def price_payload(rec: Record) -> PricePayload:
+    return _narrow(rec, Dataset.PRICES, PricePayload)
+
+
+def macro_payload(rec: Record) -> MacroPayload:
+    payload = rec.payload
+    parsed = payload if isinstance(payload, BaseModel) else parse_payload(Dataset.MACRO, payload)
+    if not isinstance(parsed, FredMacroPayload | EcosMacroPayload):
+        raise PayloadSchemaError(
+            f"expected a macro payload for dataset {rec.dataset.value!r}, "
+            f"got {type(parsed).__name__}"
+        )
+    return parsed
+
+
+def news_payload(rec: Record) -> NewsPayload:
+    return _narrow(rec, Dataset.NEWS, NewsPayload)
+
+
+def filing_payload(rec: Record) -> FilingPayload:
+    payload = rec.payload
+    parsed = payload if isinstance(payload, BaseModel) else parse_payload(Dataset.FILINGS, payload)
+    if not isinstance(parsed, SecFilingPayload | DartFilingPayload):
+        raise PayloadSchemaError(
+            f"expected a filing payload for dataset {rec.dataset.value!r}, "
+            f"got {type(parsed).__name__}"
+        )
+    return parsed

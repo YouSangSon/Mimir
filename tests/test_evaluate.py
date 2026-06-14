@@ -25,7 +25,15 @@ def _seed(store: JsonlStore, n_insights: int) -> None:
                 ts=datetime(2026, 5, d + 1, tzinfo=UTC),
                 captured_at=CAPTURED,
                 idempotency_key=f"p:AAPL:{d}",
-                payload={"close": c, "volume": 1000},
+                payload={
+                    "open": c,
+                    "high": c,
+                    "low": c,
+                    "close": c,
+                    "volume": 1000.0,
+                    "currency": "USD",
+                    "interval": "1d",
+                },
             )
             for d, c in enumerate(closes)
         ]

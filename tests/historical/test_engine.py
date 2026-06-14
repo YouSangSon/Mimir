@@ -11,6 +11,18 @@ from mimir.storage.schema import Record
 CLOSES = [100, 100, 90, 95, 96, 86, 92, 93, 83, 90, 92, 95]
 
 
+def _price_payload(close: float, volume: float = 1000.0) -> dict:
+    return {
+        "open": close,
+        "high": close,
+        "low": close,
+        "close": close,
+        "volume": volume,
+        "currency": "USD",
+        "interval": "1d",
+    }
+
+
 def _seed_store(tmp_path: Path) -> JsonlStore:
     store = JsonlStore(root=tmp_path)
     records = [
@@ -22,7 +34,7 @@ def _seed_store(tmp_path: Path) -> JsonlStore:
             ts=datetime(2026, 5, day + 1, tzinfo=UTC),
             captured_at=datetime(2026, 5, 31, tzinfo=UTC),
             idempotency_key=f"p:AAPL:{day}",
-            payload={"close": float(close), "volume": 1000},
+            payload=_price_payload(float(close)),
         )
         for day, close in enumerate(CLOSES)
     ]
@@ -57,7 +69,7 @@ def test_engine_skips_below_min_occurrences(tmp_path: Path):
                 ts=datetime(2026, 5, d, tzinfo=UTC),
                 captured_at=datetime(2026, 5, 31, tzinfo=UTC),
                 idempotency_key=f"p:AAPL:{d}",
-                payload={"close": c, "volume": 1000},
+                payload=_price_payload(c),
             )
             for d, c in [(1, 100.0), (2, 90.0), (3, 95.0)]
         ]

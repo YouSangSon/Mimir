@@ -4,6 +4,7 @@ import re
 from datetime import date, timedelta
 
 from mimir.analysis.signals.base import SignalDirection, SignalResult
+from mimir.core.payloads import news_payload
 from mimir.core.source import Dataset, Market
 from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
@@ -17,7 +18,8 @@ def _mentions(rec: Record, symbol: str) -> bool:
     # don't match "a"/"on"/"all" inside ordinary prose. Note: official feeds rarely
     # carry tickers, so this stays mostly inert until ticker-tagged feeds / an LLM
     # signal land (see docs/IMPROVEMENTS.md).
-    text = (rec.payload.get("title") or "") + " " + (rec.payload.get("summary") or "")
+    p = news_payload(rec)
+    text = (p.title or "") + " " + (p.summary or "")
     return re.search(rf"\b{re.escape(symbol)}\b", text, re.IGNORECASE) is not None
 
 

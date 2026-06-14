@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 from mimir.analysis.signals.base import SignalDirection, SignalResult
+from mimir.core.payloads import macro_payload
 from mimir.core.source import Dataset, Market
 from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
@@ -27,7 +28,7 @@ class MacroRegimeSignal:
             for r in reader.read(
                 Dataset.MACRO, since=as_of - timedelta(days=WINDOW_DAYS), until=as_of
             )
-            if r.market == market and r.symbol in RATE_SERIES and r.payload.get("value") is not None
+            if r.market == market and r.symbol in RATE_SERIES
         ]
         if len(recs) < 2:
             return None
@@ -40,7 +41,7 @@ class MacroRegimeSignal:
             return None
         series = sorted(best, key=lambda r: r.ts)
 
-        first, last = series[0].payload["value"], series[-1].payload["value"]
+        first, last = macro_payload(series[0]).value, macro_payload(series[-1]).value
         delta = last - first
         if delta > 1e-9:
             direction = SignalDirection.BEARISH

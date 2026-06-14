@@ -25,12 +25,17 @@ from mimir.core.payloads import (
     NewsPayload,
     PricePayload,
     SecFilingPayload,
+    filing_payload,
+    macro_payload,
+    news_payload,
     parse_payload,
+    price_payload,
 )
 from mimir.core.source import Dataset, Market
 from mimir.evaluation.schema import BucketStat, HorizonEval
 from mimir.historical.analog import HorizonStat
 from mimir.historical.schema import HistoricalInsight
+from mimir.storage.schema import Record
 
 # --- Exact payload literals per adapter (insertion order matters) ---
 
@@ -216,3 +221,45 @@ def test_fred_dict_does_not_validate_as_ecos():
 
     with pytest.raises(ValidationError):
         EcosMacroPayload.model_validate(FRED_PAYLOAD)
+
+
+# --- §4.5 narrowing helpers (signal-side typed access) ---
+
+
+def _rec(dataset: Dataset, payload: dict[str, Any]) -> Record:
+    from datetime import UTC, datetime
+
+    return Record(
+        source="seed",
+        dataset=dataset,
+        market=Market.US,
+        symbol="X",
+        ts=datetime(2026, 5, 29, tzinfo=UTC),
+        captured_at=datetime(2026, 5, 31, tzinfo=UTC),
+        idempotency_key="k",
+        payload=payload,
+    )
+
+
+def test_price_payload_narrows():
+    assert price_payload(_rec(Dataset.PRICES, PRICE_PAYLOAD)).close == 196.3
+
+
+def test_macro_payload_narrows_both_sources():
+    assert macro_payload(_rec(Dataset.MACRO, FRED_PAYLOAD)).value == 4.5
+    assert macro_payload(_rec(Dataset.MACRO, ECOS_PAYLOAD)).value == 3.5
+
+
+def test_news_payload_narrows():
+    assert news_payload(_rec(Dataset.NEWS, NEWS_PAYLOAD)).url == "https://www.sec.gov/news/pr-1"
+
+
+def test_filing_payload_narrows_both_sources():
+    assert filing_payload(_rec(Dataset.FILINGS, SEC_PAYLOAD)).form_type == "8-K"
+    assert filing_payload(_rec(Dataset.FILINGS, DART_PAYLOAD)).corp_name == "삼성전자"
+
+
+def test_narrowing_helper_raises_on_wrong_dataset():
+    # asking for a price payload on a macro record must raise, never silently coerce
+    with pytest.raises(PayloadSchemaError):
+        price_payload(_rec(Dataset.MACRO, FRED_PAYLOAD))
