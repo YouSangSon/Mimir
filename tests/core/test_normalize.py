@@ -24,19 +24,42 @@ META = SourceMeta(
 )
 CAPTURED = datetime(2026, 5, 31, tzinfo=UTC)
 
+# A full, schema-conforming PRICES payload (parse_payload validates at normalize).
+PRICE_PAYLOAD = {
+    "open": 1.0,
+    "high": 1.0,
+    "low": 1.0,
+    "close": 1.0,
+    "volume": 1.0,
+    "currency": "USD",
+    "interval": "1d",
+}
+
 
 def test_normalize_builds_record_from_meta():
     raw = RawRecord(
         symbol="AAPL",
         ts=datetime(2026, 5, 29, tzinfo=UTC),
         idempotency_key="stooq:AAPL:2026-05-29",
-        payload={"close": 1.0},
+        payload=dict(PRICE_PAYLOAD),
     )
     rec = normalize(raw, META, captured_at=CAPTURED)
     assert rec.source == "stooq"
     assert rec.dataset is Dataset.PRICES
     assert rec.market is Market.US
     assert rec.captured_at == CAPTURED
+
+
+def test_normalize_rejects_payload_drift():
+    # An unknown key is upstream drift; normalize must fail loudly, not silently.
+    raw = RawRecord(
+        symbol="AAPL",
+        ts=datetime(2026, 5, 29, tzinfo=UTC),
+        idempotency_key="stooq:AAPL:2026-05-29",
+        payload={**PRICE_PAYLOAD, "unexpected": 1},
+    )
+    with pytest.raises(NormalizationError):
+        normalize(raw, META, captured_at=CAPTURED)
 
 
 def test_normalize_wraps_validation_failure():

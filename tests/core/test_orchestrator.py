@@ -28,6 +28,19 @@ def _meta(id_: str) -> SourceMeta:
     )
 
 
+def _price_payload(close: float) -> dict:
+    # A full, schema-conforming PRICES payload (normalize now validates payloads).
+    return {
+        "open": close,
+        "high": close,
+        "low": close,
+        "close": close,
+        "volume": 1.0,
+        "currency": "USD",
+        "interval": "1d",
+    }
+
+
 class _OkSource:
     meta = _meta("ok")
 
@@ -36,7 +49,7 @@ class _OkSource:
             symbol="AAPL",
             ts=datetime(2026, 5, 29, tzinfo=UTC),
             idempotency_key="ok:AAPL:1",
-            payload={"close": 1.0},
+            payload=_price_payload(1.0),
         )
 
 
@@ -81,7 +94,7 @@ class _TwoRecordSource:
                 symbol="AAPL",
                 ts=datetime(2026, 5, 29, tzinfo=UTC),
                 idempotency_key=f"two:AAPL:{i}",
-                payload={"close": float(i)},
+                payload=_price_payload(float(i)),
             )
 
 
