@@ -17,6 +17,7 @@ class Settings(BaseModel):
     sec_user_agent: str = DEFAULT_SEC_UA
     telegram_bot_token: str | None = None
     telegram_chat_id: str | None = None
+    anthropic_api_key: str | None = None  # optional; gates the off-by-default LLM signal (INC5)
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Settings:
@@ -35,4 +36,5 @@ class Settings(BaseModel):
             sec_user_agent=env.get("MIMIR_SEC_USER_AGENT", DEFAULT_SEC_UA),
             telegram_bot_token=env.get("TELEGRAM_BOT_TOKEN"),
             telegram_chat_id=env.get("TELEGRAM_CHAT_ID"),
+            anthropic_api_key=env.get("ANTHROPIC_API_KEY"),
         )

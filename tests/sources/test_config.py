@@ -102,3 +102,17 @@ def test_none_sources_block_yields_all_none():
     assert cfg.fred_series is None
     assert cfg.ecos_series is None
     assert cfg.rss_feeds is None
+
+
+def test_llm_sentiment_defaults_off():
+    # INC5: the paid LLM signal is off by default and capped at 50 headlines.
+    cfg = parse_sources_config({})
+    assert cfg.llm_sentiment_enabled is False
+    assert cfg.llm_sentiment_max_headlines == 50
+
+
+def test_llm_sentiment_toggle_parsed_from_top_level_keys():
+    raw = {"llm_sentiment_enabled": True, "llm_sentiment_max_headlines": 10}
+    cfg = parse_sources_config(raw)
+    assert cfg.llm_sentiment_enabled is True
+    assert cfg.llm_sentiment_max_headlines == 10

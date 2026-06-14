@@ -8,7 +8,9 @@ from pathlib import Path
 from mimir.analysis.builder import build_signals
 from mimir.analysis.engine import AnalysisEngine
 from mimir.analysis.schema import Insight
-from mimir.config import load_watchlist
+from mimir.config import load_sources_config, load_watchlist
+from mimir.settings import Settings
+from mimir.sources.config import SourcesConfig, parse_sources_config
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.reader import DataReader
 
@@ -21,10 +23,14 @@ def run_analyze(
     data_root: Path = DEFAULT_DATA_ROOT,
     as_of: date | None = None,
     captured_at: datetime | None = None,
+    config: SourcesConfig | None = None,
+    settings: Settings | None = None,
 ) -> list[Insight]:
     as_of = as_of or datetime.now(UTC).date()
     store = JsonlStore(root=data_root)
-    engine = AnalysisEngine(build_signals(), DataReader(store), store)
+    # config/settings default to None -> build_signals returns today's 4 signals.
+    # The LLM signal only joins when sources.yaml enables it + a key is present.
+    engine = AnalysisEngine(build_signals(config, settings), DataReader(store), store)
     return engine.run(watchlist, as_of, captured_at=captured_at)
 
 
@@ -35,11 +41,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-root", default=str(DEFAULT_DATA_ROOT))
     args = parser.parse_args(argv)
 
+    config_dir = Path(args.config_dir)
     as_of = date.fromisoformat(args.date) if args.date else None
     insights = run_analyze(
-        watchlist=load_watchlist(Path(args.config_dir)),
+        watchlist=load_watchlist(config_dir),
         data_root=Path(args.data_root),
         as_of=as_of,
+        config=parse_sources_config(load_sources_config(config_dir)),
+        settings=Settings.from_env(),
     )
     for ins in insights:
         stars = "★" * ins.stars + "☆" * (5 - ins.stars)

@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC5 (카탈로그 B2)
 > **작성일**: 2026-06-13
-> **상태**: 설계(미구현) — 유료 호출이므로 사용자가 키·비용 승인 시에만 구현
+> **상태**: ✅ seam 구현 완료 (Increment 5 — off-by-default 스캐폴드). 기본 파이프라인은 LLM 호출 0건. 활성화: `[llm]` extra + `ANTHROPIC_API_KEY` + `llm_sentiment_enabled: true` (세 조건 AND). 실제 유료 classify 경로는 사용자 opt-in 시에만 실행(테스트는 fake classifier). 313 테스트 · ruff·mypy strict 클린.
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S2 Analysis](2026-05-31-analysis-design.md)
 
 ---

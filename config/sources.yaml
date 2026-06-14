@@ -2,6 +2,8 @@
 gray_enabled: true        # set false to disable scraping-based (GRAY) sources like pykrx
 disabled_ids: []          # e.g. ["dart"] to turn one off (this is the way to disable a source)
 lang: en                  # report/digest/status UI language: en | ko | zh
+llm_sentiment_enabled: false      # paid LLM news-sentiment signal. Default off; needs ANTHROPIC_API_KEY + the [llm] extra.
+llm_sentiment_max_headlines: 50   # per-run cap on newly classified headlines (cost guardrail)
 
 # (Optional) Per-source configuration. Omit a block to keep that source's built-in
 # default. Add series/feeds here to extend coverage WITHOUT editing Python.

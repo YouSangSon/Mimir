@@ -11,6 +11,12 @@ def test_settings_reads_env():
     assert s.telegram_bot_token is None
 
 
+def test_settings_reads_anthropic_api_key():
+    # INC5: the optional LLM-sentiment key, off/None by default.
+    assert Settings.from_env({}).anthropic_api_key is None
+    assert Settings.from_env({"ANTHROPIC_API_KEY": "sk-x"}).anthropic_api_key == "sk-x"
+
+
 def test_settings_defaults_sec_user_agent():
     s = Settings.from_env({})
     assert "Mimir" in s.sec_user_agent
