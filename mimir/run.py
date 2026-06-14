@@ -18,6 +18,7 @@ from mimir.deliver import run_deliver
 from mimir.history import run_history
 from mimir.report.daily_report import DEFAULT_REPORTS_ROOT
 from mimir.report.i18n import DEFAULT_LANG
+from mimir.settings import Settings
 from mimir.sources.config import parse_sources_config
 from mimir.storage.paths import DEFAULT_ROOT
 
@@ -46,7 +47,14 @@ def run_pipeline(
         sources_config=sources_config,
         now=now,
     )
-    insights = run_analyze(watchlist=watchlist, data_root=data_root, as_of=as_of, captured_at=now)
+    insights = run_analyze(
+        watchlist=watchlist,
+        data_root=data_root,
+        as_of=as_of,
+        captured_at=now,
+        config=parse_sources_config(sources_config or {}),
+        settings=Settings.from_env(env),
+    )
     historical = run_history(watchlist=watchlist, data_root=data_root, as_of=as_of, captured_at=now)
     delivery = run_deliver(
         cadence=cadence,
