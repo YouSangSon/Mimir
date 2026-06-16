@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening 진행
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -26,7 +26,7 @@
 |---|---|---|---|---|---|
 | **A1** | 설정 기반 시리즈·피드 (FRED/ECOS series, RSS feeds) | 확장성 | 백로그 + README 약속 | **✅ 구현 완료 (Increment 1)** | 코드 + 테스트(144) |
 | **A4** | 데이터셋별 타입드 페이로드 스키마 (`dict[str,Any]` 제거) | 견고성 | 신규 | **✅ 구현 완료 (Increment 2)** | 코드 + 테스트(293) · [spec](../superpowers/specs/2026-06-13-typed-payload-design.md) |
-| **A2** | 시리즈 식별자 단일 진실원 (macro_regime ↔ 어댑터) | 확장성 | 백로그 | 📐 설계 (후속) | [spec](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md) §9 |
+| **A2** | 시리즈 식별자 단일 진실원 (macro_regime ↔ 어댑터) | 확장성 | 백로그 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-macro-series-registry-design.md) |
 | **A3** | 선언적 소스 등록 (if-사다리 → 레지스트리/entry-point) | 아키텍처 | README 약속(부분) | 📐 설계 (후속) | [spec](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md) §8 |
 | **B1** | 시그널 백테스트·평가 하네스 (사후수익 적중률) | 분석심화 | 신규(최고가치) | **✅ 구현 완료 (Increment 4 + 리포트 합류)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-13-signal-backtest-design.md) |
 | **B2** | LLM 뉴스 감성 시그널 (news_volume 대체, 하이브리드) | 분석심화 | 로드맵 + 백로그 R1 | **✅ seam 구현 (Increment 5, off-by-default)** | 코드 + 테스트 |
@@ -61,9 +61,11 @@
 
 **불변식(테스트로 고정).** 설정 배선은 `idempotency_key` 포맷·파티션 레이아웃을 **바꾸지 않는다**. 빈/부재 설정은 **오늘의 기본값을 그대로 재현**한다. git-as-DB에서 키가 조용히 바뀌면 이미 커밋된 데이터가 고아가 되거나 중복된다 — 이 리팩터가 "저위험"에서 "고위험"으로 바뀌는 유일한 경로.
 
-### A2. 시리즈 식별자 단일 진실원 — **지금 설계 (Increment 2)**
+### A2. 시리즈 식별자 단일 진실원 — **구현 완료 (2026-06-16)**
 
-`MacroRegimeSignal.RATE_SERIES = {"FEDFUNDS","DGS10","722Y001.0101000"}`가 FRED/ECOS가 발행하는 시리즈 식별자를 **두 번째로** 하드코딩한다. A1로 사용자가 시리즈를 바꾸면 거시 시그널은 그것을 모른다. 이 결합은 **source→signal 경계를 가로지르며**, 설정을 시그널 빌더까지 배선해야 한다 — A1보다 위험하고 별도 증분이 옳다. (Increment 1은 시그널 디스패치를 건드리지 않는다.)
+이전 구현에서는 `MacroRegimeSignal.RATE_SERIES = {"FEDFUNDS","DGS10","722Y001.0101000"}`가 FRED/ECOS가 발행하는 시리즈 식별자를 **두 번째로** 하드코딩했다. A1로 사용자가 시리즈를 바꿔도 거시 시그널은 그것을 몰랐다. 이 결합은 **source→signal 경계를 가로지르므로**, A1보다 위험하고 별도 증분으로 처리했다.
+
+**구현.** `mimir/core/macro_series.py`가 기본 FRED 시리즈, 기본 ECOS 시리즈, macro-regime rate-series, doctor macro cadence를 한 곳에서 제공한다. `FredSource`, `EcosSource`, `MacroRegimeSignal`, doctor expectation은 이 모듈을 읽는다. `sources.yaml`의 `analysis.macro_regime.rate_series`는 수집된 macro series 중 어떤 시리즈를 금리 regime 신호로 해석할지 명시한다. 수집 대상(`sources.fred/ecos.series`)과 분석 해석 대상(`analysis.macro_regime.rate_series`)은 분리되어, CPI처럼 수집은 하되 rate signal로 쓰면 안 되는 series를 안전하게 다룬다.
 
 ### A3. 선언적 소스 등록 — **지금 설계**
 
@@ -93,7 +95,7 @@ Mimir는 시그널을 *발행*하지만, 그 시그널이 실제로 무언가를
 
 **구현(Increment 2).** `mimir/core/payloads.py`에 데이터셋별 6개 모델(`PricePayload`/`FredMacroPayload`/`EcosMacroPayload`/`NewsPayload`/`SecFilingPayload`/`DartFilingPayload`, 모두 `frozen=True, extra="forbid"`) + 유니온 별칭 + 외부 디스패치(`PAYLOAD_BY_DATASET`/`parse_payload`, 봉투 `dataset` 기준). insights/historical/evaluation은 기존 `Insight`/`HistoricalInsight`/`BucketStat` 재사용(+`extra="forbid"`). `Record.payload`는 `Payload` 유니온(`model_validator(mode="before")`로 dict→모델 파싱), `RawRecord.payload`는 dict 유지. `JsonlStore` 직렬화 무변경 → 온디스크 JSONL 바이트 동일(오버라이트 재실행 git churn 0, 골든 round-trip으로 고정). 시그널은 내로잉 헬퍼로 타입드 접근. 닥터의 얕은 `check_payload_schema`는 경계 검증이 대체하여 제거.
 
-### C1. 데이터 신선도·품질 닥터 — **지금 설계 (fast-follow 후보)**
+### C1. 데이터 신선도·품질 닥터 — **구현 완료**
 
 매니페스트는 *실행*을 기록하지만, "어제 가격 데이터가 비었다" 같은 *데이터 신선도*는 누구도 감시하지 않는다. `mimir doctor`는 워치리스트 대비 누락·정체(stale) 파티션과 스키마 이상을 플래그한다. "무음 실패 금지" 약속을 데이터 평면으로 확장. → [데이터 닥터 설계문서](../superpowers/specs/2026-06-13-data-doctor-design.md).
 
@@ -110,8 +112,9 @@ Increment 1 (지금) ── 설정 기반 소스 척추 (A1)
 Increment 2 ── 타입드 페이로드 (A4)            ✅ 구현 완료 (Record.payload 유니온; 바이트 동일)
 Increment 3 ── 데이터 닥터 (C1)               ✅ 구현 완료 (read-only `mimir doctor`)
 Increment 4 ── 시그널 백테스트 하네스 (B1)   ✅ 구현 완료 (engine+CLI+pipeline+daily report scorecard)
-Increment 5 ── LLM 감성 seam (B2)            [사용자가 키·비용 승인 시 승격]
+Increment 5 ── LLM 감성 seam (B2)            ✅ seam 구현 (off-by-default)
 Hardening ─── stale 재생성 데이터 제거 · lang 정규화 · SignalResult 범위 검증
+A2 ───────── macro series registry · analysis.macro_regime.rate_series
 ```
 
 각 증분은 자기 spec → plan → 구현 → finish 사이클을 가진다. 본 카탈로그는 그 지도(map)다.
@@ -140,4 +143,4 @@ Hardening ─── stale 재생성 데이터 제거 · lang 정규화 · Signal
 - `http_get` 429/5xx 재시도 + 4xx 빠른 실패 · 소스 격리(한 소스 실패가 전체를 멈추지 않음).
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 원천 데이터는 append-only.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. 구현은 추적 가능한 항목부터 진행하고, 신규 아키텍처(A2/A3)는 별도 설계로 남긴다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A2까지 구현되었고, 남은 신규 아키텍처 부채는 A3 선언적 소스 등록이다.

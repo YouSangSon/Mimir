@@ -96,6 +96,12 @@ def evaluate(
 
 유료 또는 외부 호출 시그널은 기본으로 켜면 안 된다. LLM 뉴스 감성 시그널은 `llm_sentiment_enabled`, `ANTHROPIC_API_KEY`, optional package 설치가 모두 맞을 때만 등록된다. 새 유료 시그널도 같은 방식으로 off-by-default gate를 가져야 한다.
 
+### 4.1 Macro regime 시리즈
+
+거시 경제 시리즈 메타데이터는 `mimir/core/macro_series.py`가 관리한다. 이 모듈은 기본 FRED 시리즈, 기본 ECOS 시리즈, doctor freshness cadence, macro-regime rate-series 기본값을 함께 제공한다.
+
+`sources.fred.series`와 `sources.ecos.series`는 무엇을 수집할지 정한다. `analysis.macro_regime.rate_series`는 수집된 macro 데이터 중 어떤 시리즈를 정책금리나 벤치마크 금리로 해석할지 정한다. 이 둘을 분리해야 CPI 같은 물가지표를 수집하면서도 rate-regime 시그널에는 넣지 않을 수 있다.
+
 ---
 
 ## 5. 저장소 정책
@@ -123,7 +129,6 @@ def evaluate(
 
 | 항목 | 왜 남았나 | 다음 행동 |
 |---|---|---|
-| A2 거시 시리즈 단일 진실원 | 수집 설정과 `MacroRegimeSignal`의 rate-series 해석이 아직 분리되어 있다 | 별도 설계에서 `analysis.macro_regime.rate_series` 같은 명시적 분석 설정을 정의 |
 | A3 선언적 소스 등록 | 새 소스가 아직 `builder.py` 중앙 분기를 수정해야 한다 | 소스 메타 테이블 또는 entry-point 설계 |
 | `news_volume` 실데이터 한계 | 공식 피드 제목에 티커가 잘 안 나온다 | alias 맵, 종목별 피드, 또는 LLM 시그널 승격 |
 

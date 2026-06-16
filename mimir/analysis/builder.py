@@ -35,13 +35,13 @@ def build_signals(
     With no args, returns exactly today's four signals and never imports
     `anthropic`.
     """
+    cfg = config or SourcesConfig()
     signals: list[Signal] = [
         FilingEventSignal(),
         NewsVolumeSignal(),
         PriceMomentumSignal(),
-        MacroRegimeSignal(),
+        MacroRegimeSignal(rate_series=cfg.macro_regime_rate_series),
     ]
-    cfg = config or SourcesConfig()
     settings = settings or Settings()
     if _llm_sentiment_enabled(cfg, settings, classifier):
         # Local import — the default path never enters this branch, so loading

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from mimir.core.macro_series import macro_series_cadences
 from mimir.core.source import Cadence, Dataset
 
 # §4.1 — explicit expected coverage. NEVER derive this from build_sources(): its
@@ -17,12 +18,7 @@ EXPECTED_DATASETS: dict[Dataset, Cadence] = {
 # §4.4 — macro freshness is PER-SERIES, not per-dataset. FRED emits DGS10 (daily)
 # AND CPIAUCSL (monthly) into the same `macro` dataset, so a single dataset-level
 # rule false-alarms CPI daily. Never use SourceMeta.cadence as the basis.
-MACRO_SERIES_CADENCE: dict[str, Cadence] = {
-    "DGS10": Cadence.DAILY,
-    "FEDFUNDS": Cadence.MONTHLY,  # monthly average release
-    "CPIAUCSL": Cadence.MONTHLY,  # would false-alarm daily if treated as DAILY
-    "722Y001.0101000": Cadence.MONTHLY,  # BOK base rate (ECOS symbol format)
-}
+MACRO_SERIES_CADENCE = macro_series_cadences()
 # Unregistered macro series fall back to the loosest cadence (silence over false alarm).
 DEFAULT_MACRO_CADENCE = Cadence.MONTHLY
 

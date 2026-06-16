@@ -8,6 +8,7 @@ import requests
 from pydantic import BaseModel
 
 from mimir.core.errors import FetchError
+from mimir.core.macro_series import default_ecos_series_specs
 from mimir.core.source import (
     Cadence,
     Dataset,
@@ -34,7 +35,10 @@ class EcosSeries(BaseModel):
 
 
 # A small default macro set (Bank of Korea base rate); override via constructor.
-DEFAULT_SERIES = [EcosSeries(stat_code="722Y001", cycle="M", item_code="0101000")]
+DEFAULT_SERIES = [
+    EcosSeries(stat_code=s.stat_code, cycle=s.cycle, item_code=s.item_code)
+    for s in default_ecos_series_specs()
+]
 
 
 def _fmt(d: date, cycle: str) -> str:
