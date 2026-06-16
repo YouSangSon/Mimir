@@ -36,3 +36,25 @@ class DataReader:
                 continue
             out.append(rec)
         return out
+
+    def read_captured_window(
+        self,
+        dataset: Dataset,
+        *,
+        symbol: str | None = None,
+        since: date | None = None,
+        until: date | None = None,
+    ) -> list[Record]:
+        out: list[Record] = []
+        # Partitions are keyed by rec.ts.date(), so captured_at windows cannot
+        # safely use read_window() pruning without dropping late-captured records.
+        for rec in self._store.read_all(dataset):
+            if symbol is not None and rec.symbol != symbol:
+                continue
+            day = rec.captured_at.date()
+            if since is not None and day < since:
+                continue
+            if until is not None and day > until:
+                continue
+            out.append(rec)
+        return out

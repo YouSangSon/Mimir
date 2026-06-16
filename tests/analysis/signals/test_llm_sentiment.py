@@ -65,14 +65,14 @@ def _news(title: str | None, summary: str) -> dict:
     }
 
 
-def _rec(symbol, day, payload, market=Market.US) -> Record:
+def _rec(symbol, day, payload, market=Market.US, captured_day: int = 31) -> Record:
     return Record(
         source="seed",
         dataset=Dataset.NEWS,
         market=market,
         symbol=symbol,
         ts=datetime(2026, 5, day, tzinfo=UTC),
-        captured_at=datetime(2026, 5, 31, tzinfo=UTC),
+        captured_at=datetime(2026, 5, captured_day, tzinfo=UTC),
         idempotency_key=f"news:{symbol}:{day}:{next(_KEY)}",
         payload=payload,
     )
@@ -111,6 +111,20 @@ def test_matches_configured_alias_without_symbol_in_headline(tmp_path: Path):
     assert r is not None
     assert r.signal == "llm_sentiment"
     assert fake.calls == [["Apple announces supplier update"]]
+
+
+def test_llm_sentiment_classifies_news_captured_today_even_when_published_yesterday(
+    tmp_path: Path,
+):
+    recs = [_rec(None, 30, _news("AAPL late update", ""), captured_day=31)]
+    fake = FakeClassifier({"AAPL late update": _verdict(SignalDirection.BULLISH, 0.8)})
+    sig = LlmSentimentSignal(classifier=fake, max_headlines=50)
+
+    r = sig.evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
+
+    assert r is not None
+    assert r.signal == "llm_sentiment"
+    assert fake.calls == [["AAPL late update"]]
 
 
 @pytest.mark.parametrize("confidence", [-0.1, 1.1])

@@ -81,7 +81,7 @@ class LlmSentimentSignal:
     ) -> SignalResult | None:
         mentions = [
             r
-            for r in reader.read(Dataset.NEWS, since=as_of, until=as_of)
+            for r in reader.read_captured_window(Dataset.NEWS, since=as_of, until=as_of)
             if self._matcher.mentions(r, symbol)
         ]
         if not mentions:

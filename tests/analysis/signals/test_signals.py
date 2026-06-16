@@ -56,14 +56,14 @@ def _filing(form_type: str | None, title: str | None) -> dict:
     }
 
 
-def _rec(dataset, symbol, day, payload, market=Market.US) -> Record:
+def _rec(dataset, symbol, day, payload, market=Market.US, captured_day: int = 31) -> Record:
     return Record(
         source="seed",
         dataset=dataset,
         market=market,
         symbol=symbol,
         ts=datetime(2026, 5, day, tzinfo=UTC),
-        captured_at=datetime(2026, 5, 31, tzinfo=UTC),
+        captured_at=datetime(2026, 5, captured_day, tzinfo=UTC),
         idempotency_key=f"{dataset.value}:{symbol}:{day}:{next(_KEY)}",
         payload=payload,
     )
@@ -114,6 +114,17 @@ def test_news_volume_matches_symbol_in_title(tmp_path: Path):
     r = NewsVolumeSignal().evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
     assert r is not None
     assert r.direction is SignalDirection.NEUTRAL
+
+
+def test_news_volume_counts_news_captured_today_even_when_published_yesterday(
+    tmp_path: Path,
+):
+    recs = [_rec(Dataset.NEWS, None, 30, _news("AAPL late item", ""), captured_day=31)]
+
+    r = NewsVolumeSignal().evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
+
+    assert r is not None
+    assert r.signal == "news_volume"
 
 
 def test_news_mention_matcher_terms_preserve_symbol_first_and_deduplicate():
@@ -184,7 +195,29 @@ def test_news_volume_counts_alias_matches_in_baseline_window(tmp_path: Path):
     recs = [
         _rec(Dataset.NEWS, None, 31, _news("Apple announces supplier update", "")),
         *[
-            _rec(Dataset.NEWS, None, day, _news("Daily supplier note", "Apple update"))
+            _rec(
+                Dataset.NEWS,
+                None,
+                day,
+                _news("Daily supplier note", "Apple update"),
+                captured_day=day,
+            )
+            for day in range(24, 31)
+        ],
+    ]
+    signal = NewsVolumeSignal(aliases={"AAPL": ["Apple"]})
+
+    r = signal.evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
+
+    assert r is not None
+    assert "vs ~1.0/day baseline" in r.reason
+
+
+def test_news_volume_baseline_uses_captured_at_window(tmp_path: Path):
+    recs = [
+        _rec(Dataset.NEWS, None, 30, _news("Apple current update", ""), captured_day=31),
+        *[
+            _rec(Dataset.NEWS, None, 20, _news("Apple baseline update", ""), captured_day=day)
             for day in range(24, 31)
         ],
     ]

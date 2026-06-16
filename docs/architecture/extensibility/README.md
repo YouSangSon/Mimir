@@ -112,6 +112,8 @@ analysis:
 
 이 설정은 수집을 늘리지 않는다. RSS는 계속 공식 제목과 요약 metadata만 저장한다. `NewsVolumeSignal`과 opt-in `LlmSentimentSignal`이 같은 matcher를 사용해 `Apple` 같은 alias를 `AAPL` mention으로 해석한다. Alias만 설정해도 LLM 호출은 생기지 않는다.
 
+뉴스 시그널의 날짜 윈도우는 `captured_at` 기준이다. `ts`는 기사 발행일로 남기고, `captured_at`은 Mimir가 그 기사를 관측한 실행일을 뜻한다. 그래서 어제 발행됐지만 오늘 수집된 뉴스는 오늘 `news_volume`과 opt-in `llm_sentiment` 입력에 들어간다.
+
 ### 4.2 Macro regime 시리즈
 
 거시 경제 시리즈 메타데이터는 `mimir/core/macro_series.py`가 관리한다. 이 모듈은 기본 FRED 시리즈, 기본 ECOS 시리즈, doctor freshness cadence, macro-regime rate-series 기본값을 함께 제공한다.
@@ -131,6 +133,8 @@ analysis:
 
 재생성 데이터셋은 `JsonlStore.replace_partition(dataset, day, records)`를 써야 한다. 새 실행 결과가 0건이면 기존 파티션 파일을 삭제한다. 그래야 watchlist에서 빠진 종목이나 표본 부족으로 사라진 평가 버킷이 다음 리포트에 남지 않는다.
 
+NEWS 파티션은 다른 원천 데이터처럼 `ts.date()` 기준으로 저장된다. 다만 뉴스 분석 시그널은 `DataReader.read_captured_window()`를 통해 `captured_at.date()` 기준으로 today와 baseline을 읽는다. 이 reader는 파티션 프루닝을 쓰지 않고 NEWS 전체를 읽은 뒤 필터링한다. `captured_at` 기준으로 `read_window()`를 호출하면, 발행일이 오래된 late-captured 뉴스가 파티션 단계에서 빠질 수 있기 때문이다.
+
 ---
 
 ## 6. 리포트 확장
@@ -146,6 +150,6 @@ analysis:
 | 항목 | 왜 남았나 | 다음 행동 |
 |---|---|---|
 | 외부 source plugin entry-point | 내장 소스는 `SourceSpec`으로 정리됐지만, 외부 package가 source를 주입하는 구조는 아직 없다 | `importlib.metadata` entry-point 설계 |
-| `news_volume` 실데이터 한계 | alias matcher는 구현됐지만, 기본 alias 사전과 종목별 feed는 없다 | 필요하면 보수적 기본 alias 데이터셋, 종목별 feed, 또는 LLM 시그널 승격 설계 |
+| `news_volume` 실데이터 한계 | alias matcher와 captured window는 구현됐지만, 기본 alias 사전과 종목별 feed는 없다 | 필요하면 보수적 기본 alias 데이터셋, 종목별 feed, 또는 LLM 시그널 승격 설계 |
 
 이 문서는 현재 구현을 설명한다. 미래 설계가 확정되면 새 ADR 또는 증분 스펙에서 이 문서를 갱신한다.

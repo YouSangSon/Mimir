@@ -23,12 +23,12 @@ class NewsVolumeSignal:
     ) -> SignalResult | None:
         today = [
             r
-            for r in reader.read(Dataset.NEWS, since=as_of, until=as_of)
+            for r in reader.read_captured_window(Dataset.NEWS, since=as_of, until=as_of)
             if self._matcher.mentions(r, symbol)
         ]
         if not today:
             return None
-        base_window = reader.read(
+        base_window = reader.read_captured_window(
             Dataset.NEWS,
             since=as_of - timedelta(days=BASELINE_DAYS),
             until=as_of - timedelta(days=1),
