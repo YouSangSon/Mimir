@@ -11,7 +11,7 @@
 
 사용자가 **파이썬 코드를 고치지 않고** `config/sources.yaml`만으로 거시 시리즈(FRED/ECOS)와 뉴스 피드(RSS)를 추가·제거할 수 있게 한다. 이는 새 기능이 아니라 *이미 어댑터 생성자에 존재하지만 배선되지 않은 seam*을 연결하는 일이다.
 
-**비목표(이번 증분 아님).** 선언적 소스 레지스트리(if-사다리 제거, §8), 시리즈 식별자 단일 진실원(§9), 타입드 페이로드, 백테스트, LLM 시그널. 모두 별도 증분/설계.
+**비목표(이번 증분 아님).** 선언적 소스 레지스트리(§8), 시리즈 식별자 단일 진실원(§9), 타입드 페이로드, 백테스트, LLM 시그널. 모두 별도 증분/설계였고, A2/A3는 2026-06-16 후속 증분에서 구현 완료됐다.
 
 ---
 
@@ -136,9 +136,11 @@ def build_sources(settings: Settings, config: SourcesConfig | None = None) -> li
 
 ---
 
-## 8. 부록 — 선언적 소스 등록 (A3, 미래 증분)
+## 8. 부록 — 선언적 소스 등록 (A3, 구현 완료)
 
-if-사다리(`build_sources`)를 소스 메타 테이블 또는 `importlib.metadata` entry-point로 대체하면 진짜 "파일 하나" 확장이 된다. 이는 신규 아키텍처라 이번 증분에서 제외. 본 증분의 `SourcesConfig`가 그 토대(소스별 설정 위치)를 마련한다.
+if-사다리(`build_sources`)를 데이터화하는 작업은 A3에서 구현 완료됐다. `mimir/core/builder.py`의 `BUILTIN_SOURCE_SPECS`가 내장 소스의 secret gate, optional package gate, 생성자 인자를 선언한다.
+
+이번 A3 구현은 Python package entry-point까지 확장하지 않는다. 외부 플러그인 source는 별도 증분으로 남긴다. 상세 설계는 [A3 declarative source registration 설계](2026-06-16-declarative-source-registration-design.md)를 따른다.
 
 ## 9. 부록 — 시리즈 식별자 단일 진실원 (A2, 구현 완료)
 

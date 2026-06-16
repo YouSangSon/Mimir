@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -27,7 +27,7 @@
 | **A1** | 설정 기반 시리즈·피드 (FRED/ECOS series, RSS feeds) | 확장성 | 백로그 + README 약속 | **✅ 구현 완료 (Increment 1)** | 코드 + 테스트(144) |
 | **A4** | 데이터셋별 타입드 페이로드 스키마 (`dict[str,Any]` 제거) | 견고성 | 신규 | **✅ 구현 완료 (Increment 2)** | 코드 + 테스트(293) · [spec](../superpowers/specs/2026-06-13-typed-payload-design.md) |
 | **A2** | 시리즈 식별자 단일 진실원 (macro_regime ↔ 어댑터) | 확장성 | 백로그 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-macro-series-registry-design.md) |
-| **A3** | 선언적 소스 등록 (if-사다리 → 레지스트리/entry-point) | 아키텍처 | README 약속(부분) | 📐 설계 (후속) | [spec](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md) §8 |
+| **A3** | 선언적 소스 등록 (`SourceSpec` built-in table) | 아키텍처 | README 약속(부분) | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-declarative-source-registration-design.md) |
 | **B1** | 시그널 백테스트·평가 하네스 (사후수익 적중률) | 분석심화 | 신규(최고가치) | **✅ 구현 완료 (Increment 4 + 리포트 합류)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-13-signal-backtest-design.md) |
 | **B2** | LLM 뉴스 감성 시그널 (news_volume 대체, 하이브리드) | 분석심화 | 로드맵 + 백로그 R1 | **✅ seam 구현 (Increment 5, off-by-default)** | 코드 + 테스트 |
 | **H1** | 재생성 데이터 stale 제거 + pipeline scorecard 갱신 | 견고성/운영 | B1 후속 + 리뷰 발견 | **✅ 구현 완료 (2026-06-16 hardening)** | `replace_partition`, `run_evaluate`, daily report scorecard |
@@ -53,7 +53,7 @@
 | `EcosSource(series=)` | 미전달 | `DEFAULT_SERIES = [EcosSeries("722Y001","M","0101000")]` |
 | `RssSource(feeds=)` | 미전달 | `DEFAULT_FEEDS = [SEC press releases]` |
 
-오늘 FRED 시리즈 하나를 추가하려면 **파이썬 코드를 고쳐야 한다.** README는 "소스 추가 = 파일 하나 + 등록"을 약속했지만 실제로는 *파일 + Settings 필드 + builder 분기 + 하드코딩 시리즈*다. 이 격차가 확장성 천장이다.
+A1 이전에는 FRED 시리즈 하나를 추가하려면 **파이썬 코드를 고쳐야 했다.** README는 "소스 추가 = 파일 하나 + 등록"을 약속했지만 실제로는 *파일 + Settings 필드 + builder 분기 + 하드코딩 시리즈*가 필요했다. 이 격차가 확장성 천장이었다.
 
 **근거(추적성).** 백로그 "설정 기반 시리즈/피드"(`IMPROVEMENTS.md` LOW) + README의 확장성 약속. 순수 신규가 아니라 *이미 설계됐으나 배선되지 않은* 기능.
 
@@ -67,9 +67,13 @@
 
 **구현.** `mimir/core/macro_series.py`가 기본 FRED 시리즈, 기본 ECOS 시리즈, macro-regime rate-series, doctor macro cadence를 한 곳에서 제공한다. `FredSource`, `EcosSource`, `MacroRegimeSignal`, doctor expectation은 이 모듈을 읽는다. `sources.yaml`의 `analysis.macro_regime.rate_series`는 수집된 macro series 중 어떤 시리즈를 금리 regime 신호로 해석할지 명시한다. 수집 대상(`sources.fred/ecos.series`)과 분석 해석 대상(`analysis.macro_regime.rate_series`)은 분리되어, CPI처럼 수집은 하되 rate signal로 쓰면 안 되는 series를 안전하게 다룬다.
 
-### A3. 선언적 소스 등록 — **지금 설계**
+### A3. 선언적 소스 등록 — **구현 완료 (2026-06-16)**
 
-`build_sources`의 `if settings.X_api_key:` 사다리는 소스마다 분기를 늘린다. 완전한 선언적 레지스트리(소스 메타 테이블 또는 `importlib.metadata` entry-point)는 진짜 "파일 하나" 확장을 준다. 그러나 이는 *신규 아키텍처*다 — A1(설정 배선)만 지금 하고, 사다리 제거는 설계로 남긴다.
+`build_sources`의 `if settings.X_api_key:` 사다리는 `BUILTIN_SOURCE_SPECS` 테이블로 이동했다. 각 `SourceSpec`은 source id, 생성자, secret gate, optional package gate, 설치 힌트를 한 곳에 선언한다.
+
+이 구현은 public `build_sources(settings, config=None)` 진입점을 유지한다. SEC EDGAR와 RSS는 keyless로 계속 생성되고, Stooq/DART/FRED/ECOS는 secret이 없으면 warning 후 skip된다. pykrx는 `importlib.util.find_spec("pykrx")` gate를 통과할 때만 생성된다.
+
+외부 package entry-point는 아직 보류다. 지금 구현은 내장 소스 등록을 데이터화해 builder 분기 증가를 멈추는 slice다.
 
 ---
 
@@ -81,9 +85,11 @@ Mimir는 시그널을 *발행*하지만, 그 시그널이 실제로 무언가를
 
 **구현(Increment 4 + 2026-06-16 hardening).** `mimir.evaluate`가 저장된 `insights`와 `prices`만 읽어 `evaluation` 데이터셋을 만든다. `mimir.run`은 `collect -> analyze -> history -> evaluate -> deliver` 순서로 실행해 리포트가 같은 실행에서 갱신된 scorecard를 읽는다. `daily_report`와 `dashboard`는 시그널 성적표를 표로 보여준다. 표본 부족으로 모든 버킷이 사라지면 `JsonlStore.replace_partition`이 당일 evaluation 파티션을 삭제해 오래된 scorecard가 남지 않는다.
 
-### B2. LLM 뉴스 감성 시그널 — **지금 설계 (off-by-default seam)**
+### B2. LLM 뉴스 감성 시그널 — **seam 구현 완료 (off-by-default)**
 
 로드맵은 "규칙 기반 → 하이브리드(LLM 후속)"를 명시하고, 백로그 R1은 `news_volume`이 실데이터에서 거의 무력함을 인정한다(공식 피드에 티커 부재). LLM 감성 시그널이 가장 큰 분석 가치다. **그러나** 유료 API 호출을 기본값으로 켜면 프로젝트의 **무료(free) 원칙**과 충돌한다. 따라서 *seam과 off-by-default 스캐폴드를 설계*하되 기본 파이프라인에서 유료 호출을 발생시키지 않는다(GRAY 소스와 동일한 토글 철학). → [LLM seam 설계문서](../superpowers/specs/2026-06-13-llm-sentiment-seam-design.md).
+
+**구현(Increment 5).** `NewsSentimentSignal`과 classifier seam은 구현됐지만, 실제 LLM 호출은 `[llm]` extra, `ANTHROPIC_API_KEY`, `llm_sentiment_enabled: true`가 모두 맞을 때만 켜진다. 기본 pipeline은 여전히 무료 경로다.
 
 ---
 
@@ -115,6 +121,7 @@ Increment 4 ── 시그널 백테스트 하네스 (B1)   ✅ 구현 완료 (en
 Increment 5 ── LLM 감성 seam (B2)            ✅ seam 구현 (off-by-default)
 Hardening ─── stale 재생성 데이터 제거 · lang 정규화 · SignalResult 범위 검증
 A2 ───────── macro series registry · analysis.macro_regime.rate_series
+A3 ───────── built-in source registry · SourceSpec construction table
 ```
 
 각 증분은 자기 spec → plan → 구현 → finish 사이클을 가진다. 본 카탈로그는 그 지도(map)다.
@@ -126,7 +133,7 @@ A2 ───────── macro series registry · analysis.macro_regime.ra
 | 항목 | 보류 근거 |
 |---|---|
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 핫패스를 처리. 인덱스는 데이터가 수년 누적된 *뒤*의 최적화 — 지금은 시기상조(YAGNI). 신선도 닥터(C1)가 먼저 스케일 신호를 준다. |
-| **C3 pykrx 타임아웃** | GRAY·옵션 소스. `BaseSource`를 안 써서 타임아웃이 없지만 영향 LOW. A3(선언적 등록)에서 자연 해소될 항목 — 단독 작업 비효율. |
+| **C3 pykrx 타임아웃** | GRAY·옵션 소스. A3는 pykrx 생성 gate만 데이터화했고, pykrx fetch 자체는 아직 `BaseSource`를 쓰지 않는다. 영향 LOW라 단독 작업은 보류. |
 | **D1 통합 CLI** | 순수 DX. 5개 `python -m mimir.X`는 동작에 문제없음. console_scripts entry-point는 좋지만 약속에 추적되지 않음 → 보류. |
 | **D2 Node20→24** | 백로그 LOW. 동작 무해. `actions/checkout`·`setup-python`의 *안정* 신버전이 나오면 범프 — 지금 강제 범프는 CI 불안정 risk. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서는 KO-only 유지(백로그 결정). 사용자 문서(README ×3)는 이미 trilingual. |
@@ -143,4 +150,4 @@ A2 ───────── macro series registry · analysis.macro_regime.ra
 - `http_get` 429/5xx 재시도 + 4xx 빠른 실패 · 소스 격리(한 소스 실패가 전체를 멈추지 않음).
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 원천 데이터는 append-only.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A2까지 구현되었고, 남은 신규 아키텍처 부채는 A3 선언적 소스 등록이다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3까지 구현되었고, 남은 신규 아키텍처 부채는 외부 source plugin entry-point와 `news_volume` 실데이터 한계다.

@@ -184,7 +184,7 @@ Explain that `sources.fred/ecos.series` controls collection, while `analysis.mac
 
 - [x] **Step 2: Update architecture docs**
 
-Move A2 from “future debt” to implemented. Keep A3 as future debt.
+Move A2 from “future debt” to implemented. A3 was left for a separate increment at this point; it is tracked by `2026-06-16-declarative-source-registration-design.md`.
 
 - [x] **Step 3: Run full verification**
 

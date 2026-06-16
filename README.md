@@ -13,7 +13,7 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-342%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-349%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -86,7 +86,7 @@ reports/status.html               # per-source collection status
 
 | Feature | Behavior |
 | :--- | :--- |
-| **Source adapters** | 7 sources implemented in isolation behind a shared `Source` protocol (adding a source = one file + registration) |
+| **Source adapters** | 7 sources implemented in isolation behind a shared `Source` protocol (adding a built-in source = adapter file + `SourceSpec` registration) |
 | **Source isolation** | One source's failure or format change never halts another source or the whole run |
 | **Normalized envelope** | Every source converges to a common record validated with pydantic (`prices` · `filings` · `macro` · `news`) |
 | **Idempotent storage** | Re-running the same collection appends without duplicates thanks to the `idempotency_key` |
@@ -153,7 +153,7 @@ flowchart LR
 | **JsonlStore** | Append-only storage in date-partitioned `data/<dataset>/YYYY/MM/DD.jsonl` |
 | **Manifest** | Records every run one line at a time (what · when · how many · success or not) — the basis for data trustworthiness |
 
-Adding a source is done with a single adapter in `sources/` plus a builder registration, and the upper layers (analysis, trading) read only the stored envelope.
+Adding a built-in source is done with a single adapter in `sources/` plus one `SourceSpec` registration entry, and the upper layers (analysis, trading) read only the stored envelope.
 
 ---
 
@@ -222,7 +222,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | Item | Value |
 | :--- | :--- |
-| **Tests** | 342 passing (adapters verified with recorded fixtures, no network) |
+| **Tests** | 349 passing (adapters verified with recorded fixtures, no network) |
 | **Coverage** | `mimir/` 97% (gate 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |
@@ -263,7 +263,7 @@ The full picture is managed against [`docs/architecture/roadmap.md`](docs/archit
 | Document | Contents |
 | :--- | :--- |
 | [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) | Full program breakdown and phased value delivery |
-| [`docs/architecture/extensibility/README.md`](docs/architecture/extensibility/README.md) | Current extension points, macro-series registry, regenerated-data policy, and remaining A3 extensibility debt |
+| [`docs/architecture/extensibility/README.md`](docs/architecture/extensibility/README.md) | Current extension points, source-spec registration, macro-series registry, and regenerated-data policy |
 | [`docs/reference/config/sources.md`](docs/reference/config/sources.md) | `config/sources.yaml` operator reference |
 | [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector design (architecture · source catalog · acceptance criteria) |
 | [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring design (signals · scorer · Insight) |

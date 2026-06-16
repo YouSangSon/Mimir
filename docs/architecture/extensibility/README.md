@@ -12,7 +12,7 @@ Mimir는 공개 데이터를 수집하고, 저장된 데이터로 인사이트�
 
 | 확장 지점 | 사용자가 바꾸는 것 | 코드 진입점 | 현재 상태 |
 |---|---|---|---|
-| 수집 소스 | `config/sources.yaml` 또는 새 `Source` 구현 | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. 새 소스는 아직 builder 등록 필요 |
+| 수집 소스 | `config/sources.yaml` 또는 새 `Source` 구현 | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. 새 내장 소스는 `SourceSpec` 한 줄로 등록 |
 | 분석 시그널 | `build_signals()`에 시그널 추가 | `mimir/analysis/builder.py` | LLM 시그널은 off-by-default gate로 배선됨 |
 | 출력 표면 | `daily_report`, `dashboard`, `digest` | `mimir/report/` | 일일 리포트와 대시보드가 인사이트·과거사례·평가를 표시 |
 
@@ -69,15 +69,17 @@ sources:
 
 이 경로는 파이썬 코드를 고치지 않는다. 설정이 없으면 기존 기본값을 그대로 쓴다. 설정 키가 틀리면 조용히 무시하지 않고 `ValidationError`로 실패한다.
 
-### 3.2 새 소스 추가
+### 3.2 새 내장 소스 추가
 
-새 소스는 아직 완전히 선언적이지 않다. 오늘 기준으로는 아래 세 가지를 해야 한다.
+새 내장 소스는 생성 조건을 `SourceSpec`으로 등록한다. 오늘 기준으로는 아래 세 가지를 해야 한다.
 
 1. `mimir/sources/<source>.py`에 `Source` 프로토콜을 만족하는 클래스를 만든다.
 2. `SourceMeta`에 `id`, `market`, `dataset`, `cadence`, `legal_status`, `rate_limit`를 넣는다.
-3. `mimir/core/builder.py`에 import와 생성 분기를 추가한다.
+3. `mimir/core/builder.py`의 `BUILTIN_SOURCE_SPECS`에 `SourceSpec` 한 줄을 추가한다.
 
-이 한계는 발전 카탈로그의 A3 항목이다. 다음 증분에서는 `build_sources`의 if 분기를 소스 메타 테이블이나 entry-point 방식으로 줄일 수 있다.
+`SourceSpec`은 secret gate, optional package gate, 생성자 인자를 한 곳에 묶는다. `build_sources()`는 이 테이블을 순회해 만들 수 있는 소스만 생성한다. 생성된 뒤의 cadence 선택, GRAY 소스 토글, `disabled_ids` 필터링은 기존 `Registry`가 계속 담당한다.
+
+외부 Python package가 Mimir 밖에서 source를 제공하는 entry-point 플러그인은 아직 구현하지 않았다. 현재 A3 구현은 내장 소스 등록을 선언적으로 만드는 범위다.
 
 ---
 
@@ -129,7 +131,7 @@ def evaluate(
 
 | 항목 | 왜 남았나 | 다음 행동 |
 |---|---|---|
-| A3 선언적 소스 등록 | 새 소스가 아직 `builder.py` 중앙 분기를 수정해야 한다 | 소스 메타 테이블 또는 entry-point 설계 |
+| 외부 source plugin entry-point | 내장 소스는 `SourceSpec`으로 정리됐지만, 외부 package가 source를 주입하는 구조는 아직 없다 | `importlib.metadata` entry-point 설계 |
 | `news_volume` 실데이터 한계 | 공식 피드 제목에 티커가 잘 안 나온다 | alias 맵, 종목별 피드, 또는 LLM 시그널 승격 |
 
 이 문서는 현재 구현을 설명한다. 미래 설계가 확정되면 새 ADR 또는 증분 스펙에서 이 문서를 갱신한다.
