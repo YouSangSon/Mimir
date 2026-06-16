@@ -13,7 +13,7 @@ repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 �
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-365%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-372%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -180,7 +180,7 @@ flowchart LR
 | :--- | :--- |
 | **소스 단위 합법성** | 각 소스가 `legal_status`(official/gray)·`rate_limit`을 메타로 들고 스로틀러가 강제 |
 | **공식 API 우선** | DART·SEC EDGAR·FRED·ECOS 같은 공식 무료 API를 1차로 사용 |
-| **GRAY 토글** | pykrx(스크래핑)는 스로틀 + 내부분석 한정, `sources.yaml`의 `gray_enabled: false`로 차단 가능 |
+| **GRAY 토글** | pykrx(스크래핑)는 스로틀 + 짧은 backoff 재시도 + 내부분석 한정, `sources.yaml`의 `gray_enabled: false`로 차단 가능 |
 | **시크릿 분리** | 모든 키/토큰은 `.env`(로컬)·Actions Secrets(CI)로만, 커밋 금지 |
 | **무침묵 실패** | `collect`와 `backfill` 실패는 매니페스트에 기록하고 비제로 종료로 신호 — 조용히 삼키지 않음 |
 | **면책** | 모든 인사이트·평가에 "투자 권유가 아님(not financial advice)" 고지 포함 |

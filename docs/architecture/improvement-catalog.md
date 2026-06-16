@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/R1a/C3 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -35,7 +35,7 @@
 | **BF-MANIFEST** | 백필 실행 manifest 기록 | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | backfill success/failure run log |
 | **C1** | 데이터 신선도·품질 닥터 (`mimir doctor`) | 운영 | "무음 실패 금지" 약속 | **✅ 구현 완료 (Increment 3)** | 코드 + 테스트(179) |
 | **C2** | 파티션 인덱스 (git-as-DB rglob 스케일) | 성능 | 신규 | ⏸ 보류 | 본 문서 §6 |
-| **C3** | pykrx 타임아웃·재시도 (BaseSource 미사용) | 견고성 | 백로그 LOW | ⏸ 보류(GRAY/옵션) | 본 문서 §6 |
+| **C3** | pykrx retry/backoff 정책 | 견고성 | 백로그 LOW | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-pykrx-retry-policy-design.md) |
 | **D1** | 통합 `mimir` CLI (console_scripts) | DX | 신규 | ⏸ 보류 | 본 문서 §6 |
 | **D2** | GH Actions Node20→24 범프 | CI | 백로그 LOW | **✅ 구현 완료 (2026-06-16)** | workflow + 테스트 · [spec](../superpowers/specs/2026-06-16-github-actions-node24-design.md) |
 
@@ -142,6 +142,8 @@ A2 ───────── macro series registry · analysis.macro_regime.ra
 A3 ───────── built-in source registry · SourceSpec construction table
 R1a ──────── news mention alias matcher · analysis.news.aliases
 D2 ───────── GitHub Actions Node24-compatible action majors
+C3 ───────── pykrx retry/backoff · FetchError manifest surface
+BF-MANIFEST ─ backfill success/failure manifest
 ```
 
 각 증분은 자기 spec → plan → 구현 → finish 사이클을 가진다. 본 카탈로그는 그 지도(map)다.
@@ -153,7 +155,6 @@ D2 ───────── GitHub Actions Node24-compatible action majors
 | 항목 | 보류 근거 |
 |---|---|
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 핫패스를 처리. 인덱스는 데이터가 수년 누적된 *뒤*의 최적화 — 지금은 시기상조(YAGNI). 신선도 닥터(C1)가 먼저 스케일 신호를 준다. |
-| **C3 pykrx 타임아웃** | GRAY·옵션 소스. A3는 pykrx 생성 gate만 데이터화했고, pykrx fetch 자체는 아직 `BaseSource`를 쓰지 않는다. 영향 LOW라 단독 작업은 보류. |
 | **D1 통합 CLI** | 순수 DX. 5개 `python -m mimir.X`는 동작에 문제없음. console_scripts entry-point는 좋지만 약속에 추적되지 않음 → 보류. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서는 KO-only 유지(백로그 결정). 사용자 문서(README ×3)는 이미 trilingual. |
 
@@ -168,7 +169,8 @@ D2 ───────── GitHub Actions Node24-compatible action majors
 - 시크릿은 env/`.env`(gitignore)만 · ECOS 키 URL 유출은 이미 레다크션 처리.
 - `http_get` 429/5xx 재시도 + 4xx 빠른 실패 · 소스 격리(한 소스 실패가 전체를 멈추지 않음).
 - CI와 수집 pipeline은 Node24 호환 `actions/checkout@v6`·`actions/setup-python@v6`를 사용하며, workflow guard 테스트가 major 회귀를 잡는다.
+- `pykrx`는 GRAY·선택 소스 상태를 유지하면서 OHLCV 호출 실패를 짧게 재시도하고, 소진 시 `FetchError`로 manifest에 실패 원인을 남긴다.
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 원천 데이터는 append-only.
 - 백필은 성공과 실패를 manifest에 기록한다. 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, R1a, D2, BF-MANIFEST까지 구현되었고, 남은 신규 아키텍처 부채는 외부 source plugin entry-point, 기본 news alias 데이터셋, 종목별 news feed다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, R1a, D2, C3, BF-MANIFEST까지 구현되었고, 남은 신규 아키텍처 부채는 외부 source plugin entry-point, 기본 news alias 데이터셋, 종목별 news feed, captured_at 기준 뉴스 윈도우다.
