@@ -13,7 +13,7 @@ repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 �
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-334%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-342%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -222,7 +222,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 항목 | 값 |
 | :--- | :--- |
-| **테스트** | 334 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
+| **테스트** | 342 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
 | **커버리지** | `mimir/` 97% (게이트 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — push/PR마다 lint·type·test·coverage |
@@ -263,7 +263,7 @@ TDD를 따르며, HTTP 소스는 `responses`로, pykrx 같은 라이브러리 �
 | 문서 | 내용 |
 | :--- | :--- |
 | [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) | 전체 프로그램 분해와 단계별 가치 전달 |
-| [`docs/architecture/extensibility/README.md`](docs/architecture/extensibility/README.md) | 현재 확장 지점, 재생성 데이터 정책, 남은 A2/A3 확장성 부채 |
+| [`docs/architecture/extensibility/README.md`](docs/architecture/extensibility/README.md) | 현재 확장 지점, macro series registry, 재생성 데이터 정책, 남은 A3 확장성 부채 |
 | [`docs/reference/config/sources.md`](docs/reference/config/sources.md) | `config/sources.yaml` 운영 레퍼런스 |
 | [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector 설계(아키텍처·소스 카탈로그·완료기준) |
 | [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring 설계(시그널·스코어러·Insight) |

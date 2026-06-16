@@ -28,8 +28,8 @@ def _price(close: float, volume: float) -> dict:
     }
 
 
-def _macro(value: float) -> dict:
-    return {"series_id": "FEDFUNDS", "value": value, "period": "2026-01-15"}
+def _macro(value: float, series_id: str = "FEDFUNDS") -> dict:
+    return {"series_id": series_id, "value": value, "period": "2026-01-15"}
 
 
 def _news(title: str | None, summary: str) -> dict:
@@ -137,3 +137,17 @@ def test_macro_regime_rising_rate_is_bearish(tmp_path: Path):
 def test_macro_regime_none_without_series(tmp_path: Path):
     recs = [_rec(Dataset.MACRO, "FEDFUNDS", 20, _macro(4.5))]  # single point
     assert MacroRegimeSignal().evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs)) is None
+
+
+def test_macro_regime_uses_configured_rate_series(tmp_path: Path):
+    recs = [
+        _rec(Dataset.MACRO, "T10Y2Y", 1, _macro(0.5, "T10Y2Y")),
+        _rec(Dataset.MACRO, "T10Y2Y", 20, _macro(0.8, "T10Y2Y")),
+    ]
+    default = MacroRegimeSignal().evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
+    configured = MacroRegimeSignal(rate_series=["T10Y2Y"]).evaluate(
+        "AAPL", Market.US, AS_OF, _reader(tmp_path, recs)
+    )
+    assert default is None
+    assert configured is not None
+    assert configured.direction is SignalDirection.BEARISH

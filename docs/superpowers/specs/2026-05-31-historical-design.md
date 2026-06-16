@@ -2,7 +2,7 @@
 
 > **스펙 ID**: S4
 > **작성일**: 2026-05-31
-> **상태**: 구현 진행
+> **상태**: 구현 완료
 > **선행**: [S1 Collector](2026-05-31-collector-design.md) · [S2 Analysis](2026-05-31-analysis-design.md) · [로드맵](../../architecture/roadmap.md)
 
 ---

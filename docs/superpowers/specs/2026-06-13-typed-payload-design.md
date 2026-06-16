@@ -366,6 +366,6 @@ assert isinstance(parse_payload(Dataset.MACRO, PAYLOAD), FredMacroPayload)
 
 ---
 
-## 10. 부록 — 시리즈 식별자 단일 진실원 (A2, 미래 증분)
+## 10. 부록 — 시리즈 식별자 단일 진실원 (A2, 구현 완료)
 
-`MacroRegimeSignal.RATE_SERIES`가 시리즈 식별자를 하드코딩한다(`{"FEDFUNDS","DGS10","722Y001.0101000"}`). 타입드 페이로드는 *값*의 형을 고정하지만 *어떤 시리즈를 보는지*는 여전히 시그널이 안다. 이 결합 해소는 source→signal 경계 횡단이라 별도 증분(A2). 본 증분은 시그널 디스패치를 건드리지 않는다.
+`MacroRegimeSignal.RATE_SERIES`가 시리즈 식별자를 하드코딩하던 문제는 A2에서 별도 증분으로 처리했다. 타입드 페이로드는 *값*의 형을 고정했고, A2 macro series registry는 *어떤 시리즈를 보는지*를 `mimir/core/macro_series.py`와 `analysis.macro_regime.rate_series`로 분리했다. 본 증분은 시그널 디스패치를 건드리지 않았고, A2에서 그 경계를 별도로 배선했다.

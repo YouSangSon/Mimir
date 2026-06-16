@@ -2,7 +2,7 @@
 
 > **스펙 ID**: S2
 > **작성일**: 2026-05-31
-> **상태**: 구현 진행
+> **상태**: 구현 완료 · LLM seam/A2 macro registry 확장 반영
 > **선행**: [S1 Collector](2026-05-31-collector-design.md) · [로드맵](../../architecture/roadmap.md)
 
 ---

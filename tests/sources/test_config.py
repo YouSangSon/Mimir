@@ -126,3 +126,18 @@ def test_llm_sentiment_quoted_false_parses_as_false():
 def test_llm_sentiment_bad_headline_cap_raises_validation_error():
     with pytest.raises(ValidationError):
         parse_sources_config({"llm_sentiment_max_headlines": "nope"})
+
+
+def test_analysis_macro_regime_rate_series_parses_from_config():
+    cfg = parse_sources_config({"analysis": {"macro_regime": {"rate_series": ["T10Y2Y"]}}})
+    assert cfg.macro_regime_rate_series == ["T10Y2Y"]
+
+
+def test_analysis_macro_regime_typo_raises_validation_error():
+    with pytest.raises(ValidationError):
+        parse_sources_config({"analysis": {"macro_regime": {"rate_seriez": ["T10Y2Y"]}}})
+
+
+def test_analysis_top_level_typo_raises_validation_error():
+    with pytest.raises(ValidationError):
+        parse_sources_config({"analysys": {"macro_regime": {"rate_series": ["T10Y2Y"]}}})

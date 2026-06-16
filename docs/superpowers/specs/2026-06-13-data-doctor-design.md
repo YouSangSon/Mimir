@@ -129,21 +129,16 @@ EXPECTED_DATASETS: dict[Dataset, Cadence] = {
 
 ```python
 # mimir/doctor/expectations.py
-MACRO_SERIES_CADENCE: dict[str, Cadence] = {
-    "DGS10": Cadence.DAILY,
-    "FEDFUNDS": Cadence.MONTHLY,    # 월간 평균 발표
-    "CPIAUCSL": Cadence.MONTHLY,    # ← DAILY로 보면 매일 오탐
-    "722Y001.0101000": Cadence.MONTHLY,  # BOK 기준금리(ECOS symbol 포맷)
-}
+MACRO_SERIES_CADENCE = macro_series_cadences()
 DEFAULT_MACRO_CADENCE = Cadence.MONTHLY   # 미등록 시리즈 = 가장 느슨하게 폴백
 ```
 
 2. 각 시리즈에 대해 `DataReader.read(Dataset.MACRO, symbol=series).` 윈도우로 최신 `ts` 날짜를 구하고, **그 시리즈의 cadence**로 §4.3 테이블 적용.
 3. **미등록 시리즈는 `DEFAULT_MACRO_CADENCE`(MONTHLY)로 폴백** — 모르면 오탐보다 침묵 쪽으로(보수적). 단 "기대 목록에 없던 새 시리즈가 데이터에 존재" 자체는 INFO로 보고(설정 동기화 힌트).
 
-> **불변식.** 닥터는 `SourceMeta.cadence`(소스 단위·시리즈엔 부정확)를 매크로 시리즈 신선도의 **단일 근거로 쓰지 않는다.** 시리즈별 테이블이 우선, 없으면 느슨한 폴백.
+> **불변식.** 닥터는 `SourceMeta.cadence`(소스 단위·시리즈엔 부정확)를 매크로 시리즈 신선도의 **단일 근거로 쓰지 않는다.** `mimir/core/macro_series.py`가 제공하는 시리즈별 cadence가 우선, 없으면 느슨한 폴백을 쓴다.
 
-설정 동기화 부채(A2 — `MacroRegimeSignal.RATE_SERIES`가 시리즈 ID를 재하드코딩)와 동일 뿌리다. 닥터의 `MACRO_SERIES_CADENCE`는 *또 하나의* 시리즈 출처가 되므로, A2(시리즈 단일 진실원)가 구현되면 거기서 cadence 메타를 끌어오도록 재배선한다(§7 부채 명시).
+2026-06-16 A2 구현 뒤 `MACRO_SERIES_CADENCE`는 직접 dict literal을 갖지 않는다. macro registry가 cadence를 제공하므로 `MacroRegimeSignal`과 doctor가 같은 시리즈 메타데이터를 읽는다.
 
 ### 4.5 워치리스트 커버리지 — 종목별 최근 `prices`
 
@@ -298,7 +293,7 @@ if __name__ == "__main__":
 
 | 항목 | 내용 |
 |---|---|
-| **시리즈 메타 이중화** | `MACRO_SERIES_CADENCE`가 시리즈 cadence를 (또) 하드코딩. [A2 시리즈 단일 진실원](2026-06-13-config-driven-extensibility-design.md) 구현 시 거기서 끌어오도록 재배선. |
+| **시리즈 메타 이중화** | 2026-06-16 A2에서 `mimir/core/macro_series.py`로 해소. doctor는 `macro_series_cadences()`를 읽는다. |
 | **기대 집합 수동** | `EXPECTED_DATASETS`/`EXPECTED_PAYLOAD_KEYS`는 코드 상수. A4(타입드 페이로드)가 데이터셋별 모델을 만들면 필수 키를 거기서 파생 가능. |
 | **공휴일 근사** | slack 흡수. 장기 연휴 오탐 가능성 — 필요 시 시장별 휴장 캘린더 seam(YAGNI). |
 | **`short` 휴리스틱** | 상대 기준선(중앙값 대비). 데이터 누적 후 임계 재보정 여지. |

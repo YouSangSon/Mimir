@@ -5,6 +5,16 @@ lang: en                  # report/digest/status UI language: en | ko | zh
 llm_sentiment_enabled: false      # paid LLM news-sentiment signal. Default off; needs ANTHROPIC_API_KEY + the [llm] extra.
 llm_sentiment_max_headlines: 50   # per-run cap on newly classified headlines (cost guardrail)
 
+# Analysis-plane settings. `sources:` decides what gets collected; this block
+# decides how collected data is interpreted by signals. Omit this block to keep
+# the registry default from mimir/core/macro_series.py.
+#
+# analysis:
+#   macro_regime:
+#     # Macro series allowed to influence the market-wide rate-regime signal.
+#     # CPI-like series can be collected without being treated as policy/benchmark rates.
+#     rate_series: ["DGS10", "FEDFUNDS", "722Y001.0101000"]
+
 # (Optional) Per-source configuration. Omit a block to keep that source's built-in
 # default. Add series/feeds here to extend coverage WITHOUT editing Python.
 # A malformed block (wrong type, typo'd key) fails fast — it never silently falls back.

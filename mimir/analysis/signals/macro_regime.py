@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 from mimir.analysis.signals.base import SignalDirection, SignalResult
+from mimir.core.macro_series import DEFAULT_MACRO_RATE_SERIES
 from mimir.core.payloads import macro_payload
 from mimir.core.source import Dataset, Market
 from mimir.storage.reader import DataReader
@@ -10,7 +11,7 @@ from mimir.storage.schema import Record
 
 WINDOW_DAYS = 60
 # Policy/benchmark rate series: FRED FEDFUNDS/DGS10, ECOS base rate (stat.item).
-RATE_SERIES = {"FEDFUNDS", "DGS10", "722Y001.0101000"}
+RATE_SERIES = DEFAULT_MACRO_RATE_SERIES
 FULL_DELTA = 1.0  # a 1.0 percentage-point change -> full (mild) strength
 WEIGHT = 0.3
 
@@ -20,6 +21,9 @@ class MacroRegimeSignal:
 
     id = "macro_regime"
 
+    def __init__(self, rate_series: list[str] | None = None) -> None:
+        self._rate_series = set(rate_series) if rate_series is not None else RATE_SERIES
+
     def evaluate(
         self, symbol: str, market: Market, as_of: date, reader: DataReader
     ) -> SignalResult | None:
@@ -28,7 +32,7 @@ class MacroRegimeSignal:
             for r in reader.read(
                 Dataset.MACRO, since=as_of - timedelta(days=WINDOW_DAYS), until=as_of
             )
-            if r.market == market and r.symbol in RATE_SERIES
+            if r.market == market and r.symbol in self._rate_series
         ]
         if len(recs) < 2:
             return None

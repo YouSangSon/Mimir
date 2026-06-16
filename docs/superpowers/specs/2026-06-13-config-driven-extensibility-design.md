@@ -140,6 +140,6 @@ def build_sources(settings: Settings, config: SourcesConfig | None = None) -> li
 
 if-사다리(`build_sources`)를 소스 메타 테이블 또는 `importlib.metadata` entry-point로 대체하면 진짜 "파일 하나" 확장이 된다. 이는 신규 아키텍처라 이번 증분에서 제외. 본 증분의 `SourcesConfig`가 그 토대(소스별 설정 위치)를 마련한다.
 
-## 9. 부록 — 시리즈 식별자 단일 진실원 (A2, 미래 증분)
+## 9. 부록 — 시리즈 식별자 단일 진실원 (A2, 구현 완료)
 
-`MacroRegimeSignal.RATE_SERIES`가 FRED/ECOS 시리즈 식별자를 재하드코딩한다. A1 후 사용자가 시리즈를 바꾸면 거시 시그널이 그것을 모른다. 해소하려면 설정을 시그널 빌더까지 배선해야 하며(source→signal 경계 횡단), 별도 증분이 옳다. 본 증분은 시그널 디스패치를 건드리지 않는다.
+`MacroRegimeSignal.RATE_SERIES`가 FRED/ECOS 시리즈 식별자를 재하드코딩하던 문제는 A2에서 별도 증분으로 처리했다. `mimir/core/macro_series.py`가 기본 수집 시리즈, macro-regime rate-series, doctor cadence를 제공하고, `analysis.macro_regime.rate_series`가 분석 해석 대상을 명시한다. 상세 설계는 [A2 macro series registry 설계](2026-06-16-macro-series-registry-design.md)를 따른다.

@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 import requests
 
+from mimir.core.macro_series import default_fred_series
 from mimir.core.source import (
     Cadence,
     Dataset,
@@ -20,7 +21,7 @@ from mimir.sources.base import BaseSource
 
 OBSERVATIONS_URL = "https://api.stlouisfed.org/fred/series/observations"
 # A small default macro set; override via constructor.
-DEFAULT_SERIES = ["DGS10", "FEDFUNDS", "CPIAUCSL"]
+DEFAULT_SERIES = default_fred_series()
 
 
 class FredSource(BaseSource):
