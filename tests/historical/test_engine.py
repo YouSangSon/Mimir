@@ -2,7 +2,9 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 
 from mimir.core.source import Dataset, Market
+from mimir.historical.analog import HorizonStat
 from mimir.historical.engine import HistoricalEngine
+from mimir.historical.schema import HistoricalInsight, to_record
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
@@ -77,3 +79,39 @@ def test_engine_skips_below_min_occurrences(tmp_path: Path):
     engine = HistoricalEngine(DataReader(store), store)
     insights = engine.run({"us": ["AAPL"], "kr": []}, date(2026, 5, 31))
     assert all(i.event_type != "sharp_drop" for i in insights)
+
+
+def test_engine_clears_stale_historical_when_rerun_has_no_events(tmp_path: Path):
+    store = JsonlStore(root=tmp_path)
+    stale = HistoricalInsight(
+        symbol="AAPL",
+        market=Market.US,
+        as_of=date(2026, 5, 31),
+        event_type="sharp_drop",
+        occurrences=3,
+        triggered_today=False,
+        horizons=[HorizonStat(horizon=5, n=2, median_return=0.01, pct_positive=0.5)],
+        examples=[],
+    )
+    store.append([to_record(stale, datetime(2026, 5, 31, tzinfo=UTC))])
+    store.append(
+        [
+            Record(
+                source="seed",
+                dataset=Dataset.PRICES,
+                market=Market.US,
+                symbol="AAPL",
+                ts=datetime(2026, 5, d, tzinfo=UTC),
+                captured_at=datetime(2026, 5, 31, tzinfo=UTC),
+                idempotency_key=f"p:AAPL:{d}",
+                payload=_price_payload(c),
+            )
+            for d, c in [(1, 100.0), (2, 101.0), (3, 102.0)]
+        ]
+    )
+    engine = HistoricalEngine(DataReader(store), store)
+
+    insights = engine.run({"us": ["AAPL"], "kr": []}, date(2026, 5, 31))
+
+    assert insights == []
+    assert list(store.read_all(Dataset.HISTORICAL)) == []

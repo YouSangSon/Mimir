@@ -4,7 +4,7 @@ from datetime import date
 from enum import StrEnum
 from typing import TYPE_CHECKING, Protocol
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from mimir.core.source import Market
 
@@ -31,8 +31,8 @@ DIRECTION_SIGN: dict[SignalDirection, float] = {
 class SignalResult(BaseModel):
     signal: str
     direction: SignalDirection
-    strength: float  # 0..1 magnitude of the signal
-    confidence: float  # 0..1 trust in the signal
+    strength: float = Field(ge=0.0, le=1.0)  # magnitude of the signal
+    confidence: float = Field(ge=0.0, le=1.0)  # trust in the signal
     reason: str
     weight: float = 1.0
 

@@ -10,7 +10,7 @@ from mimir.run import run_pipeline
 
 def test_run_pipeline_chains_all_stages_no_network(tmp_path: Path):
     # Disable the keyless network sources so the full pipeline runs offline and
-    # deterministically; this verifies the collect->analyze->history->deliver wiring.
+    # deterministically; this verifies the collect->analyze->history->evaluate->deliver wiring.
     result = run_pipeline(
         cadence="daily",
         env={},
@@ -23,9 +23,37 @@ def test_run_pipeline_chains_all_stages_no_network(tmp_path: Path):
     assert result["collect_failures"] is False
     assert result["insights"] == 0
     assert result["historical"] == 0
+    assert result["evaluation"] == 0
     assert result["telegram_sent"] is False
     assert (tmp_path / "reports/2026/05/31.html").exists()
     assert (tmp_path / "reports/index.html").exists()
+
+
+def test_run_pipeline_runs_evaluation_before_delivery(tmp_path: Path, monkeypatch):
+    called = {"evaluation": False}
+
+    class _Report:
+        buckets = [object(), object()]
+
+    def _fake_evaluate(**kwargs: object) -> _Report:
+        called["evaluation"] = True
+        assert kwargs["data_root"] == tmp_path / "data"
+        assert kwargs["as_of"] == datetime(2026, 5, 31).date()
+        assert kwargs["captured_at"] == datetime(2026, 5, 31, tzinfo=UTC)
+        return _Report()
+
+    monkeypatch.setattr(run_module, "run_evaluate", _fake_evaluate, raising=False)
+    result = run_pipeline(
+        cadence="daily",
+        env={},
+        watchlist={"us": [], "kr": []},
+        data_root=tmp_path / "data",
+        reports_root=tmp_path / "reports",
+        sources_config={"disabled_ids": ["sec_edgar", "rss"]},
+        now=datetime(2026, 5, 31, tzinfo=UTC),
+    )
+    assert called["evaluation"] is True
+    assert result["evaluation"] == 2
 
 
 def test_main_does_not_mask_downstream_validation_error(tmp_path: Path, monkeypatch):

@@ -7,8 +7,9 @@ from pathlib import Path
 
 from mimir.analysis.schema import Insight
 from mimir.analysis.signals.base import SignalDirection
+from mimir.evaluation.schema import BucketStat
 from mimir.historical.schema import HistoricalInsight
-from mimir.report.i18n import DEFAULT_LANG, t
+from mimir.report.i18n import DEFAULT_LANG, normalize_lang, t
 
 DEFAULT_REPORTS_ROOT = Path("reports")
 DATE_REPORT_RE = re.compile(r"\d{4}/\d{2}/\d{2}\.html$")
@@ -71,13 +72,47 @@ def _historical_card(h: HistoricalInsight, lang: str) -> str:
 </div>"""
 
 
+def _evaluation_section(buckets: list[BucketStat], lang: str) -> str:
+    heading = f"<h2>{t('evaluation_section_heading', lang)}</h2>"
+    head = (
+        f"<th>{t('evaluation_col_dimension', lang)}</th>"
+        f"<th>{t('evaluation_col_key', lang)}</th>"
+        f"<th>{t('evaluation_col_market', lang)}</th>"
+        f"<th>{t('evaluation_col_horizons', lang)}</th>"
+    )
+    rows = "\n".join(_evaluation_row(b, lang) for b in buckets)
+    return f"{heading}\n<table><tr>{head}</tr>\n{rows}\n</table>"
+
+
+def _evaluation_row(bucket: BucketStat, lang: str) -> str:
+    horizons = " · ".join(
+        t(
+            "evaluation_horizon_cell",
+            lang,
+            horizon=h.horizon,
+            hit=f"{h.hit_rate * 100:.0f}",
+            edge=f"{h.mean_fwd_return * 100:+.1f}",
+            n=h.n,
+        )
+        for h in bucket.horizons
+    )
+    return (
+        f"<tr><td>{html.escape(bucket.dimension)}</td>"
+        f"<td>{html.escape(bucket.key)}</td>"
+        f"<td>{html.escape(bucket.market.value)}</td>"
+        f"<td>{horizons}</td></tr>"
+    )
+
+
 def build_report_html(
     insights: list[Insight],
     as_of: date,
     cadence: str = "daily",
     historical: list[HistoricalInsight] | None = None,
+    evaluation: list[BucketStat] | None = None,
     lang: str = DEFAULT_LANG,
 ) -> str:
+    lang = normalize_lang(lang)
     cadence = html.escape(cadence)
     ordered = sorted(insights, key=lambda i: (-i.stars, i.symbol))
     if ordered:
@@ -94,6 +129,8 @@ def build_report_html(
         historical_section = f"<h2>{t('historical_section_heading', lang)}</h2>\n{cards}"
     else:
         historical_section = ""
+    eval_buckets = evaluation or []
+    evaluation_section = _evaluation_section(eval_buckets, lang) if eval_buckets else ""
     return f"""<!doctype html>
 <html lang="{lang}"><head><meta charset="utf-8">
 <title>{t("report_page_title", lang, cadence=cadence, date=as_of.isoformat())}</title>
@@ -110,6 +147,9 @@ def build_report_html(
  .reasons{{margin:.5rem 0 0;color:#cbd5e1;font-size:.9rem}}
  .examples{{color:#94a3b8;font-size:.82rem}}
  .evt{{color:#a5b4fc;font-size:.9rem}}
+ table{{border-collapse:collapse;width:100%;margin:.5rem 0;font-size:.9rem}}
+ td,th{{border:1px solid #1f2937;padding:.4rem .7rem;text-align:left}}
+ th{{color:#94a3b8;font-weight:600;background:#111827}}
  h2{{font-size:1.1rem;margin-top:2rem;color:#cbd5e1}}
  .empty{{color:#9ca3af}}
  .dis{{color:#6b7280;font-size:.8rem;margin-top:2rem;border-top:1px solid #1f2937;padding-top:1rem}}
@@ -119,6 +159,7 @@ def build_report_html(
 <p class="meta">{meta}</p>
 {body}
 {historical_section}
+{evaluation_section}
 <p class="dis">{t("disclaimer_report", lang)}</p>
 </body></html>"""
 
@@ -131,6 +172,7 @@ def save_report(html_doc: str, as_of: date, root: Path = DEFAULT_REPORTS_ROOT) -
 
 
 def rebuild_index(root: Path = DEFAULT_REPORTS_ROOT, lang: str = DEFAULT_LANG) -> Path:
+    lang = normalize_lang(lang)
     if not root.exists():
         root.mkdir(parents=True, exist_ok=True)
     reports = sorted(

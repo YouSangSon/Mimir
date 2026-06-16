@@ -85,6 +85,7 @@ class HistoricalEngine:
                     )
                     insights.append(insight)
                     records.append(to_record(insight, captured_at))
-        # historical insights are regenerated each run -> last-write-wins
-        self._store.append(records, overwrite=True)
+        # historical insights are regenerated each run -> exact partition replacement.
+        # If today's rerun produces fewer/no insights, stale records must disappear.
+        self._store.replace_partition(Dataset.HISTORICAL, as_of, records)
         return insights

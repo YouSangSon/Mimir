@@ -47,8 +47,10 @@ class EvaluationEngine:
             buckets=buckets,
             sufficient=bool(buckets),
         )
-        self._store.append(
-            [to_record(b, as_of, captured_at) for b in buckets], overwrite=True
+        # evaluation is regenerated each run -> exact partition replacement.
+        # If every bucket is gated out, stale scorecards must disappear.
+        self._store.replace_partition(
+            Dataset.EVALUATION, as_of, [to_record(b, as_of, captured_at) for b in buckets]
         )
         return report
 

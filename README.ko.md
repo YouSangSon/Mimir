@@ -13,7 +13,7 @@ repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 �
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-313%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-334%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -55,9 +55,9 @@ cp .env.example .env          # 원하는 무료 키만 채우면 됨 (자동 �
 #   config/watchlist.yaml      추적 종목(US 티커 / KR 종목코드)
 #   config/sources.yaml        소스 on/off · GRAY 정책 · 시리즈/피드 (코드 없이 커버리지 확장)
 
-# 3. 전체 파이프라인 실행 (수집→분석→과거패턴→리포트)
+# 3. 전체 파이프라인 실행 (수집→분석→과거패턴→평가→리포트)
 .venv/bin/python -m mimir.run --cadence daily   # cadence: hourly|daily|weekly|monthly
-#   또는 단계별로: mimir.collect / mimir.analyze / mimir.history / mimir.deliver
+#   또는 단계별로: mimir.collect / mimir.analyze / mimir.history / mimir.evaluate / mimir.deliver
 ```
 
 `.env`는 실행 시 현재 디렉터리에서 자동 로드된다(키는 절대 커밋되지 않음). CI에서는 GitHub Actions Secrets가 우선한다.
@@ -207,7 +207,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
 ```
 
-> 매일 워크플로는 `collect → analyze → deliver`를 체이닝하고 `data/`·`reports/`를 repo에 커밋한다. 일일 HTML 리포트는 `reports/YYYY/MM/DD.html`로 영구 보관되고 `reports/index.html`에서 열람한다.
+> 매일 워크플로는 `collect → analyze → history → evaluate → deliver`를 체이닝하고 `data/`·`reports/`를 repo에 커밋한다. 일일 HTML 리포트는 `reports/YYYY/MM/DD.html`로 영구 보관되고 `reports/index.html`에서 열람한다.
 
 ---
 
@@ -222,7 +222,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 항목 | 값 |
 | :--- | :--- |
-| **테스트** | 313 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
+| **테스트** | 334 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
 | **커버리지** | `mimir/` 97% (게이트 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — push/PR마다 lint·type·test·coverage |
@@ -249,9 +249,10 @@ TDD를 따르며, HTTP 소스는 `responses`로, pykrx 같은 라이브러리 �
 
 | 영역 | 상태 |
 | :--- | :--- |
-| **인사이트/별점** | S2 진행 예정 — 현재는 원천 데이터 수집까지 |
+| **인사이트/별점** | 규칙 기반 시그널로 구현됨. ⭐ 확신도, confidence, attention, 면책 문구를 포함한다. LLM 감성 시그널은 off-by-default seam으로 제공 |
 | **KR 가격** | pykrx는 GRAY·선택 설치(`[kr]`). 키 없이 동작하는 가격원은 Stooq(무료 apikey 필요) |
 | **과거패턴 분석** | S4 구현(event-study). 표본 `n`이 충분한 가격 이력이 필요 — 백필 권장 |
+| **시그널 성적표** | `mimir.evaluate`로 구현되어 일일 리포트와 대시보드에 표시된다. 초기 실행에서는 과거 인사이트와 가격 표본이 충분해질 때까지 표본 부족으로 나올 수 있음 |
 | **자동매매** | S5(미래). 지금은 경계만 설계(분석/실행 분리) |
 | **API 한도** | 일부 무료 키의 일일 한도는 발급 콘솔에서 확인 필요 |
 
@@ -262,6 +263,8 @@ TDD를 따르며, HTTP 소스는 `responses`로, pykrx 같은 라이브러리 �
 | 문서 | 내용 |
 | :--- | :--- |
 | [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) | 전체 프로그램 분해와 단계별 가치 전달 |
+| [`docs/architecture/extensibility/README.md`](docs/architecture/extensibility/README.md) | 현재 확장 지점, 재생성 데이터 정책, 남은 A2/A3 확장성 부채 |
+| [`docs/reference/config/sources.md`](docs/reference/config/sources.md) | `config/sources.yaml` 운영 레퍼런스 |
 | [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector 설계(아키텍처·소스 카탈로그·완료기준) |
 | [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring 설계(시그널·스코어러·Insight) |
 | [`docs/superpowers/specs/2026-05-31-delivery-design.md`](docs/superpowers/specs/2026-05-31-delivery-design.md) | S3 Delivery & Reporting 설계(HTML 리포트·다이제스트) |

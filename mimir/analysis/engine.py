@@ -5,7 +5,7 @@ from datetime import UTC, date, datetime
 from mimir.analysis.schema import Insight, to_record
 from mimir.analysis.scorer import score
 from mimir.analysis.signals.base import Signal
-from mimir.core.source import Market
+from mimir.core.source import Dataset, Market
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.reader import DataReader
 
@@ -50,6 +50,7 @@ class AnalysisEngine:
                 )
                 insights.append(insight)
                 records.append(to_record(insight, captured_at))
-        # insights are regenerated each run -> last-write-wins (newest computation)
-        self._store.append(records, overwrite=True)
+        # insights are regenerated each run -> exact partition replacement.
+        # If today's rerun produces fewer/no insights, stale records must disappear.
+        self._store.replace_partition(Dataset.INSIGHTS, as_of, records)
         return insights

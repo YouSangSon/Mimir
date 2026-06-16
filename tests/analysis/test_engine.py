@@ -3,6 +3,7 @@ from pathlib import Path
 
 from mimir.analysis.builder import build_signals
 from mimir.analysis.engine import AnalysisEngine
+from mimir.analysis.schema import Insight, to_record
 from mimir.analysis.signals.base import SignalDirection
 from mimir.core.source import Dataset, Market
 from mimir.storage.jsonl_store import JsonlStore
@@ -59,5 +60,26 @@ def test_engine_skips_symbols_with_no_signals(tmp_path: Path):
     store = JsonlStore(root=tmp_path)  # empty: no data for anyone
     engine = AnalysisEngine(build_signals(), DataReader(store), store)
     insights = engine.run({"us": ["AAPL"], "kr": []}, AS_OF)
+    assert insights == []
+    assert list(store.read_all(Dataset.INSIGHTS)) == []
+
+
+def test_engine_clears_stale_insights_when_rerun_has_no_signals(tmp_path: Path):
+    store = JsonlStore(root=tmp_path)
+    stale = Insight(
+        symbol="AAPL",
+        market=Market.US,
+        as_of=AS_OF,
+        direction=SignalDirection.BULLISH,
+        stars=4,
+        confidence=0.8,
+        signals=[],
+        reasons=["stale"],
+    )
+    store.append([to_record(stale, datetime(2026, 5, 31, tzinfo=UTC))])
+    engine = AnalysisEngine(build_signals(), DataReader(store), store)
+
+    insights = engine.run({"us": ["AAPL"], "kr": []}, AS_OF)
+
     assert insights == []
     assert list(store.read_all(Dataset.INSIGHTS)) == []

@@ -185,6 +185,34 @@ def test_cold_start_marks_insufficient(tmp_path: Path):
     assert report.buckets == []
 
 
+def test_cold_start_clears_stale_evaluation_partition(tmp_path: Path):
+    store = JsonlStore(root=tmp_path)
+    stale = BucketStat(
+        dimension="per_signal",
+        key="momentum",
+        market=Market.US,
+        horizons=[HorizonEval(horizon=1, n=5, hit_rate=1.0, mean_fwd_return=0.01, neutral_n=0)],
+    )
+    from mimir.evaluation.schema import to_record
+
+    store.append([to_record(stale, date(2026, 5, 31), captured_at=CAPTURED)])
+    closes = [100.0, 110.0, 121.0, 133.1]
+    store.append([_price("AAPL", Market.US, d + 1, c) for d, c in enumerate(closes)])
+    sig = [_sig("momentum", SignalDirection.BULLISH)]
+    store.append(
+        [
+            _insight_record(_insight("AAPL", Market.US, d, SignalDirection.BULLISH, 4, sig))
+            for d in range(1, 3)
+        ]
+    )
+    engine = EvaluationEngine(DataReader(store), store)
+
+    report = engine.run(date(2026, 5, 31), captured_at=CAPTURED)
+
+    assert report.sufficient is False
+    assert list(store.read_all(Dataset.EVALUATION)) == []
+
+
 def test_lookahead_future_insight_contributes_nothing(tmp_path: Path):
     store = JsonlStore(root=tmp_path)
     _seed_six_bullish_aapl(store)

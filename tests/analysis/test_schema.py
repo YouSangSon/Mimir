@@ -1,5 +1,8 @@
 from datetime import UTC, date, datetime
 
+import pytest
+from pydantic import ValidationError
+
 from mimir.analysis.schema import DISCLAIMER, Insight, to_record
 from mimir.analysis.signals.base import SignalDirection, SignalResult
 from mimir.core.source import Dataset, Market
@@ -45,3 +48,25 @@ def test_to_record_builds_insights_envelope():
     again = Record.model_validate_json(rec.model_dump_json())
     assert isinstance(again.payload, Insight)
     assert again.payload.as_of == date(2026, 5, 31)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("strength", -0.1),
+        ("strength", 1.1),
+        ("confidence", -0.1),
+        ("confidence", 1.1),
+    ],
+)
+def test_signal_result_rejects_out_of_range_scores(field: str, value: float):
+    data = {
+        "signal": "demo",
+        "direction": SignalDirection.BULLISH,
+        "strength": 0.5,
+        "confidence": 0.5,
+        "reason": "r",
+    }
+    data[field] = value
+    with pytest.raises(ValidationError):
+        SignalResult.model_validate(data)

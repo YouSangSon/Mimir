@@ -48,9 +48,10 @@ class JsonlStore:
         """Persist records into date partitions.
 
         Default is append-only with first-write-wins dedup (raw collected data is
-        immutable). `overwrite=True` gives last-write-wins by rewriting the
-        partition — use it for regenerated datasets (insights/historical) so a
-        same-day re-run reflects the newest computation instead of the first.
+        immutable). `overwrite=True` gives last-write-wins when callers provide
+        replacement records for keyed data. Regenerated daily outputs should use
+        `replace_partition` so stale rows are removed when a rerun produces an
+        empty or smaller result set.
         """
         by_path: dict[Path, list[Record]] = defaultdict(list)
         for rec in records:
@@ -65,6 +66,31 @@ class JsonlStore:
                 else self._append_only(path, recs)
             )
         return written
+
+    def replace_partition(self, dataset: Dataset, day: date, records: Iterable[Record]) -> int:
+        """Replace one dataset/day partition exactly with ``records``.
+
+        Regenerated datasets such as insights, historical, and evaluation need
+        whole-partition replacement. If a rerun produces zero records, stale
+        records from the previous run must disappear instead of surviving because
+        there is no new key to overwrite.
+        """
+        path = partition_path(dataset, day, self._root)
+        recs = list(records)
+        for rec in recs:
+            if rec.dataset != dataset or rec.ts.date() != day:
+                raise ValueError(
+                    "replace_partition records must all match the target dataset and day"
+                )
+        if not recs:
+            if path.exists():
+                path.unlink()
+            return 0
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as fh:
+            for rec in recs:
+                fh.write(rec.model_dump_json() + "\n")
+        return len(recs)
 
     def _append_only(self, path: Path, recs: list[Record]) -> int:
         seen = self._existing_keys(path)
@@ -111,6 +137,8 @@ class JsonlStore:
             return
         for path in sorted(base.rglob("*.jsonl")):
             for rec in self._read_file(path):
+                if since is not None and rec.ts.date() < since:
+                    continue
                 if until is not None and rec.ts.date() > until:
                     continue
                 yield rec

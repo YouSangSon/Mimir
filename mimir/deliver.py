@@ -9,6 +9,7 @@ from typing import Any
 
 from mimir.analysis.schema import Insight
 from mimir.core.source import Cadence, Dataset
+from mimir.evaluation.schema import BucketStat
 from mimir.historical.schema import HistoricalInsight
 from mimir.report.daily_report import (
     DEFAULT_REPORTS_ROOT,
@@ -44,8 +45,12 @@ def run_deliver(
     insights = [Insight.model_validate(r.payload) for r in records]
     hist_records = reader.read(Dataset.HISTORICAL, since=as_of, until=as_of)
     historical = [HistoricalInsight.model_validate(r.payload) for r in hist_records]
+    eval_records = reader.read(Dataset.EVALUATION, since=as_of, until=as_of)
+    evaluation = [BucketStat.model_validate(r.payload) for r in eval_records]
 
-    html_doc = build_report_html(insights, as_of, cadence, historical=historical, lang=lang)
+    html_doc = build_report_html(
+        insights, as_of, cadence, historical=historical, evaluation=evaluation, lang=lang
+    )
     report_path = save_report(html_doc, as_of, reports_root)
     rebuild_index(reports_root, lang)
 
@@ -55,7 +60,11 @@ def run_deliver(
         bot_token=settings.telegram_bot_token, chat_id=settings.telegram_chat_id, text=digest
     )
     return DeliveryResult(
-        report=report_path, insights=len(insights), historical=len(historical), sent=sent
+        report=report_path,
+        insights=len(insights),
+        historical=len(historical),
+        evaluation=len(evaluation),
+        sent=sent,
     )
 
 

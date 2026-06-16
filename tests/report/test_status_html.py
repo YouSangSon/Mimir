@@ -44,3 +44,16 @@ def test_render_status_html_translated(tmp_path: Path):
     zh = out_zh.read_text()
     assert 'lang="zh"' in zh
     assert "采集状态" in zh
+
+
+def test_render_status_html_sanitizes_lang_attribute(tmp_path: Path):
+    run = RunRecord(
+        ran_at=datetime(2026, 5, 31, 12, 0, tzinfo=UTC),
+        cadence=Cadence.DAILY,
+        results=[SourceResult(source="stooq", ok=True, fetched=2, stored=2)],
+    )
+    out = tmp_path / "status.html"
+    render_status_html(run, out, lang='en" onmouseover="alert(1)')
+    html = out.read_text()
+    assert 'lang="en"' in html
+    assert "onmouseover" not in html

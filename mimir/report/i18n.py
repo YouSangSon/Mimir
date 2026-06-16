@@ -22,6 +22,12 @@ STRINGS: dict[str, dict[str, str]] = {
         "historical_section_heading": "📈 Historical cases (event-study)",
         "triggered_today_badge": "Triggered today",
         "historical_horizon_row": "{horizon}d: median {median}%, up {pct_positive}% (n={n})",
+        "evaluation_section_heading": "🎯 Signal scorecard",
+        "evaluation_col_dimension": "dimension",
+        "evaluation_col_key": "key",
+        "evaluation_col_market": "market",
+        "evaluation_col_horizons": "hit-rate% · edge% (n)",
+        "evaluation_horizon_cell": "{horizon}d: hit {hit}% / edge {edge}% (n={n})",
         "index_page_title": "Mimir reports",
         "index_heading": "🧭 Mimir — reports",
         "index_empty": "No reports yet.",
@@ -89,6 +95,12 @@ STRINGS: dict[str, dict[str, str]] = {
         "historical_section_heading": "📈 과거 사례 (event-study)",
         "triggered_today_badge": "오늘 발생",
         "historical_horizon_row": "{horizon}일: 중앙값 {median}%, 양봉 {pct_positive}% (n={n})",
+        "evaluation_section_heading": "🎯 시그널 성적표",
+        "evaluation_col_dimension": "차원",
+        "evaluation_col_key": "키",
+        "evaluation_col_market": "시장",
+        "evaluation_col_horizons": "적중률% · 엣지% (n)",
+        "evaluation_horizon_cell": "{horizon}일: 적중 {hit}% / 엣지 {edge}% (n={n})",
         "index_page_title": "Mimir 리포트",
         "index_heading": "🧭 Mimir — 리포트",
         "index_empty": "아직 리포트가 없습니다.",
@@ -156,6 +168,12 @@ STRINGS: dict[str, dict[str, str]] = {
         "historical_section_heading": "📈 历史案例（事件研究）",
         "triggered_today_badge": "今日触发",
         "historical_horizon_row": "{horizon}日：中位数 {median}%，阳线 {pct_positive}%（n={n}）",
+        "evaluation_section_heading": "🎯 信号记分卡",
+        "evaluation_col_dimension": "维度",
+        "evaluation_col_key": "键",
+        "evaluation_col_market": "市场",
+        "evaluation_col_horizons": "命中率% · 优势% (n)",
+        "evaluation_horizon_cell": "{horizon}日：命中 {hit}% / 优势 {edge}% (n={n})",
         "index_page_title": "Mimir 报告",
         "index_heading": "🧭 Mimir — 报告",
         "index_empty": "暂无报告。",
@@ -211,7 +229,12 @@ STRINGS: dict[str, dict[str, str]] = {
 }
 
 
+def normalize_lang(lang: str = DEFAULT_LANG) -> str:
+    return lang if lang in LANGS else DEFAULT_LANG
+
+
 def t(key: str, lang: str = DEFAULT_LANG, **fmt: object) -> str:
-    table = STRINGS.get(lang) or STRINGS[DEFAULT_LANG]
+    safe_lang = normalize_lang(lang)
+    table = STRINGS.get(safe_lang) or STRINGS[DEFAULT_LANG]
     text = table.get(key) or STRINGS[DEFAULT_LANG].get(key, key)
     return text.format(**fmt) if fmt else text

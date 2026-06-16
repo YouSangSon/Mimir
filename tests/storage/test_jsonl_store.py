@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from mimir.core.source import Dataset, Market
@@ -66,9 +66,35 @@ def test_append_overwrite_is_last_write_wins(tmp_path: Path):
     assert recs[0].payload.close == 99.0  # newest value wins (typed payload)
 
 
-def test_read_window_prunes_to_date_range(tmp_path: Path):
-    from datetime import date
+def test_replace_partition_removes_stale_records_when_new_result_is_empty(tmp_path: Path):
+    store = JsonlStore(root=tmp_path)
+    store.append([_rec("stale", 29)])
 
+    written = store.replace_partition(Dataset.PRICES, date(2026, 5, 29), [])
+
+    assert written == 0
+    recs = list(
+        store.read_window(Dataset.PRICES, since=date(2026, 5, 29), until=date(2026, 5, 29))
+    )
+    assert recs == []
+    assert not (tmp_path / "prices/2026/05/29.jsonl").exists()
+
+
+def test_replace_partition_replaces_stale_subset(tmp_path: Path):
+    store = JsonlStore(root=tmp_path)
+    store.append([_rec("stale", 29), _rec("keep", 29, close=1.0)])
+
+    written = store.replace_partition(
+        Dataset.PRICES, date(2026, 5, 29), [_rec("keep", 29, close=99.0)]
+    )
+
+    assert written == 1
+    recs = list(store.read_window(Dataset.PRICES, since=date(2026, 5, 29), until=date(2026, 5, 29)))
+    assert [r.idempotency_key for r in recs] == ["keep"]
+    assert recs[0].payload.close == 99.0
+
+
+def test_read_window_prunes_to_date_range(tmp_path: Path):
     store = JsonlStore(root=tmp_path)
     store.append([_rec("k27", 27), _rec("k29", 29), _rec("k31", 31)])
     # both bounds -> only partitions in [29, 30] are opened
@@ -80,3 +106,6 @@ def test_read_window_prunes_to_date_range(tmp_path: Path):
     # until-only fallback still cuts off later partitions
     keys2 = {r.idempotency_key for r in store.read_window(Dataset.PRICES, until=date(2026, 5, 29))}
     assert keys2 == {"k27", "k29"}
+    # since-only fallback still cuts off earlier partitions
+    keys3 = {r.idempotency_key for r in store.read_window(Dataset.PRICES, since=date(2026, 5, 29))}
+    assert keys3 == {"k29", "k31"}
