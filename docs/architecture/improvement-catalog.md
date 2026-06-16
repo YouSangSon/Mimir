@@ -32,6 +32,7 @@
 | **B2** | LLM 뉴스 감성 시그널 (news_volume 대체, 하이브리드) | 분석심화 | 로드맵 + 백로그 R1 | **✅ seam 구현 (Increment 5, off-by-default)** | 코드 + 테스트 |
 | **R1a** | 뉴스 mention alias matcher (`analysis.news.aliases`) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-mention-alias-design.md) |
 | **H1** | 재생성 데이터 stale 제거 + pipeline scorecard 갱신 | 견고성/운영 | B1 후속 + 리뷰 발견 | **✅ 구현 완료 (2026-06-16 hardening)** | `replace_partition`, `run_evaluate`, daily report scorecard |
+| **BF-MANIFEST** | 백필 실행 manifest 기록 | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | backfill success/failure run log |
 | **C1** | 데이터 신선도·품질 닥터 (`mimir doctor`) | 운영 | "무음 실패 금지" 약속 | **✅ 구현 완료 (Increment 3)** | 코드 + 테스트(179) |
 | **C2** | 파티션 인덱스 (git-as-DB rglob 스케일) | 성능 | 신규 | ⏸ 보류 | 본 문서 §6 |
 | **C3** | pykrx 타임아웃·재시도 (BaseSource 미사용) | 견고성 | 백로그 LOW | ⏸ 보류(GRAY/옵션) | 본 문서 §6 |
@@ -116,6 +117,12 @@ Matcher는 Unicode word boundary를 사용해 `A`가 `Apple` 안에서 매칭되
 
 매니페스트는 *실행*을 기록하지만, "어제 가격 데이터가 비었다" 같은 *데이터 신선도*는 누구도 감시하지 않는다. `mimir doctor`는 워치리스트 대비 누락·정체(stale) 파티션과 스키마 이상을 플래그한다. "무음 실패 금지" 약속을 데이터 평면으로 확장. → [데이터 닥터 설계문서](../superpowers/specs/2026-06-13-data-doctor-design.md).
 
+### BF-MANIFEST. 백필 실행 manifest 기록 — **구현 완료 (2026-06-16)**
+
+`collect`는 소스별 성공/실패를 manifest에 남겼지만, `backfill`은 과거 데이터를 대량으로 적재하면서 실행 로그를 남기지 않았다. 이 격차는 README의 "무침묵 실패" 약속과 백로그의 "매니페스트는 후속" 항목으로 추적된다.
+
+구현 후 `run_backfill()`은 성공 실행에 `fetched`, `stored`, `invalid`를 기록한다. upstream fetch, normalize, store 단계에서 예외가 나면 `ok=false` manifest를 먼저 남긴 뒤 예외를 다시 던진다. 그래서 호출자는 기존처럼 비정상 종료를 보면서도, 저장소에는 실패 흔적이 남는다.
+
 ---
 
 ## 5. 증분 실행 순서 (Sequencing)
@@ -162,5 +169,6 @@ D2 ───────── GitHub Actions Node24-compatible action majors
 - `http_get` 429/5xx 재시도 + 4xx 빠른 실패 · 소스 격리(한 소스 실패가 전체를 멈추지 않음).
 - CI와 수집 pipeline은 Node24 호환 `actions/checkout@v6`·`actions/setup-python@v6`를 사용하며, workflow guard 테스트가 major 회귀를 잡는다.
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 원천 데이터는 append-only.
+- 백필은 성공과 실패를 manifest에 기록한다. 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, R1a, D2까지 구현되었고, 남은 신규 아키텍처 부채는 외부 source plugin entry-point, 기본 news alias 데이터셋, 종목별 news feed다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, R1a, D2, BF-MANIFEST까지 구현되었고, 남은 신규 아키텍처 부채는 외부 source plugin entry-point, 기본 news alias 데이터셋, 종목별 news feed다.

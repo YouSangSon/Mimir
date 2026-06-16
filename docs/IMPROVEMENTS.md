@@ -21,7 +21,7 @@
 - [x] **429 처리**: `http_get`이 429를 치명적 4xx로 처리(백오프 없음). → 429/503 재시도 가능 처리(가능하면 `Retry-After`).
 - [x] **SEC UA 검증**: 기본 UA(@ 없음)는 403 가능. → `build_sources`에서 UA에 `@` 없으면 경고 로그.
 - [x] **cadence 미이스케이프 + deliver --cadence choices 없음**: → `html.escape(cadence)` + `choices`.
-- [x] **백필 격리/매니페스트**: `backfill`에 레코드별 `NormalizationError` 가드 추가(skip+count). (매니페스트는 후속)
+- [x] **백필 격리/매니페스트**: `backfill`에 레코드별 `NormalizationError` 가드 추가(skip+count). 성공 실행은 `fetched/stored/invalid`를 manifest에 기록하고, 실패 실행은 `ok=false` manifest를 남긴 뒤 예외를 다시 던진다.
 - [x] **ECOS 페이지네이션**: `list_total_count` 기반 인덱스 페이지 루프(MAX_PAGES 가드)로 100행 캡 제거. (Inc.3)
 - [x] **dedup first-write-wins (재생성 데이터셋)**: insights/historical/evaluation은 `replace_partition`으로 당일 파티션을 전체 교체한다. 같은 날 재실행은 최신 계산만 남기고, 빈 결과면 이전 결과를 삭제한다. 거시 개정(FRED/ECOS, orchestrator append-only)은 후속.
 - [x] **MIN_OCCURRENCES가 horizon별 n 미보장**: `summarize(min_n=)` + 엔진 `MIN_HORIZON_N=2`로 horizon별 최소 표본 게이트.
@@ -42,7 +42,7 @@
 - [x] **GH Actions Node20 deprecation**: `actions/checkout@v4`·`setup-python@v5`가 Node20 세대 action이라 2026-06-16 Node24 기본 전환에 걸릴 수 있었다. → `checkout@v6`·`setup-python@v6`로 올리고, `tests/test_workflows.py`가 workflow action major를 검증한다.
 
 ## 후속(Increment 3 후보)
-SEC `files[]` 백필 + DART/ECOS 페이지네이션(H-C), 거시 개정 last-write-wins(orchestrator per-dataset 정책), 종목별 news feed 또는 기본 alias 데이터셋, pykrx 타임아웃, 매니페스트 백필.
+SEC `files[]` 백필 + DART/ECOS 페이지네이션(H-C), 거시 개정 last-write-wins(orchestrator per-dataset 정책), 종목별 news feed 또는 기본 alias 데이터셋, pykrx 타임아웃.
 
 ## 안티-파인딩(확인됨, 수정 불필요)
 volume-surge는 현재 봉을 자기 평균에서 제외(정확) · forward_returns는 의도된 event-study(누수 아님) · 가격/공시/거시 ts는 자정 UTC라 파티션 안정 · idempotency_key는 소스 prefix로 교차충돌 없음 · 시크릿은 env만·.env gitignore·.env.example 플레이스홀더 · 워치리스트 심볼 URL 주입 안전 · 워크플로 커맨드 인젝션 없음 · 레이어 그래프는 순환 없음 · 파일 크기 건전.

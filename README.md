@@ -68,6 +68,8 @@ Backfill historical data in one pass.
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
 ```
 
+Backfill writes the same manifest format as collection. A successful run records fetched, stored, and invalid counts. A failed run records `ok=false` before surfacing the error to the caller.
+
 Collection results accumulate in the repo, and you can view the latest run status as a single HTML page.
 
 ```text
@@ -76,7 +78,7 @@ data/_manifest/YYYY/MM/DD.jsonl   # run log
 reports/status.html               # per-source collection status
 ```
 
-> 💡 If some sources fail, `collect` keeps collecting the rest, records the failures in the manifest, and signals with exit code `1`. A single source's outage does not halt the whole pipeline.
+> 💡 If some sources fail, `collect` keeps collecting the rest, records the failures in the manifest, and signals with exit code `1`. `backfill` handles one source at a time, so it records the failure and then exits non-zero.
 
 ---
 
@@ -180,7 +182,7 @@ Adding a built-in source is done with a single adapter in `sources/` plus one `S
 | **Official APIs first** | Official free APIs like DART, SEC EDGAR, FRED, and ECOS are used as the primary source |
 | **GRAY toggle** | pykrx (scraping) is throttled and limited to internal analysis; it can be blocked via `gray_enabled: false` in `sources.yaml` |
 | **Secret separation** | All keys/tokens live only in `.env` (local) and Actions Secrets (CI); never committed |
-| **No silent failures** | Failures are recorded in the manifest and signaled with a non-zero exit — never swallowed quietly |
+| **No silent failures** | `collect` and `backfill` failures are recorded in the manifest and signaled with a non-zero exit — never swallowed quietly |
 | **Disclaimer** | Every insight and rating includes a "not financial advice" notice |
 
 ---
@@ -222,7 +224,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | Item | Value |
 | :--- | :--- |
-| **Tests** | 365 passing (adapters verified with recorded fixtures, no network) |
+| **Tests** | 368 passing (adapters verified with recorded fixtures, no network) |
 | **Coverage** | `mimir/` 97% (gate 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |
