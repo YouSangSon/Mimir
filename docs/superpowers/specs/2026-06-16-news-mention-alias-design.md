@@ -180,7 +180,7 @@ LLM 시그널은 기존처럼 세 조건이 모두 맞을 때만 생성된다. a
 | alias list에 빈 문자열이 있음 | matcher가 무시 |
 | 설정이 없음 | 기존 symbol-only 매칭 유지 |
 | `삼성전자` alias가 `삼성전자우` 안에 들어 있음 | 매칭하지 않음 |
-| alias가 너무 넓어서 false positive가 생김 | 사용자 설정 문제로 문서화. 기본 alias는 제공하지 않음 |
+| alias가 너무 넓어서 false positive가 생김 | 사용자 설정 문제로 문서화. R1c의 기본 alias는 `use_default_aliases: false`로 끌 수 있음 |
 
 ---
 
@@ -227,4 +227,4 @@ LLM 쪽은 fake classifier를 주입해 `LlmSentimentSignal`이 alias로 headlin
 
 Alias는 recall을 높이지만, 뉴스 방향성은 만들지 않는다. `news_volume`은 계속 NEUTRAL 시그널이다. 방향성은 off-by-default `llm_sentiment`가 맡는다.
 
-또한 alias는 사용자가 관리해야 한다. 기본 alias 사전을 넣으면 유지보수와 오매칭 책임이 프로젝트 코드로 들어온다. v1은 설정 가능한 matcher만 제공하고, 기본 사전은 추후 별도 데이터 파일이나 외부 provider가 필요할 때 설계한다.
+또한 R1 v1의 alias는 사용자가 관리한다. 기본 alias 사전을 넣으면 유지보수와 오매칭 책임이 프로젝트 코드로 들어오기 때문에 이 증분에서는 제외했다. 이후 R1c에서 기본 watchlist용 보수적 alias 데이터셋과 `analysis.news.use_default_aliases` opt-out을 별도 설계로 추가했다.

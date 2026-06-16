@@ -4,6 +4,7 @@ import importlib.util
 import logging
 from typing import TYPE_CHECKING
 
+from mimir.analysis.news_aliases import merge_news_aliases
 from mimir.analysis.signals.base import Signal
 from mimir.analysis.signals.filing_event import FilingEventSignal
 from mimir.analysis.signals.macro_regime import MacroRegimeSignal
@@ -36,9 +37,13 @@ def build_signals(
     `anthropic`.
     """
     cfg = config or SourcesConfig()
+    news_aliases = merge_news_aliases(
+        cfg.news_aliases,
+        include_defaults=cfg.use_default_news_aliases,
+    )
     signals: list[Signal] = [
         FilingEventSignal(),
-        NewsVolumeSignal(aliases=cfg.news_aliases),
+        NewsVolumeSignal(aliases=news_aliases),
         PriceMomentumSignal(),
         MacroRegimeSignal(rate_series=cfg.macro_regime_rate_series),
     ]
@@ -55,7 +60,7 @@ def build_signals(
             LlmSentimentSignal(
                 classifier=classifier or AnthropicHeadlineClassifier(settings.anthropic_api_key),
                 max_headlines=cfg.llm_sentiment_max_headlines,
-                aliases=cfg.news_aliases,
+                aliases=news_aliases,
             )
         )
     return signals

@@ -145,6 +145,23 @@ def test_analysis_news_aliases_parse_from_config():
     assert cfg.news_aliases == {"AAPL": ["Apple", "Apple Inc."]}
 
 
+def test_analysis_news_use_default_aliases_parse_from_config():
+    cfg = parse_sources_config({"analysis": {"news": {"use_default_aliases": False}}})
+
+    assert cfg.use_default_news_aliases is False
+
+
+def test_analysis_news_use_default_aliases_quoted_false_parses_as_false():
+    cfg = parse_sources_config({"analysis": {"news": {"use_default_aliases": "false"}}})
+
+    assert cfg.use_default_news_aliases is False
+
+
+def test_analysis_news_use_default_aliases_typo_raises():
+    with pytest.raises(ValidationError):
+        parse_sources_config({"analysis": {"news": {"use_defaults_aliases": False}}})
+
+
 def test_analysis_news_alias_typo_raises_validation_error():
     with pytest.raises(ValidationError):
         parse_sources_config({"analysis": {"news": {"aliasez": {"AAPL": ["Apple"]}}}})

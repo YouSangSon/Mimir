@@ -13,7 +13,7 @@ repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 �
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-377%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-388%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -224,7 +224,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 항목 | 값 |
 | :--- | :--- |
-| **테스트** | 368 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
+| **테스트** | 388 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
 | **커버리지** | `mimir/` 97% (게이트 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — push/PR마다 lint·type·test·coverage |
@@ -251,7 +251,7 @@ TDD를 따르며, HTTP 소스는 `responses`로, pykrx 같은 라이브러리 �
 
 | 영역 | 상태 |
 | :--- | :--- |
-| **인사이트/별점** | 규칙 기반 시그널로 구현됨. ⭐ 확신도, confidence, attention, 면책 문구를 포함한다. LLM 감성 시그널은 off-by-default seam으로 제공 |
+| **인사이트/별점** | 규칙 기반 시그널로 구현됨. ⭐ 확신도, confidence, attention, 면책 문구를 포함한다. 뉴스 매칭은 보수적 기본 회사명 alias와 사용자 alias를 함께 쓰며, LLM 감성 시그널은 off-by-default seam으로 제공 |
 | **KR 가격** | pykrx는 GRAY·선택 설치(`[kr]`). 키 없이 동작하는 가격원은 Stooq(무료 apikey 필요) |
 | **과거패턴 분석** | S4 구현(event-study). 표본 `n`이 충분한 가격 이력이 필요 — 백필 권장 |
 | **시그널 성적표** | `mimir.evaluate`로 구현되어 일일 리포트와 대시보드에 표시된다. 초기 실행에서는 과거 인사이트와 가격 표본이 충분해질 때까지 표본 부족으로 나올 수 있음 |

@@ -13,7 +13,7 @@
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-377%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-388%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -224,7 +224,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 项目 | 值 |
 | :--- | :--- |
-| **测试** | 368 passing（适配器以录制的 fixture 在无网络下验证） |
+| **测试** | 388 passing（适配器以录制的 fixture 在无网络下验证） |
 | **覆盖率** | `mimir/` 97%（门槛 80%） |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — 每次 push/PR 执行 lint·type·test·coverage |
@@ -251,7 +251,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 领域 | 状态 |
 | :--- | :--- |
-| **洞见/星级** | 已以规则驱动信号实现，包含 ⭐确信度、confidence、attention 和免责声明。LLM 情绪信号以 off-by-default seam 提供 |
+| **洞见/星级** | 已以规则驱动信号实现，包含 ⭐确信度、confidence、attention 和免责声明。新闻匹配会使用保守的默认公司名 alias 和用户 alias；LLM 情绪信号以 off-by-default seam 提供 |
 | **KR 价格** | pykrx 为 GRAY·可选安装（`[kr]`）。无密钥即可运行的价格源为 Stooq（需免费 apikey） |
 | **历史模式分析** | S4 已实现 (event-study)。需要样本 `n` 充分的价格历史——建议先回填 |
 | **信号记分卡** | 通过 `mimir.evaluate` 实现，并显示在每日报告和 dashboard 中。早期运行可能因历史洞见和价格样本不足而显示样本不足 |
