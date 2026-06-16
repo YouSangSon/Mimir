@@ -107,7 +107,7 @@ manifest.write(
 return stored
 ```
 
-`stored`는 유효 레코드 수가 아니라 실제로 새로 저장된 건수다. 이미 같은 레코드가 있으면 dedup 때문에 `fetched > 0`, `stored = 0`이 될 수 있다.
+`stored`는 유효 레코드 수가 아니라 이번 실행으로 저장 파일에 반영된 건수다. append-only 데이터셋은 이미 같은 key가 있으면 dedup 때문에 `fetched > 0`, `stored = 0`이 될 수 있다. `macro`처럼 공식 개정값을 last-write-wins로 받는 데이터셋은 같은 key라도 payload가 바뀌면 `stored = 1`로 기록된다.
 
 ### 4.2 실패 경로
 

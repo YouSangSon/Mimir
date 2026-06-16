@@ -21,7 +21,7 @@ Mimir Collector는 한국·미국 시장의 공개 데이터를 무료·합법�
 
 - **Source 어댑터 프레임워크 + 레지스트리** — 공통 인터페이스 뒤에 각 소스를 구현
 - **정규화 레코드 스키마** — 모든 소스가 공통 envelope로 수렴, 경계에서 검증
-- **저장 레이어** — 날짜 파티션 JSONL(`data/<dataset>/YYYY/MM/DD.jsonl`), append-only, 멱등
+- **저장 레이어** — 날짜 파티션 JSONL(`data/<dataset>/YYYY/MM/DD.jsonl`), 소스별 멱등 저장 정책
 - **워치리스트 설정** — 추적할 KR/US 종목·기업 목록(YAML/TOML)
 - **첫 소스 세트** — Stooq, SEC EDGAR, pykrx, DART OpenAPI, FRED, ECOS, RSS(+ 선택적 Naver 검색 API)
 - **스로틀러 + 합법성 레지스트리** — 소스별 rate limit·legal_status를 코드로 강제
@@ -66,7 +66,7 @@ sources/        어댑터들 — 각자 fetch() → Iterable[RawRecord], 메타�
   ▼
 core/           오케스트레이터 · 스로틀러 · 정규화 · 합법성 레지스트리
   ▼
-storage/        JSONL writer/reader (날짜 파티션, append-only, 멱등 dedup)
+storage/        JSONL writer/reader (날짜 파티션, 소스별 멱등 dedup)
   ▼
 report/         최소 데이터-현황 HTML + 텔레그램 핑(옵션)
   ▲
@@ -193,7 +193,7 @@ class Source(Protocol):
 
 ### 5.6 스토리지
 
-5.7절 참고. append-only, 멱등 dedup, 날짜 파티션.
+5.7절 참고. 날짜 파티션을 유지하되 데이터셋별 저장 정책을 쓴다. 가격·공시·뉴스는 append-only first-write-wins이고, 거시 관측값은 공식 개정을 반영하기 위해 같은 key를 last-write-wins로 교체한다.
 
 ### 5.7 매니페스트
 

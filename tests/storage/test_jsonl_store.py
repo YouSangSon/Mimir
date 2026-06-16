@@ -6,14 +6,19 @@ from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.schema import Record
 
 
-def _rec(key: str, day: int, close: float = 1.0) -> Record:
+def _rec(
+    key: str,
+    day: int,
+    close: float = 1.0,
+    captured_at: datetime = datetime(2026, 5, 31, tzinfo=UTC),
+) -> Record:
     return Record(
         source="stooq",
         dataset=Dataset.PRICES,
         market=Market.US,
         symbol="AAPL",
         ts=datetime(2026, 5, day, tzinfo=UTC),
-        captured_at=datetime(2026, 5, 31, tzinfo=UTC),
+        captured_at=captured_at,
         idempotency_key=key,
         payload={
             "open": close,
@@ -64,6 +69,68 @@ def test_append_overwrite_is_last_write_wins(tmp_path: Path):
     recs = list(store.read_all(Dataset.PRICES))
     assert len(recs) == 1  # not duplicated
     assert recs[0].payload.close == 99.0  # newest value wins (typed payload)
+
+
+def test_append_overwrite_counts_replaced_records(tmp_path: Path):
+    store = JsonlStore(root=tmp_path)
+    store.append([_rec("k1", 29, close=1.0)])
+
+    changed = store.append([_rec("k1", 29, close=99.0)], overwrite=True)
+
+    assert changed == 1
+
+
+def test_append_overwrite_counts_repeated_batch_key_once(tmp_path: Path):
+    store = JsonlStore(root=tmp_path)
+    store.append([_rec("k1", 29, close=1.0)])
+
+    changed = store.append(
+        [
+            _rec("k1", 29, close=2.0),
+            _rec("k1", 29, close=3.0),
+        ],
+        overwrite=True,
+    )
+
+    recs = list(store.read_all(Dataset.PRICES))
+    assert changed == 1
+    assert len(recs) == 1
+    assert recs[0].payload.close == 3.0
+
+
+def test_append_overwrite_ignores_capture_time_only_changes(tmp_path: Path):
+    store = JsonlStore(root=tmp_path)
+    first_seen = datetime(2026, 5, 31, tzinfo=UTC)
+    seen_again = datetime(2026, 6, 1, tzinfo=UTC)
+    store.append([_rec("k1", 29, close=1.0, captured_at=first_seen)], overwrite=True)
+
+    changed = store.append(
+        [_rec("k1", 29, close=1.0, captured_at=seen_again)], overwrite=True
+    )
+
+    recs = list(store.read_all(Dataset.PRICES))
+    assert changed == 0
+    assert recs[0].captured_at == first_seen
+
+
+def test_append_overwrite_noop_does_not_rewrite_partition(tmp_path: Path, monkeypatch):
+    store = JsonlStore(root=tmp_path)
+    first_seen = datetime(2026, 5, 31, tzinfo=UTC)
+    seen_again = datetime(2026, 6, 1, tzinfo=UTC)
+    store.append([_rec("k1", 29, close=1.0, captured_at=first_seen)], overwrite=True)
+    partition = tmp_path / "prices/2026/05/29.jsonl"
+    original_open = Path.open
+
+    def fail_on_partition_write(self, mode="r", *args, **kwargs):
+        if self == partition and "w" in mode:
+            raise AssertionError("no-op overwrite must not rewrite partition")
+        return original_open(self, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", fail_on_partition_write)
+
+    changed = store.append([_rec("k1", 29, close=1.0, captured_at=seen_again)], overwrite=True)
+
+    assert changed == 0
 
 
 def test_replace_partition_removes_stale_records_when_new_result_is_empty(tmp_path: Path):

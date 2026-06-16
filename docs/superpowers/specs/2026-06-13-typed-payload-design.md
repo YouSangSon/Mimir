@@ -25,8 +25,9 @@
 
 | 경로 | 호출 | 의미 |
 |---|---|---|
-| 쓰기(append-only) | `rec.model_dump_json()` (`_append_only`) | prices/macro/news/filings — **한 번 쓰고 다시 안 씀** |
-| 쓰기(overwrite) | `rec.model_dump_json()` (`_append_overwrite`) | insights/historical — **매 실행 파티션 전체를 read→rewrite** |
+| 쓰기(append-only) | `rec.model_dump_json()` (`_append_only`) | prices/news/filings — **한 번 쓰고 다시 안 씀** |
+| 쓰기(overwrite append) | `rec.model_dump_json()` (`_append_overwrite`) | macro — **같은 관측 key의 공식 개정값은 마지막 레코드로 교체** |
+| 쓰기(partition replace) | `rec.model_dump_json()` (`replace_partition`) | insights/historical/evaluation — **매 실행 파티션 전체를 새 결과로 교체** |
 | 읽기 | `Record.model_validate_json(line)` (`_read_file`) | 모든 데이터셋 |
 
 `idempotency_key`는 **각 어댑터가 페이로드와 독립적으로 만드는 별도 필드**다(`fred:{series_id}:{day}` 등). 페이로드 직렬화에서 파생되지 않으므로, 페이로드 모델을 바꿔도 키는 영향받지 않는다. → "**키는 절대 바뀌지 않는다**"가 자동 성립.
@@ -67,7 +68,7 @@
 
 ## 3. 불변식 (테스트로 고정) — **가장 중요**
 
-git-as-DB에서 직렬화가 한 바이트라도 달라지면 overwrite 데이터셋이 매 실행 git diff를 만들고(노이즈), append-only 데이터셋은 역직렬화가 깨질 수 있다. 따라서:
+git-as-DB에서 직렬화가 한 바이트라도 달라지면 overwrite 계열 데이터셋이 매 실행 git diff를 만들고(노이즈), append-only 데이터셋은 역직렬화가 깨질 수 있다. 따라서:
 
 ### 3.1 핵심 대칭성 논증 (코드 실행 없이 성립)
 

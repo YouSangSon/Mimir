@@ -13,7 +13,7 @@
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-397%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-407%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -73,7 +73,7 @@ cp .env.example .env          # 只需填入想用的免费密钥（自动加载
 采集结果会堆积在 repo 中，最新运行状况可通过一张 HTML 查看。
 
 ```text
-data/<dataset>/YYYY/MM/DD.jsonl   # 采集物 (append-only)
+data/<dataset>/YYYY/MM/DD.jsonl   # 采集物（按数据源策略去重）
 data/_manifest/YYYY/MM/DD.jsonl   # 运行日志
 reports/status.html               # 各数据源采集状况
 ```
@@ -152,7 +152,7 @@ flowchart LR
 | **RawRecord → Record** | 将各数据源的原始数据规范化为统一 envelope（pydantic 校验），并以 `idempotency_key` 保证幂等 |
 | **Registry** | 依据 cadence 和 GRAY 策略选择“本次 tick 要运行的数据源” |
 | **Orchestrator** | 选择 → 限流 → fetch → 规范化 → 存储 → 清单（各数据源隔离） |
-| **JsonlStore** | `data/<dataset>/YYYY/MM/DD.jsonl` 按日期分区的 append-only 存储 |
+| **JsonlStore** | `data/<dataset>/YYYY/MM/DD.jsonl` 按日期分区存储；价格/公告/新闻保持 first-write-wins，宏观观测值用 last-write-wins 反映官方修订 |
 | **Manifest** | 每次运行逐行记录（做了什么·何时·多少条·是否成功）——数据可信度的依据 |
 
 新增内置数据源只需在 `sources/` 加一个适配器 + 一条 `SourceSpec` 注册即可完成。外部 package 可以通过 `mimir.sources` entry point 注册 `SourceSpec`。只应安装可信 plugin：plugin 在 Mimir 进程内运行，不会被 sandbox 隔离，并且会收到包含 API key 在内的 settings。上层（分析·交易）只读取已存储的 envelope。
@@ -224,7 +224,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 项目 | 值 |
 | :--- | :--- |
-| **测试** | 397 passing（适配器以录制的 fixture 在无网络下验证） |
+| **测试** | 407 passing（适配器以录制的 fixture 在无网络下验证） |
 | **覆盖率** | `mimir/` 97%（门槛 80%） |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — 每次 push/PR 执行 lint·type·test·coverage |

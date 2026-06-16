@@ -10,6 +10,12 @@ from mimir.storage.paths import DEFAULT_ROOT, partition_path
 from mimir.storage.schema import Record
 
 
+def _same_stored_record(left: Record, right: Record) -> bool:
+    return left.model_dump(exclude={"captured_at"}) == right.model_dump(
+        exclude={"captured_at"}
+    )
+
+
 class JsonlStore:
     def __init__(self, root: Path = DEFAULT_ROOT) -> None:
         self._root = root
@@ -109,15 +115,21 @@ class JsonlStore:
         if path.exists():
             for rec in self._read_file(path):
                 merged[rec.idempotency_key] = rec
-        new_keys = 0
+        incoming: dict[str, Record] = {}
         for rec in recs:
-            if rec.idempotency_key not in merged:
-                new_keys += 1
-            merged[rec.idempotency_key] = rec  # last-write-wins
+            incoming[rec.idempotency_key] = rec
+        changed = 0
+        for rec in incoming.values():
+            current = merged.get(rec.idempotency_key)
+            if current is None or not _same_stored_record(current, rec):
+                changed += 1
+                merged[rec.idempotency_key] = rec  # last-write-wins
+        if changed == 0:
+            return 0
         with path.open("w", encoding="utf-8") as fh:
             for rec in merged.values():
                 fh.write(rec.model_dump_json() + "\n")
-        return new_keys
+        return changed
 
     def read_window(
         self, dataset: Dataset, *, since: date | None = None, until: date | None = None

@@ -23,7 +23,8 @@
 - [x] **cadence 미이스케이프 + deliver --cadence choices 없음**: → `html.escape(cadence)` + `choices`.
 - [x] **백필 격리/매니페스트**: `backfill`에 레코드별 `NormalizationError` 가드 추가(skip+count). 성공 실행은 `fetched/stored/invalid`를 manifest에 기록하고, 실패 실행은 `ok=false` manifest를 남긴 뒤 예외를 다시 던진다.
 - [x] **ECOS 페이지네이션**: `list_total_count` 기반 인덱스 페이지 루프(MAX_PAGES 가드)로 100행 캡 제거. (Inc.3)
-- [x] **dedup first-write-wins (재생성 데이터셋)**: insights/historical/evaluation은 `replace_partition`으로 당일 파티션을 전체 교체한다. 같은 날 재실행은 최신 계산만 남기고, 빈 결과면 이전 결과를 삭제한다. 거시 개정(FRED/ECOS, orchestrator append-only)은 후속.
+- [x] **dedup first-write-wins (재생성 데이터셋)**: insights/historical/evaluation은 `replace_partition`으로 당일 파티션을 전체 교체한다. 같은 날 재실행은 최신 계산만 남기고, 빈 결과면 이전 결과를 삭제한다.
+- [x] **거시 개정 last-write-wins**: FRED/ECOS 같은 `macro` source는 같은 관측 key가 다시 오면 최신 레코드로 교체한다. `prices`, `filings`, `news`는 기존 first-write-wins를 유지한다.
 - [x] **MIN_OCCURRENCES가 horizon별 n 미보장**: `summarize(min_n=)` + 엔진 `MIN_HORIZON_N=2`로 horizon별 최소 표본 게이트.
 - [x] **HTML lang attribute 주입 가능성**: `sources.yaml`의 `lang`이 `<html lang="...">` 속성에 그대로 들어갔다. → `normalize_lang()`으로 `en|ko|zh`만 허용하고 나머지는 `en`으로 정규화.
 - [x] **시그널 점수 범위 미검증**: `SignalResult.strength/confidence`와 `HeadlineVerdict.confidence`가 주석으로만 0..1을 약속했다. → pydantic `Field(ge=0, le=1)`로 경계 검증.
@@ -42,7 +43,7 @@
 - [x] **pykrx 일시 실패 재시도**: `pykrx`는 `BaseSource`를 직접 쓰지 않는 library source라 공통 `http_get` 정책을 상속하지 못했다. → OHLCV 호출 경계에 throttle + 짧은 지수 backoff retry를 추가하고, 소진 시 `FetchError`로 ticker와 마지막 오류를 manifest에 남긴다. GRAY·선택 소스 정책은 유지한다.
 
 ## 후속(Increment 3 후보)
-거시 개정 last-write-wins(orchestrator per-dataset 정책), 종목별 news feed.
+종목별 news feed.
 
 ## 안티-파인딩(확인됨, 수정 불필요)
 volume-surge는 현재 봉을 자기 평균에서 제외(정확) · forward_returns는 의도된 event-study(누수 아님) · 가격/공시/거시 ts는 자정 UTC라 파티션 안정 · idempotency_key는 소스 prefix로 교차충돌 없음 · 시크릿은 env만·.env gitignore·.env.example 플레이스홀더 · 워치리스트 심볼 URL 주입 안전 · 워크플로 커맨드 인젝션 없음 · 레이어 그래프는 순환 없음 · 파일 크기 건전.

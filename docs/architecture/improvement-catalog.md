@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/R1a/R1b/R1c/C3 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/R1a/R1b/R1c/MR1/C3 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -34,6 +34,7 @@
 | **R1a** | 뉴스 mention alias matcher (`analysis.news.aliases`) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-mention-alias-design.md) |
 | **R1b** | 뉴스 captured window (`captured_at` 기준 today/baseline) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-captured-window-design.md) |
 | **R1c** | 기본 news alias 데이터셋 (`analysis.news.use_default_aliases`) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-default-news-aliases-design.md) |
+| **MR1** | 거시 개정 저장 정책 (`macro` last-write-wins) | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-macro-revision-policy-design.md) |
 | **H1** | 재생성 데이터 stale 제거 + pipeline scorecard 갱신 | 견고성/운영 | B1 후속 + 리뷰 발견 | **✅ 구현 완료 (2026-06-16 hardening)** | `replace_partition`, `run_evaluate`, daily report scorecard |
 | **BF-MANIFEST** | 백필 실행 manifest 기록 | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | backfill success/failure run log |
 | **C1** | 데이터 신선도·품질 닥터 (`mimir doctor`) | 운영 | "무음 실패 금지" 약속 | **✅ 구현 완료 (Increment 3)** | 코드 + 테스트(179) |
@@ -138,6 +139,12 @@ Matcher는 Unicode word boundary를 사용해 `A`가 `Apple` 안에서 매칭되
 
 구현 후 `run_backfill()`은 성공 실행에 `fetched`, `stored`, `invalid`를 기록한다. upstream fetch, normalize, store 단계에서 예외가 나면 `ok=false` manifest를 먼저 남긴 뒤 예외를 다시 던진다. 그래서 호출자는 기존처럼 비정상 종료를 보면서도, 저장소에는 실패 흔적이 남는다.
 
+### MR1. 거시 개정 저장 정책 — **구현 완료 (2026-06-16)**
+
+FRED와 ECOS는 같은 관측일의 값을 나중에 고칠 수 있다. 기존 저장 정책은 같은 `idempotency_key`를 다시 받으면 첫 값을 유지했다. 그래서 공식 기관이 금리나 통계 값을 개정해도 `MacroRegimeSignal`은 오래된 값을 계속 읽을 수 있었다.
+
+구현 후 source 수집과 backfill은 같은 helper인 `append_overwrite_enabled(dataset)`로 저장 정책을 고른다. 현재 `Dataset.MACRO`만 overwrite append를 쓰고, `prices`, `filings`, `news`는 기존 first-write-wins를 유지한다. `JsonlStore.append(overwrite=True)`는 새 key와 교체된 key를 모두 `stored`에 반영한다. 그래서 macro 값이 실제로 바뀌면 manifest와 backfill 반환값도 변경을 드러낸다.
+
 ---
 
 ## 5. 증분 실행 순서 (Sequencing)
@@ -162,6 +169,7 @@ R1c ──────── default news aliases · analysis.news.use_default_a
 D2 ───────── GitHub Actions Node24-compatible action majors
 C3 ───────── pykrx retry/backoff · FetchError manifest surface
 BF-MANIFEST ─ backfill success/failure manifest
+MR1 ──────── macro revision storage policy · Dataset.MACRO last-write-wins
 ```
 
 각 증분은 자기 spec → plan → 구현 → finish 사이클을 가진다. 본 카탈로그는 그 지도(map)다.
@@ -189,7 +197,7 @@ BF-MANIFEST ─ backfill success/failure manifest
 - `http_get` 429/5xx 재시도 + 4xx 빠른 실패 · 소스 격리(한 소스 실패가 전체를 멈추지 않음).
 - CI와 수집 pipeline은 Node24 호환 `actions/checkout@v6`·`actions/setup-python@v6`를 사용하며, workflow guard 테스트가 major 회귀를 잡는다.
 - `pykrx`는 GRAY·선택 소스 상태를 유지하면서 OHLCV 호출 실패를 짧게 재시도하고, 소진 시 `FetchError`로 manifest에 실패 원인을 남긴다.
-- 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 원천 데이터는 append-only.
+- 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, A3b, R1a, R1b, R1c, D2, C3, BF-MANIFEST까지 구현되었고, 남은 신규 아키텍처 부채는 plugin 설정 namespace와 종목별 news feed다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, A3b, R1a, R1b, R1c, MR1, D2, C3, BF-MANIFEST까지 구현되었고, 남은 신규 아키텍처 부채는 plugin 설정 namespace와 종목별 news feed다.
