@@ -36,7 +36,7 @@
 | **C2** | 파티션 인덱스 (git-as-DB rglob 스케일) | 성능 | 신규 | ⏸ 보류 | 본 문서 §6 |
 | **C3** | pykrx 타임아웃·재시도 (BaseSource 미사용) | 견고성 | 백로그 LOW | ⏸ 보류(GRAY/옵션) | 본 문서 §6 |
 | **D1** | 통합 `mimir` CLI (console_scripts) | DX | 신규 | ⏸ 보류 | 본 문서 §6 |
-| **D2** | GH Actions Node20→24 범프 | CI | 백로그 LOW | ⏸ 보류(안정 신버전 대기) | 본 문서 §6 |
+| **D2** | GH Actions Node20→24 범프 | CI | 백로그 LOW | **✅ 구현 완료 (2026-06-16)** | workflow + 테스트 · [spec](../superpowers/specs/2026-06-16-github-actions-node24-design.md) |
 
 🛠 = 코드 구현 · 📐 = 설계문서 · ⏸ = 보류(근거 명시)
 
@@ -134,6 +134,7 @@ Hardening ─── stale 재생성 데이터 제거 · lang 정규화 · Signal
 A2 ───────── macro series registry · analysis.macro_regime.rate_series
 A3 ───────── built-in source registry · SourceSpec construction table
 R1a ──────── news mention alias matcher · analysis.news.aliases
+D2 ───────── GitHub Actions Node24-compatible action majors
 ```
 
 각 증분은 자기 spec → plan → 구현 → finish 사이클을 가진다. 본 카탈로그는 그 지도(map)다.
@@ -147,7 +148,6 @@ R1a ──────── news mention alias matcher · analysis.news.aliases
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 핫패스를 처리. 인덱스는 데이터가 수년 누적된 *뒤*의 최적화 — 지금은 시기상조(YAGNI). 신선도 닥터(C1)가 먼저 스케일 신호를 준다. |
 | **C3 pykrx 타임아웃** | GRAY·옵션 소스. A3는 pykrx 생성 gate만 데이터화했고, pykrx fetch 자체는 아직 `BaseSource`를 쓰지 않는다. 영향 LOW라 단독 작업은 보류. |
 | **D1 통합 CLI** | 순수 DX. 5개 `python -m mimir.X`는 동작에 문제없음. console_scripts entry-point는 좋지만 약속에 추적되지 않음 → 보류. |
-| **D2 Node20→24** | 백로그 LOW. 동작 무해. `actions/checkout`·`setup-python`의 *안정* 신버전이 나오면 범프 — 지금 강제 범프는 CI 불안정 risk. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서는 KO-only 유지(백로그 결정). 사용자 문서(README ×3)는 이미 trilingual. |
 
 ---
@@ -160,6 +160,7 @@ R1a ──────── news mention alias matcher · analysis.news.aliases
 - `idempotency_key`는 소스 prefix로 교차충돌 없음 · 파티션은 자정 UTC라 안정.
 - 시크릿은 env/`.env`(gitignore)만 · ECOS 키 URL 유출은 이미 레다크션 처리.
 - `http_get` 429/5xx 재시도 + 4xx 빠른 실패 · 소스 격리(한 소스 실패가 전체를 멈추지 않음).
+- CI와 수집 pipeline은 Node24 호환 `actions/checkout@v6`·`actions/setup-python@v6`를 사용하며, workflow guard 테스트가 major 회귀를 잡는다.
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 원천 데이터는 append-only.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3와 R1a까지 구현되었고, 남은 신규 아키텍처 부채는 외부 source plugin entry-point, 기본 news alias 데이터셋, 종목별 news feed다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, R1a, D2까지 구현되었고, 남은 신규 아키텍처 부채는 외부 source plugin entry-point, 기본 news alias 데이터셋, 종목별 news feed다.
