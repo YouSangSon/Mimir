@@ -5,6 +5,7 @@ import responses
 
 from mimir.core.source import Cadence, Dataset, FetchContext, LegalStatus
 from mimir.sources.rss import RssFeed, RssSource
+from mimir.sources.rss_catalog import RssCatalogSelection, resolve_rss_feeds
 
 RSS = """<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel>
@@ -45,6 +46,24 @@ def test_rss_parses_entries():
     assert rec.payload["publisher"] == "Example"
     assert rec.payload["market"] == "US"
     assert rec.ts == datetime(2026, 5, 29, 13, 0, 0, tzinfo=UTC)
+
+
+@responses.activate
+def test_rss_fetches_catalog_resolved_feed_with_existing_key_format():
+    responses.add(
+        responses.GET,
+        "https://www.sec.gov/news/pressreleases.rss",
+        body=RSS,
+        status=200,
+    )
+    feeds = resolve_rss_feeds([RssCatalogSelection(id="sec_press_releases")], None)
+    src = RssSource(feeds=feeds, session=requests.Session())
+
+    recs = list(src.fetch(_ctx()))
+
+    assert len(recs) == 1
+    assert recs[0].symbol is None
+    assert recs[0].idempotency_key == "rss:https://example.test/news/1"
 
 
 @responses.activate
