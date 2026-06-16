@@ -17,7 +17,7 @@ EXPECTED_WORKFLOW_ACTION_MAJORS = {
 ACTION_USES_RE = re.compile(r"uses:\s*(actions/(?:checkout|setup-python))@(v\d+)(?:\b|$)")
 
 
-def test_github_actions_use_node24_compatible_major_versions():
+def test_github_actions_use_node24_compatible_major_versions() -> None:
     mismatches: list[str] = []
 
     for path, expected_actions in EXPECTED_WORKFLOW_ACTION_MAJORS.items():
