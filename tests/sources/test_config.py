@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from mimir.sources.config import SourcesConfig, parse_sources_config
 from mimir.sources.ecos import EcosSeries
 from mimir.sources.rss import RssFeed
+from mimir.sources.rss_catalog import RssCatalogSelection
 
 
 def test_empty_dict_yields_all_none():
@@ -96,6 +97,22 @@ def test_rss_feed_typo_field_raises_validation_error():
 
     with pytest.raises(ValidationError):
         parse_sources_config(raw)
+
+
+def test_rss_catalogs_parse_from_config():
+    cfg = parse_sources_config(
+        {"sources": {"rss": {"catalogs": [{"id": "sec_press_releases"}]}}}
+    )
+
+    assert cfg.rss_catalogs == [RssCatalogSelection(id="sec_press_releases")]
+    assert cfg.rss_feeds is None
+
+
+def test_rss_catalog_typo_field_raises_validation_error():
+    with pytest.raises(ValidationError):
+        parse_sources_config(
+            {"sources": {"rss": {"catalogs": [{"idd": "sec_press_releases"}]}}}
+        )
 
 
 def test_partial_block_only_configures_present_source():

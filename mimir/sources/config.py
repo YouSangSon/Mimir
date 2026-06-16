@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from mimir.sources.ecos import EcosSeries
 from mimir.sources.rss import RssFeed
+from mimir.sources.rss_catalog import RssCatalogSelection
 
 PluginConfig = TypeVar("PluginConfig", bound=BaseModel)
 
@@ -14,6 +15,7 @@ class SourcesConfig(BaseModel):
     fred_series: list[str] | None = None
     ecos_series: list[EcosSeries] | None = None
     rss_feeds: list[RssFeed] | None = None
+    rss_catalogs: list[RssCatalogSelection] | None = None
     plugin_settings: dict[str, dict[str, Any]] = Field(default_factory=dict)
     macro_regime_rate_series: list[str] | None = None
     news_aliases: dict[str, list[str]] | None = None
@@ -49,6 +51,7 @@ class _EcosBlock(BaseModel):
 class _RssBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
     feeds: list[RssFeed] | None = None
+    catalogs: list[RssCatalogSelection] | None = None
 
 
 class _SourcesBlock(BaseModel):
@@ -105,6 +108,7 @@ def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
         fred_series=block.fred.series if block.fred else None,
         ecos_series=block.ecos.series if block.ecos else None,
         rss_feeds=block.rss.feeds if block.rss else None,
+        rss_catalogs=block.rss.catalogs if block.rss else None,
         plugin_settings=block.plugins or {},
         macro_regime_rate_series=(
             top_level.analysis.macro_regime.rate_series
