@@ -2,9 +2,12 @@ import itertools
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+import pytest
+
 from mimir.analysis.signals.base import SignalDirection
 from mimir.analysis.signals.filing_event import FilingEventSignal
 from mimir.analysis.signals.macro_regime import MacroRegimeSignal
+from mimir.analysis.signals.news_matching import NewsMentionMatcher
 from mimir.analysis.signals.news_volume import NewsVolumeSignal
 from mimir.analysis.signals.price_momentum import PriceMomentumSignal
 from mimir.core.source import Dataset, Market
@@ -111,6 +114,86 @@ def test_news_volume_matches_symbol_in_title(tmp_path: Path):
     r = NewsVolumeSignal().evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
     assert r is not None
     assert r.direction is SignalDirection.NEUTRAL
+
+
+def test_news_mention_matcher_terms_preserve_symbol_first_and_deduplicate():
+    matcher = NewsMentionMatcher(aliases={"AAPL": ["Apple", "aapl", "APPLE", "Apple Inc."]})
+
+    assert matcher.terms_for("AAPL") == ("AAPL", "Apple", "Apple Inc.")
+
+
+def test_news_mention_matcher_matches_case_insensitively(tmp_path: Path):
+    matcher = NewsMentionMatcher(aliases={"AAPL": ["Apple"]})
+    record = _rec(Dataset.NEWS, None, 31, _news("supplier update", "apple reports"))
+
+    assert matcher.mentions(record, "AAPL")
+
+
+def test_news_mention_matcher_rejects_alias_inside_adjacent_hangul(tmp_path: Path):
+    matcher = NewsMentionMatcher(aliases={"005930": ["삼성전자"]})
+    record = _rec(Dataset.NEWS, None, 31, _news("삼성전자우 거래량 증가", ""))
+
+    assert not matcher.mentions(record, "005930")
+
+
+def test_news_mention_matcher_freezes_aliases_against_caller_mutation(tmp_path: Path):
+    aliases = {"AAPL": ["Apple"]}
+    matcher = NewsMentionMatcher(aliases=aliases)
+    aliases["AAPL"].append("Mac maker")
+    aliases["AAPL"] = ["Changed"]
+    record = _rec(Dataset.NEWS, None, 31, _news("Mac maker announces update", ""))
+
+    assert matcher.terms_for("AAPL") == ("AAPL", "Apple")
+    assert not matcher.mentions(record, "AAPL")
+
+
+def test_news_mention_matcher_rejects_scalar_string_alias_values():
+    with pytest.raises(TypeError, match="must be a sequence of strings"):
+        NewsMentionMatcher(aliases={"AAPL": "Apple"})
+
+
+def test_news_volume_matches_configured_alias_in_title(tmp_path: Path):
+    recs = [_rec(Dataset.NEWS, None, 31, _news("Apple announces supplier update", ""))]
+    signal = NewsVolumeSignal(aliases={"AAPL": ["Apple", "Apple Inc."]})
+
+    r = signal.evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
+
+    assert r is not None
+    assert r.signal == "news_volume"
+
+
+def test_news_volume_matches_configured_alias_in_summary(tmp_path: Path):
+    recs = [
+        _rec(Dataset.NEWS, None, 31, _news("Market update", "Samsung Electronics reports"))
+    ]
+    signal = NewsVolumeSignal(aliases={"005930": ["Samsung Electronics", "삼성전자"]})
+
+    r = signal.evaluate("005930", Market.KR, AS_OF, _reader(tmp_path, recs))
+
+    assert r is not None
+
+
+def test_news_volume_ignores_blank_alias(tmp_path: Path):
+    recs = [_rec(Dataset.NEWS, None, 31, _news("Unrelated", ""))]
+    signal = NewsVolumeSignal(aliases={"AAPL": ["", "   "]})
+
+    assert signal.evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs)) is None
+
+
+def test_news_volume_counts_alias_matches_in_baseline_window(tmp_path: Path):
+    recs = [
+        _rec(Dataset.NEWS, None, 31, _news("Apple announces supplier update", "")),
+        *[
+            _rec(Dataset.NEWS, None, day, _news("Daily supplier note", "Apple update"))
+            for day in range(24, 31)
+        ],
+    ]
+    signal = NewsVolumeSignal(aliases={"AAPL": ["Apple"]})
+
+    r = signal.evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
+
+    assert r is not None
+    assert "vs ~1.0/day baseline" in r.reason
 
 
 def test_news_volume_none_when_no_mentions(tmp_path: Path):

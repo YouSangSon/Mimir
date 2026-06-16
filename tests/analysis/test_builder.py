@@ -54,6 +54,30 @@ def _macro_record(series_id: str, day: int, value: float) -> Record:
     )
 
 
+def _news_payload(title: str | None, summary: str) -> dict:
+    return {
+        "title": title,
+        "url": "https://example.com/a",
+        "publisher": "SEC",
+        "market": "US",
+        "published_at": None,
+        "summary": summary,
+    }
+
+
+def _news_record(day: int, title: str | None, summary: str) -> Record:
+    return Record(
+        source="seed",
+        dataset=Dataset.NEWS,
+        market=Market.US,
+        symbol=None,
+        ts=datetime(2026, 5, day, tzinfo=UTC),
+        captured_at=datetime(2026, 5, 31, tzinfo=UTC),
+        idempotency_key=f"news:{day}:{title}",
+        payload=_news_payload(title, summary),
+    )
+
+
 def _reader(tmp_path: Path, records: list[Record]) -> DataReader:
     store = JsonlStore(root=tmp_path)
     store.append(records)
@@ -114,3 +138,38 @@ def test_build_signals_passes_macro_rate_series_config(tmp_path: Path):
     ]
     result = macro.evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
     assert result is not None
+
+
+def test_build_signals_passes_news_aliases_to_news_volume(tmp_path: Path):
+    cfg = SourcesConfig(news_aliases={"AAPL": ["Apple"]})
+    news_volume = next(s for s in build_signals(cfg) if s.id == "news_volume")
+
+    result = news_volume.evaluate(
+        "AAPL",
+        Market.US,
+        AS_OF,
+        _reader(tmp_path, [_news_record(31, "Apple supplier update", "")]),
+    )
+
+    assert result is not None
+    assert result.signal == "news_volume"
+
+
+def test_build_signals_passes_news_aliases_to_llm_sentiment(tmp_path: Path):
+    cfg = SourcesConfig(llm_sentiment_enabled=True, news_aliases={"AAPL": ["Apple"]})
+    settings = Settings(anthropic_api_key="sk-test")
+    llm_sentiment = next(
+        s
+        for s in build_signals(cfg, settings, classifier=_FakeClassifier())
+        if s.id == "llm_sentiment"
+    )
+
+    result = llm_sentiment.evaluate(
+        "AAPL",
+        Market.US,
+        AS_OF,
+        _reader(tmp_path, [_news_record(31, "Apple supplier update", "")]),
+    )
+
+    assert result is not None
+    assert result.signal == "llm_sentiment"

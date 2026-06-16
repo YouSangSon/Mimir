@@ -20,12 +20,14 @@ run with NO network, NO key, and NO real ``anthropic`` import.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import date
 from typing import Protocol
 
 from pydantic import BaseModel, Field
 
 from mimir.analysis.signals.base import DIRECTION_SIGN, SignalDirection, SignalResult
+from mimir.analysis.signals.news_matching import NewsMentionMatcher
 from mimir.core.payloads import news_payload
 from mimir.core.source import Dataset, Market
 from mimir.storage.reader import DataReader
@@ -50,17 +52,6 @@ class HeadlineClassifier(Protocol):
     def classify(self, headlines: list[str]) -> list[HeadlineVerdict]: ...
 
 
-def _mentions(rec: Record, symbol: str) -> bool:
-    # Reuse news_volume's word-boundary convention so a symbol like "A"/"ON"
-    # doesn't match ordinary prose. No ticker in the text -> no LLM call (the
-    # free-principle / cost-guardrail intersection).
-    import re
-
-    p = news_payload(rec)
-    text = (p.title or "") + " " + (p.summary or "")
-    return re.search(rf"\b{re.escape(symbol)}\b", text, re.IGNORECASE) is not None
-
-
 def _headline_text(rec: Record) -> str:
     # Only stored title + summary cross the wire (spec §8). join with newline.
     p = news_payload(rec)
@@ -77,17 +68,21 @@ class LlmSentimentSignal:
         *,
         classifier: HeadlineClassifier,
         max_headlines: int,
+        aliases: Mapping[str, Sequence[str]] | None = None,
         weight: float = WEIGHT,
     ) -> None:
         self._classifier = classifier
         self._max_headlines = max_headlines
+        self._matcher = NewsMentionMatcher(aliases)
         self._weight = weight
 
     def evaluate(
         self, symbol: str, market: Market, as_of: date, reader: DataReader
     ) -> SignalResult | None:
         mentions = [
-            r for r in reader.read(Dataset.NEWS, since=as_of, until=as_of) if _mentions(r, symbol)
+            r
+            for r in reader.read(Dataset.NEWS, since=as_of, until=as_of)
+            if self._matcher.mentions(r, symbol)
         ]
         if not mentions:
             return None

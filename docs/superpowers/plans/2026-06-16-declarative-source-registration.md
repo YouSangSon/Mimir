@@ -274,7 +274,7 @@ Expected: all focused tests pass.
 After code is green, change the A3 spec status line to:
 
 ```markdown
-> **상태**: ✅ 구현 완료 (`SourceSpec` built-in source table). 349 테스트 · ruff · mypy · coverage 97% 클린.
+> **상태**: ✅ 구현 완료 (`SourceSpec` built-in source table). 현재 364 테스트 · ruff · mypy · coverage gate 클린.
 ```
 
 - [x] **Step 2: Update improvement catalog**

@@ -38,7 +38,7 @@ def build_signals(
     cfg = config or SourcesConfig()
     signals: list[Signal] = [
         FilingEventSignal(),
-        NewsVolumeSignal(),
+        NewsVolumeSignal(aliases=cfg.news_aliases),
         PriceMomentumSignal(),
         MacroRegimeSignal(rate_series=cfg.macro_regime_rate_series),
     ]
@@ -55,6 +55,7 @@ def build_signals(
             LlmSentimentSignal(
                 classifier=classifier or AnthropicHeadlineClassifier(settings.anthropic_api_key),
                 max_headlines=cfg.llm_sentiment_max_headlines,
+                aliases=cfg.news_aliases,
             )
         )
     return signals

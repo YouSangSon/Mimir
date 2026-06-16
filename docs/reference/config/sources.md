@@ -19,6 +19,10 @@ llm_sentiment_max_headlines: 50
 
 # Optional. Omit to inherit the macro-series registry default.
 analysis:
+  news:
+    aliases:
+      AAPL: ["Apple", "Apple Inc."]
+      MSFT: ["Microsoft", "Microsoft Corp."]
   macro_regime:
     rate_series: ["DGS10", "FEDFUNDS", "722Y001.0101000"]
 
@@ -56,7 +60,32 @@ sources:
 
 `analysis:` 블록은 이미 수집한 데이터를 분석 시그널이 어떻게 해석할지 정한다. 수집 대상 자체를 늘리지는 않는다.
 
-### 3.1 Macro regime rate series
+### 3.1 News aliases
+
+```yaml
+analysis:
+  news:
+    aliases:
+      AAPL: ["Apple", "Apple Inc."]
+      MSFT: ["Microsoft", "Microsoft Corp."]
+      NVDA: ["NVIDIA", "Nvidia Corporation"]
+      "005930": ["Samsung Electronics", "삼성전자"]
+```
+
+`aliases`는 뉴스 제목과 요약을 watchlist symbol에 연결하는 회사명 표기 목록이다. RSS는 계속 공식 feed의 제목과 요약 metadata만 저장한다. 이 설정은 저장된 텍스트를 분석 단계에서 어떻게 해석할지만 바꾼다.
+
+| 필드 | 의미 |
+|---|---|
+| `AAPL`, `"005930"` 같은 key | watchlist symbol |
+| list 안의 문자열 | 제목과 요약에서 추가로 찾을 회사명 또는 표기 |
+
+`news_volume`은 symbol과 alias를 모두 찾는다. 예를 들어 제목에 `AAPL`이 없어도 `Apple`이 있으면 `AAPL` 관련 뉴스로 셀 수 있다.
+
+LLM 감성 시그널도 같은 alias matcher를 사용한다. 단, alias 설정만으로 LLM 호출이 켜지지는 않는다. LLM 감성 시그널은 여전히 `llm_sentiment_enabled`, `ANTHROPIC_API_KEY`, `[llm]` extra 세 조건이 모두 맞을 때만 등록된다.
+
+Alias는 너무 넓게 잡으면 오탐을 만들 수 있다. `Apple`, `Meta`, `ON`처럼 일반 단어와 겹치는 이름은 feed 맥락을 보고 보수적으로 넣어야 한다. matcher는 단어 안쪽 매칭을 막지만, 사람이 보기에도 애매한 alias의 의미까지 판단하지는 않는다.
+
+### 3.2 Macro regime rate series
 
 ```yaml
 analysis:
@@ -163,6 +192,19 @@ sources:
 
 ```yaml
 sources: "fred"          # sources는 mapping이어야 한다.
+```
+
+```yaml
+analysis:
+  news:
+    aliasez: { AAPL: ["Apple"] }  # 오타. aliases가 맞다.
+```
+
+```yaml
+analysis:
+  news:
+    aliases:
+      AAPL: "Apple"  # aliases 값은 문자열 하나가 아니라 문자열 list여야 한다.
 ```
 
 ```yaml

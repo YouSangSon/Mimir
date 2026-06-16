@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC5 (카탈로그 B2)
 > **작성일**: 2026-06-13
-> **상태**: ✅ seam 구현 완료 (Increment 5 — off-by-default 스캐폴드). 기본 파이프라인은 LLM 호출 0건. 활성화: `[llm]` extra + `ANTHROPIC_API_KEY` + `llm_sentiment_enabled: true` (세 조건 AND). 실제 유료 classify 경로는 사용자 opt-in 시에만 실행(테스트는 fake classifier). 349 테스트 · ruff·mypy strict 클린.
+> **상태**: ✅ seam 구현 완료 (Increment 5 — off-by-default 스캐폴드). 기본 파이프라인은 LLM 호출 0건. 활성화: `[llm]` extra + `ANTHROPIC_API_KEY` + `llm_sentiment_enabled: true` (세 조건 AND). 실제 유료 classify 경로는 사용자 opt-in 시에만 실행(테스트는 fake classifier). 2026-06-16 R1a에서 `analysis.news.aliases` 기반 shared matcher를 사용하도록 갱신됐다.
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S2 Analysis](2026-05-31-analysis-design.md)
 
 ---
@@ -181,7 +181,7 @@ class LlmSentimentSignal:  # Signal 프로토콜 충족
 
 **파이프라인:**
 
-1. `news_volume`의 `_mentions`(단어 경계 매칭)를 재사용해 `as_of` 당일 뉴스 중 `symbol`을 언급한 레코드를 모은다. (헤드라인에 티커가 없으면 LLM 호출도 없다 — 무료 원칙과 비용 가드레일의 자연스러운 교집합.)
+1. R1a shared news matcher를 사용해 `as_of` 당일 뉴스 중 `symbol` 또는 `analysis.news.aliases`에 등록된 회사명 alias를 언급한 레코드를 모은다. Alias 설정이 없으면 기존 symbol-only 동작과 같다. Alias 설정만으로는 LLM 호출이 켜지지 않는다 — opt-in 게이트는 계속 별도로 필요하다.
 2. 각 레코드의 헤드라인+요약을 분류한다. **캐시 우선**(§6): `idempotency_key`로 캐시된 판정이 있으면 재사용, 없는 것만 LLM 호출. **신규 분류 헤드라인 수**는 `max_headlines`로 상한(실제 비용 동인). 배치는 호출 왕복만 줄일 뿐 헤드라인 상한을 바꾸지 않는다.
 3. N개 판정을 다음 규칙으로 1개 `SignalResult`로 집계한다.
 

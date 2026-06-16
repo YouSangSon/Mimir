@@ -30,6 +30,7 @@
 | **A3** | 선언적 소스 등록 (`SourceSpec` built-in table) | 아키텍처 | README 약속(부분) | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-declarative-source-registration-design.md) |
 | **B1** | 시그널 백테스트·평가 하네스 (사후수익 적중률) | 분석심화 | 신규(최고가치) | **✅ 구현 완료 (Increment 4 + 리포트 합류)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-13-signal-backtest-design.md) |
 | **B2** | LLM 뉴스 감성 시그널 (news_volume 대체, 하이브리드) | 분석심화 | 로드맵 + 백로그 R1 | **✅ seam 구현 (Increment 5, off-by-default)** | 코드 + 테스트 |
+| **R1a** | 뉴스 mention alias matcher (`analysis.news.aliases`) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-mention-alias-design.md) |
 | **H1** | 재생성 데이터 stale 제거 + pipeline scorecard 갱신 | 견고성/운영 | B1 후속 + 리뷰 발견 | **✅ 구현 완료 (2026-06-16 hardening)** | `replace_partition`, `run_evaluate`, daily report scorecard |
 | **C1** | 데이터 신선도·품질 닥터 (`mimir doctor`) | 운영 | "무음 실패 금지" 약속 | **✅ 구현 완료 (Increment 3)** | 코드 + 테스트(179) |
 | **C2** | 파티션 인덱스 (git-as-DB rglob 스케일) | 성능 | 신규 | ⏸ 보류 | 본 문서 §6 |
@@ -91,6 +92,16 @@ Mimir는 시그널을 *발행*하지만, 그 시그널이 실제로 무언가를
 
 **구현(Increment 5).** `NewsSentimentSignal`과 classifier seam은 구현됐지만, 실제 LLM 호출은 `[llm]` extra, `ANTHROPIC_API_KEY`, `llm_sentiment_enabled: true`가 모두 맞을 때만 켜진다. 기본 pipeline은 여전히 무료 경로다.
 
+### R1a. 뉴스 mention alias matcher — **구현 완료 (2026-06-16)**
+
+공식 RSS feed는 제목에 티커를 잘 싣지 않는다. `news_volume`이 `AAPL` 같은 symbol만 찾으면 `Apple`이라고 쓰인 뉴스는 watchlist symbol과 연결되지 않는다.
+
+`analysis.news.aliases`는 이 문제를 무료 경로에서 줄인다. 사용자가 `AAPL: ["Apple", "Apple Inc."]`처럼 회사명 alias를 선언하면 `NewsVolumeSignal`과 opt-in `LlmSentimentSignal`이 같은 matcher로 제목과 요약을 해석한다. Alias 설정만으로 LLM 호출이 켜지지는 않는다.
+
+Matcher는 Unicode word boundary를 사용해 `A`가 `Apple` 안에서 매칭되거나 `삼성전자`가 `삼성전자우` 안에서 매칭되는 일을 막는다. Alias는 생성 시 tuple로 복사해 설정 dict/list가 나중에 mutate되어도 기존 signal 동작이 바뀌지 않는다.
+
+남은 한계는 기본 alias 사전, 종목별 feed, `captured_at` 기준 뉴스 윈도우다. v1은 사용자가 명시한 alias만 해석한다.
+
 ---
 
 ## 4. 견고성 (Robustness)
@@ -122,6 +133,7 @@ Increment 5 ── LLM 감성 seam (B2)            ✅ seam 구현 (off-by-defau
 Hardening ─── stale 재생성 데이터 제거 · lang 정규화 · SignalResult 범위 검증
 A2 ───────── macro series registry · analysis.macro_regime.rate_series
 A3 ───────── built-in source registry · SourceSpec construction table
+R1a ──────── news mention alias matcher · analysis.news.aliases
 ```
 
 각 증분은 자기 spec → plan → 구현 → finish 사이클을 가진다. 본 카탈로그는 그 지도(map)다.
@@ -150,4 +162,4 @@ A3 ───────── built-in source registry · SourceSpec constructi
 - `http_get` 429/5xx 재시도 + 4xx 빠른 실패 · 소스 격리(한 소스 실패가 전체를 멈추지 않음).
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 원천 데이터는 append-only.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3까지 구현되었고, 남은 신규 아키텍처 부채는 외부 source plugin entry-point와 `news_volume` 실데이터 한계다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3와 R1a까지 구현되었고, 남은 신규 아키텍처 부채는 외부 source plugin entry-point, 기본 news alias 데이터셋, 종목별 news feed다.
