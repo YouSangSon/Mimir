@@ -43,7 +43,7 @@
 - [x] **pykrx 일시 실패 재시도**: `pykrx`는 `BaseSource`를 직접 쓰지 않는 library source라 공통 `http_get` 정책을 상속하지 못했다. → OHLCV 호출 경계에 throttle + 짧은 지수 backoff retry를 추가하고, 소진 시 `FetchError`로 ticker와 마지막 오류를 manifest에 남긴다. GRAY·선택 소스 정책은 유지한다.
 
 ## 후속 후보
-- 종목별 RSS feed 자동 탐색/catalog. 지금은 사용자가 알고 있는 feed URL을 `sources.rss.feeds[].symbol`로 직접 연결한다.
+- Provider별 RSS live discovery. 정적 RSS catalog(`sources.rss.catalogs`)와 사용자가 직접 아는 종목별 feed(`sources.rss.feeds[].symbol`)는 구현됐다. 남은 작업은 provider 공식 문서, rate limit, ToS를 검토해 endpoint를 자동 탐색하거나 추천하는 별도 증분이다.
 
 ## 안티-파인딩(확인됨, 수정 불필요)
 volume-surge는 현재 봉을 자기 평균에서 제외(정확) · forward_returns는 의도된 event-study(누수 아님) · 가격/공시/거시 ts는 자정 UTC라 파티션 안정 · idempotency_key는 소스 prefix로 교차충돌 없음 · 시크릿은 env만·.env gitignore·.env.example 플레이스홀더 · 워치리스트 심볼 URL 주입 안전 · 워크플로 커맨드 인젝션 없음 · 레이어 그래프는 순환 없음 · 파일 크기 건전.

@@ -1,6 +1,6 @@
 # RSS Feed Catalog Design
 
-> **상태**: 설계 승인 기준. 구현 전.
+> **상태**: ✅ 구현 완료. 438 tests · ruff · mypy · coverage gate 통과.
 > **날짜**: 2026-06-17
 > **범위**: `sources.rss.catalogs` 정적 catalog와 local resolver. Live endpoint discovery, HTML scraping, vendor URL 추측은 제외한다.
 
@@ -217,15 +217,15 @@ SEC RSS Feeds page는 press releases와 litigation releases를 공식 RSS feed �
 
 ## 13. 수용 기준
 
-- [ ] `sources.rss.catalogs`가 `sources.yaml`에서 파싱된다.
-- [ ] 알 수 없는 catalog id와 typo field가 fail-fast로 실패한다.
-- [ ] Catalog resolver는 네트워크를 호출하지 않는다.
-- [ ] Catalog feed와 manual feed는 deterministic order로 합쳐진다.
-- [ ] 동일 `(url, symbol)` 중복은 실패한다.
-- [ ] RSS 설정이 없으면 기존 default feed가 유지된다.
-- [ ] 기존 `sources.rss.feeds[].symbol` behavior는 바뀌지 않는다.
-- [ ] 문서가 static catalog와 live discovery 제외 범위를 구분한다.
-- [ ] 전체 test, ruff, mypy, coverage gate가 통과한다.
+- [x] `sources.rss.catalogs`가 `sources.yaml`에서 파싱된다.
+- [x] 알 수 없는 catalog id와 typo field가 fail-fast로 실패한다.
+- [x] Catalog resolver는 네트워크를 호출하지 않는다.
+- [x] Catalog feed와 manual feed는 deterministic order로 합쳐진다.
+- [x] 동일 `(url, symbol)` 중복은 실패한다.
+- [x] RSS 설정이 없으면 기존 default feed가 유지된다.
+- [x] 기존 `sources.rss.feeds[].symbol` behavior는 바뀌지 않는다.
+- [x] 문서가 static catalog와 live discovery 제외 범위를 구분한다.
+- [x] 전체 test, ruff, mypy, coverage gate가 통과한다.
 
 ---
 

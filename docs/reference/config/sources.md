@@ -35,6 +35,8 @@ sources:
     series:
       - { stat_code: "722Y001", cycle: "M", item_code: "0101000" }
   rss:
+    catalogs:
+      - { id: "sec_press_releases" }
     feeds:
       - { url: "https://www.sec.gov/news/pressreleases.rss", publisher: "SEC", market: "US" }
       - { url: "https://example.com/aapl.rss", publisher: "Example", market: "US", symbol: "AAPL" }
@@ -159,6 +161,8 @@ ECOS API key가 없으면 `ecos` 소스 자체가 실행되지 않는다.
 ```yaml
 sources:
   rss:
+    catalogs:
+      - id: "sec_press_releases"
     feeds:
       - url: "https://www.sec.gov/news/pressreleases.rss"
         publisher: "SEC"
@@ -173,10 +177,19 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 
 | 필드 | 필수 | 의미 |
 |---|---|---|
+| `catalogs` | 아니오 | Mimir가 코드에 담아 둔 검증된 RSS feed catalog 선택 목록 |
+| `catalogs[].id` | 예 | catalog id. 현재 내장 id는 `sec_press_releases` |
+| `feeds` | 아니오 | 운영자가 직접 지정하는 RSS feed 목록 |
 | `url` | 예 | RSS feed URL |
 | `publisher` | 예 | payload에 저장할 발행자 이름 |
 | `market` | 예 | payload에 저장할 feed market. record envelope market은 source 특성상 `GLOBAL`이다 |
 | `symbol` | 아니오 | 이 feed가 특정 watchlist symbol 전용일 때 쓰는 값. 공백은 제거하고 빈 값은 오류로 처리한다 |
+
+`sources.rss.catalogs`는 반복해서 쓰는 공식 feed URL을 id로 고르는 편의 기능이다. Resolver는 코드 안의 정적 catalog만 읽는다. Catalog를 해석하는 동안 네트워크를 호출하지 않으며, live RSS discovery, vendor URL 추측, EDGAR 검색 RSS 조립도 하지 않는다.
+
+현재 내장 catalog id는 `sec_press_releases`다. 이 id는 `https://www.sec.gov/news/pressreleases.rss` feed를 `publisher="SEC"`, `market="US"`로 확장한다.
+
+`catalogs`와 `feeds`를 함께 쓰면 catalog feed가 먼저 오고, manual feed가 뒤에 붙는다. 같은 `(url, symbol)` 쌍이 두 번 나오면 실패한다. 중복을 조용히 제거하면 운영자가 같은 feed를 두 경로로 설정했다는 사실을 놓칠 수 있기 때문이다. 같은 URL이라도 symbol이 다르면 서로 다른 종목 관계를 뜻하므로 허용한다.
 
 `symbol`이 없으면 기존처럼 일반 뉴스 feed로 저장한다. idempotency key도 기존 형식인 `rss:{link}`를 유지한다.
 
@@ -273,6 +286,22 @@ analysis:
   news:
     aliases:
       AAPL: "Apple"  # aliases 값은 문자열 하나가 아니라 문자열 list여야 한다.
+```
+
+```yaml
+sources:
+  rss:
+    catalogs:
+      - { idd: "sec_press_releases" }
+      # 오타. id가 맞다. RSS catalog 항목의 알 수 없는 필드는 오류다.
+```
+
+```yaml
+sources:
+  rss:
+    catalogs:
+      - { id: "unknown_feed" }
+      # 알 수 없는 catalog id는 resolver가 실패시킨다.
 ```
 
 ```yaml

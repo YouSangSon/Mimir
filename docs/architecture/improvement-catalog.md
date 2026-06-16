@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/MR1/C3 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/MR1/C3 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -36,6 +36,7 @@
 | **R1b** | 뉴스 captured window (`captured_at` 기준 today/baseline) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-captured-window-design.md) |
 | **R1c** | 기본 news alias 데이터셋 (`analysis.news.use_default_aliases`) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-default-news-aliases-design.md) |
 | **R1d** | Symbol-tagged RSS feeds (`sources.rss.feeds[].symbol`) | 분석품질/확장성 | 백로그 R1 후속 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-symbol-tagged-rss-feeds-design.md) |
+| **R1e** | 정적 RSS feed catalog (`sources.rss.catalogs`) | 분석품질/확장성 | R1d 보류 항목 | **✅ 구현 완료 (2026-06-17)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-17-rss-feed-catalog-design.md) |
 | **MR1** | 거시 개정 저장 정책 (`macro` last-write-wins) | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-macro-revision-policy-design.md) |
 | **H1** | 재생성 데이터 stale 제거 + pipeline scorecard 갱신 | 견고성/운영 | B1 후속 + 리뷰 발견 | **✅ 구현 완료 (2026-06-16 hardening)** | `replace_partition`, `run_evaluate`, daily report scorecard |
 | **BF-MANIFEST** | 백필 실행 manifest 기록 | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | backfill success/failure run log |
@@ -135,7 +136,17 @@ Alias matcher는 뉴스 제목과 요약에 회사명이나 티커가 있을 때
 
 `sources.rss.feeds[].symbol`은 이 관계를 설정으로 표현한다. `RssSource`는 symbol-tagged feed에서 온 record의 top-level symbol을 채운다. Symbol이 없는 feed는 기존 `rss:{link}` idempotency key를 유지하고, symbol이 있는 feed는 `rss:{symbol}:{link}` key를 쓴다. 그래서 같은 기사 URL이 여러 종목 feed에 나타나도 한쪽 symbol이 dedup으로 사라지지 않는다.
 
-`NewsMentionMatcher`는 제목과 요약을 보기 전에 record symbol을 먼저 확인한다. `NewsVolumeSignal`과 opt-in `LlmSentimentSignal`이 같은 matcher를 쓰므로, 두 신호 모두 symbol-tagged RSS feed를 활용한다. 남는 한계는 feed URL 자동 탐색이다. Mimir는 아직 vendor별 endpoint catalog를 제공하지 않는다.
+`NewsMentionMatcher`는 제목과 요약을 보기 전에 record symbol을 먼저 확인한다. `NewsVolumeSignal`과 opt-in `LlmSentimentSignal`이 같은 matcher를 쓰므로, 두 신호 모두 symbol-tagged RSS feed를 활용한다. 남는 한계는 feed URL 자동 탐색이다. Mimir는 아직 provider별 live endpoint discovery나 feed 추천을 제공하지 않는다.
+
+### R1e. 정적 RSS feed catalog — **구현 완료 (2026-06-17)**
+
+R1d는 운영자가 URL을 이미 알고 있을 때 강력하다. 하지만 SEC 같은 공식 feed도 매 환경에서 URL과 publisher, market을 반복해서 복사해야 했다. 이 반복은 작지만 운영 설정을 어긋나게 만든다.
+
+`sources.rss.catalogs`는 검증된 공식 feed를 id로 고르게 한다. 현재 내장 catalog id는 `sec_press_releases` 하나다. Resolver는 이 id를 기존 `RssFeed` 객체로 확장하고, 네트워크를 호출하지 않는다.
+
+Catalog feed는 manual `sources.rss.feeds`보다 먼저 붙는다. 같은 `(url, symbol)` 쌍이 두 번 나오면 실패한다. 같은 URL이라도 symbol이 다르면 서로 다른 종목 관계이므로 허용한다.
+
+이 구현은 live discovery가 아니다. HTML scraping, vendor URL pattern 추측, EDGAR 검색 RSS 조립은 provider별 정책과 query contract가 필요하므로 제외했다. 남은 부채는 "검증된 정적 catalog 확장"이 아니라 "provider별 live discovery"다.
 
 ---
 
@@ -186,6 +197,7 @@ R1a ──────── news mention alias matcher · analysis.news.aliases
 R1b ──────── news captured window · DataReader.read_captured_window
 R1c ──────── default news aliases · analysis.news.use_default_aliases
 R1d ──────── symbol-tagged RSS feeds · sources.rss.feeds[].symbol
+R1e ──────── static RSS feed catalog · sources.rss.catalogs
 D2 ───────── GitHub Actions Node24-compatible action majors
 C3 ───────── pykrx retry/backoff · FetchError manifest surface
 BF-MANIFEST ─ backfill success/failure manifest
@@ -202,7 +214,7 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 |---|---|
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 핫패스를 처리. 인덱스는 데이터가 수년 누적된 *뒤*의 최적화 — 지금은 시기상조(YAGNI). 신선도 닥터(C1)가 먼저 스케일 신호를 준다. |
 | **D1 통합 CLI** | 순수 DX. 5개 `python -m mimir.X`는 동작에 문제없음. console_scripts entry-point는 좋지만 약속에 추적되지 않음 → 보류. |
-| **R1e RSS feed discovery/catalog** | 사용자가 알고 있는 종목별 RSS feed는 `sources.rss.feeds[].symbol`로 연결할 수 있다. Vendor별 endpoint를 자동 탐색·추천하는 기능은 별도 provider 정책과 ToS 검토가 필요하다. |
+| **R1f Provider별 RSS live discovery** | 정적 catalog는 구현됐다. Mimir가 vendor별 endpoint를 자동 탐색하거나 URL pattern을 추측하는 기능은 별도 provider 정책과 ToS 검토가 필요하다. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서는 KO-only 유지(백로그 결정). 사용자 문서(README ×3)는 이미 trilingual. |
 
 ---
@@ -220,4 +232,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, MR1, D2, C3, BF-MANIFEST까지 구현되었고, 남은 신규 아키텍처 부채는 RSS feed discovery/catalog다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, MR1, D2, C3, BF-MANIFEST까지 구현되었고, 남은 신규 아키텍처 부채는 provider별 RSS live discovery다.

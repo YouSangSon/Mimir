@@ -12,7 +12,7 @@ Mimir는 공개 데이터를 수집하고, 저장된 데이터로 인사이트�
 
 | 확장 지점 | 사용자가 바꾸는 것 | 코드 진입점 | 현재 상태 |
 |---|---|---|---|
-| 수집 소스 | `config/sources.yaml`, 새 `Source` 구현, 또는 `mimir.sources` plugin | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. RSS feed는 optional `symbol`로 종목 전용 feed를 표현한다. 새 내장 소스는 `SourceSpec` 한 줄로 등록. 외부 package는 entry point와 `sources.plugins.<source_id>` 설정 namespace로 source를 추가 |
+| 수집 소스 | `config/sources.yaml`, 새 `Source` 구현, 또는 `mimir.sources` plugin | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. RSS는 정적 feed catalog와 optional `symbol`로 공식 feed와 종목 전용 feed를 표현한다. 새 내장 소스는 `SourceSpec` 한 줄로 등록. 외부 package는 entry point와 `sources.plugins.<source_id>` 설정 namespace로 source를 추가 |
 | 분석 시그널 | `config/sources.yaml`의 `analysis:` 또는 `build_signals()`에 시그널 추가 | `mimir/analysis/builder.py` | 기본 뉴스 alias, 사용자 alias, symbol-tagged RSS, macro rate-series는 설정으로 제어 가능. LLM 시그널은 off-by-default gate로 배선됨 |
 | 출력 표면 | `daily_report`, `dashboard`, `digest` | `mimir/report/` | 일일 리포트와 대시보드가 인사이트·과거사례·평가를 표시 |
 
@@ -63,6 +63,8 @@ sources:
     series:
       - { stat_code: "722Y001", cycle: "M", item_code: "0101000" }
   rss:
+    catalogs:
+      - { id: "sec_press_releases" }
     feeds:
       - { url: "https://www.sec.gov/news/pressreleases.rss", publisher: "SEC", market: "US" }
       - { url: "https://example.com/aapl.rss", publisher: "Example", market: "US", symbol: "AAPL" }
@@ -70,7 +72,24 @@ sources:
 
 이 경로는 파이썬 코드를 고치지 않는다. 설정이 없으면 기존 기본값을 그대로 쓴다. 설정 키가 틀리면 조용히 무시하지 않고 `ValidationError`로 실패한다.
 
-### 3.2 새 내장 소스 추가
+RSS catalog는 이 설정 경로 안의 built-in 편의 기능이다. `sources.rss.catalogs`는 Mimir가 정적으로 검증해 둔 feed를 id로 고른다. 현재 id는 `sec_press_releases` 하나이며, resolver는 네트워크를 호출하지 않는다. Provider live discovery, HTML scraping, URL pattern 추측은 source plugin이나 별도 증분 설계 대상이지 현재 catalog resolver의 책임이 아니다.
+
+### 3.2 RSS feed catalog
+
+RSS feed catalog는 반복해서 쓰는 공식 feed URL을 설정 id로 선택하게 해준다. 운영자는 feed URL을 매번 복사하지 않고 아래처럼 쓴다.
+
+```yaml
+sources:
+  rss:
+    catalogs:
+      - { id: "sec_press_releases" }
+```
+
+Builder는 catalog selection을 기존 `RssFeed` 목록으로 확장한 뒤 manual `sources.rss.feeds` 뒤에 붙이지 않고 앞에 둔다. 같은 `(url, symbol)` 쌍이 catalog와 manual feed 양쪽에 있으면 실패한다. 같은 URL이라도 symbol이 다르면 서로 다른 종목 관계이므로 허용한다.
+
+이 기능은 외부 source plugin을 대체하지 않는다. Catalog는 built-in RSS source의 입력 목록을 편하게 만드는 장치다. 새 protocol, 새 인증 방식, 내부 feed client가 필요하면 `mimir.sources` plugin 또는 새 내장 source를 추가해야 한다.
+
+### 3.3 새 내장 소스 추가
 
 새 내장 소스는 생성 조건을 `SourceSpec`으로 등록한다. 오늘 기준으로는 아래 세 가지를 해야 한다.
 
@@ -80,7 +99,7 @@ sources:
 
 `SourceSpec`은 secret gate, optional package gate, 생성자 인자를 한 곳에 묶는다. `build_sources()`는 이 테이블을 순회해 만들 수 있는 소스만 생성한다. 생성된 뒤의 cadence 선택, GRAY 소스 토글, `disabled_ids` 필터링은 기존 `Registry`가 계속 담당한다.
 
-### 3.3 외부 source plugin 추가
+### 3.4 외부 source plugin 추가
 
 Mimir 밖의 Python package는 `mimir.sources` entry point로 source를 추가할 수 있다. 이 방식은 Mimir repo를 fork하지 않고 내부 feed나 실험 adapter를 배포할 때 쓴다.
 
@@ -101,7 +120,7 @@ entry point가 단일 `SourceSpec`을 직접 로드하면 entry point 이름과 
 
 Plugin import가 실패하면 warning을 남기고 해당 plugin만 건너뛴다. 잘못된 object type, source id 중복, `SourceSpec.id`와 실제 `source.meta.id` 불일치는 `ValueError`로 실패한다. source id는 backfill과 manifest에서 식별자로 쓰이기 때문에 충돌을 조용히 넘기지 않는다.
 
-### 3.4 외부 source plugin 설정
+### 3.5 외부 source plugin 설정
 
 외부 plugin이 설정을 필요로 하면 `sources.plugins.<source_id>` 아래에 둔다. 이 namespace는 built-in source 설정과 분리된다.
 
@@ -226,6 +245,6 @@ NEWS 파티션은 다른 원천 데이터처럼 `ts.date()` 기준으로 저장�
 
 | 항목 | 왜 남았나 | 다음 행동 |
 |---|---|---|
-| 종목별 RSS feed 자동 탐색 | 사용자가 알고 있는 종목별 feed는 `sources.rss.feeds[].symbol`로 연결할 수 있지만, Mimir가 vendor별 endpoint를 자동으로 찾아주지는 않는다 | 필요하면 provider별 feed discovery/catalog 설계 |
+| Provider별 RSS live discovery | 정적 catalog는 검증된 feed id만 제공한다. Mimir가 vendor별 endpoint를 자동 탐색하거나 URL pattern을 추측하지는 않는다 | 필요하면 provider별 공식 문서, rate limit, ToS를 검토한 뒤 별도 discovery 설계 |
 
 이 문서는 현재 구현을 설명한다. 미래 설계가 확정되면 새 ADR 또는 증분 스펙에서 이 문서를 갱신한다.

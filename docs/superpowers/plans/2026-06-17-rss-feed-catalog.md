@@ -17,7 +17,7 @@
 - Modify: `mimir/sources/config.py`
 - Modify: `tests/sources/test_config.py`
 
-- [ ] **Step 1: Write failing config parse tests**
+- [x] **Step 1: Write failing config parse tests**
 
 Add imports to `tests/sources/test_config.py`:
 
@@ -40,7 +40,7 @@ def test_rss_catalog_typo_field_raises_validation_error():
         parse_sources_config({"sources": {"rss": {"catalogs": [{"idd": "sec_press_releases"}]}}})
 ```
 
-- [ ] **Step 2: Run tests to verify RED**
+- [x] **Step 2: Run tests to verify RED**
 
 ```bash
 uv run pytest tests/sources/test_config.py::test_rss_catalogs_parse_from_config tests/sources/test_config.py::test_rss_catalog_typo_field_raises_validation_error -q
@@ -48,7 +48,7 @@ uv run pytest tests/sources/test_config.py::test_rss_catalogs_parse_from_config 
 
 Expected: FAIL because `mimir.sources.rss_catalog` and `SourcesConfig.rss_catalogs` do not exist.
 
-- [ ] **Step 3: Add minimal catalog selection model**
+- [x] **Step 3: Add minimal catalog selection model**
 
 Create `mimir/sources/rss_catalog.py`:
 
@@ -88,7 +88,7 @@ Map it in `parse_sources_config()`:
 rss_catalogs=block.rss.catalogs if block.rss else None,
 ```
 
-- [ ] **Step 4: Run config tests to verify GREEN**
+- [x] **Step 4: Run config tests to verify GREEN**
 
 ```bash
 uv run pytest tests/sources/test_config.py::test_rss_catalogs_parse_from_config tests/sources/test_config.py::test_rss_catalog_typo_field_raises_validation_error -q
@@ -102,7 +102,7 @@ Expected: PASS.
 - Modify: `mimir/sources/rss_catalog.py`
 - Create: `tests/sources/test_rss_catalog.py`
 
-- [ ] **Step 1: Write failing resolver tests**
+- [x] **Step 1: Write failing resolver tests**
 
 Create `tests/sources/test_rss_catalog.py`:
 
@@ -179,7 +179,7 @@ def test_resolve_rss_feeds_rejects_duplicate_manual_and_catalog_feed():
         resolve_rss_feeds([RssCatalogSelection(id="sec_press_releases")], [manual])
 ```
 
-- [ ] **Step 2: Run resolver tests to verify RED**
+- [x] **Step 2: Run resolver tests to verify RED**
 
 ```bash
 uv run pytest tests/sources/test_rss_catalog.py -q
@@ -187,7 +187,7 @@ uv run pytest tests/sources/test_rss_catalog.py -q
 
 Expected: FAIL because resolver functions and static catalog do not exist.
 
-- [ ] **Step 3: Implement static catalog and resolver**
+- [x] **Step 3: Implement static catalog and resolver**
 
 Replace `mimir/sources/rss_catalog.py` with:
 
@@ -265,7 +265,7 @@ def _validate_unique_feeds(feeds: Sequence[RssFeed]) -> None:
         seen.add(key)
 ```
 
-- [ ] **Step 4: Run resolver tests to verify GREEN**
+- [x] **Step 4: Run resolver tests to verify GREEN**
 
 ```bash
 uv run pytest tests/sources/test_rss_catalog.py -q
@@ -279,7 +279,7 @@ Expected: PASS.
 - Modify: `mimir/core/builder.py`
 - Modify: `tests/core/test_builder.py`
 
-- [ ] **Step 1: Write failing builder tests**
+- [x] **Step 1: Write failing builder tests**
 
 Add import to `tests/core/test_builder.py`:
 
@@ -350,7 +350,7 @@ def test_build_sources_rejects_duplicate_rss_catalog_and_manual_feed(monkeypatch
         build_sources(Settings.from_env({}), cfg)
 ```
 
-- [ ] **Step 2: Run builder tests to verify RED**
+- [x] **Step 2: Run builder tests to verify RED**
 
 ```bash
 uv run pytest tests/core/test_builder.py::test_build_sources_resolves_rss_catalog_feeds tests/core/test_builder.py::test_build_sources_combines_rss_catalog_and_manual_feeds tests/core/test_builder.py::test_build_sources_rejects_duplicate_rss_catalog_and_manual_feed -q
@@ -358,7 +358,7 @@ uv run pytest tests/core/test_builder.py::test_build_sources_resolves_rss_catalo
 
 Expected: FAIL because the RSS `SourceSpec` still passes only `cfg.rss_feeds`.
 
-- [ ] **Step 3: Wire resolver into RSS source construction**
+- [x] **Step 3: Wire resolver into RSS source construction**
 
 Update imports in `mimir/core/builder.py`:
 
@@ -377,7 +377,7 @@ SourceSpec(
 ),
 ```
 
-- [ ] **Step 4: Run builder tests to verify GREEN**
+- [x] **Step 4: Run builder tests to verify GREEN**
 
 ```bash
 uv run pytest tests/core/test_builder.py::test_build_sources_resolves_rss_catalog_feeds tests/core/test_builder.py::test_build_sources_combines_rss_catalog_and_manual_feeds tests/core/test_builder.py::test_build_sources_rejects_duplicate_rss_catalog_and_manual_feed -q
@@ -390,7 +390,7 @@ Expected: PASS.
 **Files:**
 - Modify: `tests/sources/test_rss.py`
 
-- [ ] **Step 1: Write failing/guard regression test**
+- [x] **Step 1: Write failing/guard regression test**
 
 Add imports:
 
@@ -419,7 +419,7 @@ def test_rss_fetches_catalog_resolved_feed_with_existing_key_format():
     assert recs[0].idempotency_key == "rss:https://example.test/news/1"
 ```
 
-- [ ] **Step 2: Run RSS regression test**
+- [x] **Step 2: Run RSS regression test**
 
 ```bash
 uv run pytest tests/sources/test_rss.py::test_rss_fetches_catalog_resolved_feed_with_existing_key_format -q
@@ -441,7 +441,7 @@ Expected: PASS after Task 2. If it fails, fix resolver integration rather than c
 - Modify: `docs/superpowers/specs/2026-06-17-rss-feed-catalog-design.md`
 - Modify: `docs/superpowers/plans/2026-06-17-rss-feed-catalog.md`
 
-- [ ] **Step 1: Update operator config docs**
+- [x] **Step 1: Update operator config docs**
 
 Document:
 
@@ -452,7 +452,7 @@ Document:
 - `sources.rss.feeds` remains the manual escape hatch.
 - Duplicate `(url, symbol)` fails.
 
-- [ ] **Step 2: Update architecture and improvement docs**
+- [x] **Step 2: Update architecture and improvement docs**
 
 Update:
 
@@ -460,11 +460,11 @@ Update:
 - `docs/IMPROVEMENTS.md`: replace the follow-up candidate with provider-specific live discovery/catalog expansion.
 - `docs/architecture/extensibility/README.md`: explain RSS catalog as a built-in configuration convenience, not a plugin system replacement.
 
-- [ ] **Step 3: Update README variants and test counts**
+- [x] **Step 3: Update README variants and test counts**
 
-After full verification, update README badge/table test count from 424 to the final count. Mention RSS catalog in the config/source adapter text.
+After full verification, update README badge/table test count to 438. Mention RSS catalog in the config/source adapter text.
 
-- [ ] **Step 4: Update spec and plan status**
+- [x] **Step 4: Update spec and plan status**
 
 After verification, mark acceptance criteria in `docs/superpowers/specs/2026-06-17-rss-feed-catalog-design.md` as complete and check completed plan steps in this file.
 
@@ -472,7 +472,7 @@ After verification, mark acceptance criteria in `docs/superpowers/specs/2026-06-
 
 **Files:** no intended source writes except review fixes.
 
-- [ ] **Step 1: Run focused tests**
+- [x] **Step 1: Run focused tests**
 
 ```bash
 uv run pytest tests/sources/test_config.py tests/sources/test_rss_catalog.py tests/sources/test_rss.py tests/core/test_builder.py -q
@@ -480,7 +480,7 @@ uv run pytest tests/sources/test_config.py tests/sources/test_rss_catalog.py tes
 
 Expected: all focused tests pass.
 
-- [ ] **Step 2: Run quality gates**
+- [x] **Step 2: Run quality gates**
 
 ```bash
 uv run ruff check .
@@ -492,11 +492,11 @@ git diff --check
 
 Expected: all commands exit 0.
 
-- [ ] **Step 3: Run subagent reviews**
+- [x] **Step 3: Run subagent reviews**
 
 Dispatch spec compliance review first. After approval, dispatch code quality review. Fix any findings and rerun relevant tests plus `git diff --check`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Stage only intended files. Do not stage unrelated `uv.lock`.
 
