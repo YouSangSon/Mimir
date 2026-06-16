@@ -2,7 +2,7 @@
 
 > **스펙 ID**: A2
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`mimir/core/macro_series.py` + `analysis.macro_regime.rate_series`). 342 테스트 · ruff · mypy · coverage 97% 클린.
+> **상태**: ✅ 구현 완료 (`mimir/core/macro_series.py` + `analysis.macro_regime.rate_series`). 349 테스트 · ruff · mypy · coverage 97% 클린.
 > **선행**: [설정 기반 소스 확장성](2026-06-13-config-driven-extensibility-design.md) · [데이터 닥터](2026-06-13-data-doctor-design.md) · [확장성 카탈로그](../../architecture/improvement-catalog.md)
 
 ---
@@ -13,7 +13,7 @@
 
 A2는 이 세 출처를 `mimir/core/macro_series.py`로 모은다. 수집은 기존 `sources:` 설정을 유지하고, 분석은 새 `analysis.macro_regime.rate_series` 설정으로 명시한다.
 
-이 변경은 A3 선언적 소스 등록을 구현하지 않는다. `build_sources()`의 if 분기는 그대로 두고, 거시 시리즈 메타데이터만 단일 진실원으로 이동한다.
+이 변경은 당시 A3 선언적 소스 등록을 구현하지 않았다. A2는 거시 시리즈 메타데이터만 단일 진실원으로 이동했고, `build_sources()` 정리는 후속 A3 증분으로 분리했다.
 
 ---
 
@@ -49,7 +49,7 @@ Macro freshness는 시리즈별 cadence가 필요하다. `DGS10`은 daily이고 
 
 ### 비목표
 
-- A3 선언적 소스 등록은 하지 않는다.
+- A3 선언적 소스 등록은 이 증분에서 하지 않는다. 2026-06-16 후속 A3에서 `SourceSpec` built-in table로 구현 완료됐다.
 - `build_sources()`의 if 분기를 entry-point 구조로 바꾸지 않는다.
 - 거시 시리즈별 의미론 전체를 모델링하지 않는다. v1은 rate-series 여부와 freshness cadence만 다룬다.
 - 이미 저장된 JSONL을 마이그레이션하지 않는다.
@@ -196,6 +196,6 @@ flowchart TD
 
 ## 9. A3와의 경계
 
-A2는 macro series metadata만 다룬다. 새 소스를 추가할 때 `mimir/core/builder.py`에 분기를 추가해야 하는 문제는 여전히 남는다.
+A2는 macro series metadata만 다뤘다. 새 소스를 추가할 때 `mimir/core/builder.py`에 분기를 추가해야 하는 문제는 이 증분 밖으로 분리했다.
 
-이 남은 문제는 A3다. A3는 소스 메타 테이블이나 Python entry-point를 검토해야 하므로 별도 설계와 별도 구현 단위가 필요하다.
+이 남은 문제는 A3에서 `BUILTIN_SOURCE_SPECS`와 `SourceSpec`으로 구현 완료됐다. Python entry-point 기반 외부 source plugin은 여전히 별도 미래 증분이다.

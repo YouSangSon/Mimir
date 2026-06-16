@@ -1,6 +1,14 @@
 import logging
 
-from mimir.core.builder import build_sources
+import pytest
+
+from mimir.core.builder import (
+    BUILTIN_SOURCE_SPECS,
+    SourceSpec,
+    _build_sources_from_specs,
+    _validate_unique_source_ids,
+    build_sources,
+)
 from mimir.settings import Settings
 from mimir.sources.config import SourcesConfig
 from mimir.sources.ecos import DEFAULT_SERIES as ECOS_DEFAULT_SERIES
@@ -9,10 +17,98 @@ from mimir.sources.fred import DEFAULT_SERIES as FRED_DEFAULT_SERIES
 from mimir.sources.fred import FredSource
 from mimir.sources.rss import DEFAULT_FEEDS as RSS_DEFAULT_FEEDS
 from mimir.sources.rss import RssFeed, RssSource
+from mimir.sources.sec_edgar import SecEdgarSource
 
 
 def _by_id(sources):
     return {s.meta.id: s for s in sources}
+
+
+def test_builtin_source_specs_keep_existing_order():
+    assert [spec.id for spec in BUILTIN_SOURCE_SPECS] == [
+        "sec_edgar",
+        "rss",
+        "stooq",
+        "dart",
+        "fred",
+        "ecos",
+        "pykrx",
+    ]
+
+
+def test_duplicate_source_spec_ids_raise_value_error():
+    specs = (
+        SourceSpec(
+            "sec_edgar",
+            lambda settings, cfg: SecEdgarSource(user_agent=settings.sec_user_agent),
+        ),
+        SourceSpec(
+            "sec_edgar",
+            lambda settings, cfg: SecEdgarSource(user_agent=settings.sec_user_agent),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="duplicate source id"):
+        _validate_unique_source_ids(specs)
+
+
+def test_build_sources_from_specs_skips_secret_gated_sources(caplog):
+    def fail_if_called(settings, cfg):
+        raise AssertionError("secret-gated source factory should not be called")
+
+    specs = (
+        SourceSpec(
+            "stooq",
+            fail_if_called,
+            required_secret_attr="stooq_api_key",
+            required_secret_name="STOOQ_API_KEY",
+        ),
+    )
+
+    with caplog.at_level(logging.WARNING):
+        sources = _build_sources_from_specs(Settings.from_env({}), SourcesConfig(), specs)
+
+    assert sources == []
+    assert "skipping source 'stooq': STOOQ_API_KEY is not set" in " ".join(
+        r.message for r in caplog.records
+    )
+
+
+def test_build_sources_from_specs_rejects_source_id_mismatch():
+    specs = (
+        SourceSpec(
+            "stooq",
+            lambda settings, cfg: SecEdgarSource(user_agent=settings.sec_user_agent),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="source spec id 'stooq' built source id 'sec_edgar'"):
+        _build_sources_from_specs(Settings.from_env({}), SourcesConfig(), specs)
+
+
+def test_builder_skips_pykrx_when_optional_package_missing(monkeypatch, caplog):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+
+    with caplog.at_level(logging.WARNING):
+        sources = build_sources(Settings.from_env({}))
+
+    assert "pykrx" not in {s.meta.id for s in sources}
+    assert "skipping source 'pykrx'" in " ".join(r.message for r in caplog.records)
+
+
+def test_builder_includes_pykrx_when_optional_package_is_available(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: object())
+
+    sources = build_sources(Settings.from_env({}))
+
+    assert "pykrx" in {s.meta.id for s in sources}
+
+
+def test_builder_warns_when_sec_user_agent_has_no_contact_email(caplog):
+    with caplog.at_level(logging.WARNING):
+        build_sources(Settings.from_env({"MIMIR_SEC_USER_AGENT": "Mimir"}))
+
+    assert "SEC EDGAR may return 403" in " ".join(r.message for r in caplog.records)
 
 
 def test_builder_includes_keyless_sources():
