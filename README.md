@@ -13,7 +13,7 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-364%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-368%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -178,7 +178,7 @@ Adding a built-in source is done with a single adapter in `sources/` plus one `S
 | :--- | :--- |
 | **Per-source legality** | Each source carries `legal_status` (official/gray) and `rate_limit` as metadata, enforced by the throttler |
 | **Official APIs first** | Official free APIs like DART, SEC EDGAR, FRED, and ECOS are used as the primary source |
-| **GRAY toggle** | pykrx (scraping) is throttled and limited to internal analysis; it can be blocked via `gray_enabled: false` in `sources.yaml` |
+| **GRAY toggle** | pykrx (scraping) is throttled, retried with short backoff, and limited to internal analysis; it can be blocked via `gray_enabled: false` in `sources.yaml` |
 | **Secret separation** | All keys/tokens live only in `.env` (local) and Actions Secrets (CI); never committed |
 | **No silent failures** | Failures are recorded in the manifest and signaled with a non-zero exit — never swallowed quietly |
 | **Disclaimer** | Every insight and rating includes a "not financial advice" notice |
@@ -222,7 +222,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | Item | Value |
 | :--- | :--- |
-| **Tests** | 364 passing (adapters verified with recorded fixtures, no network) |
+| **Tests** | 368 passing (adapters verified with recorded fixtures, no network) |
 | **Coverage** | `mimir/` 97% (gate 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |

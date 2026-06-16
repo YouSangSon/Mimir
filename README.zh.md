@@ -13,7 +13,7 @@
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-364%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-368%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -178,7 +178,7 @@ flowchart LR
 | :--- | :--- |
 | **数据源级合法性** | 各数据源以元数据携带 `legal_status`（official/gray）·`rate_limit`，由限流器强制执行 |
 | **官方 API 优先** | 优先使用 DART·SEC EDGAR·FRED·ECOS 等官方免费 API |
-| **GRAY 切换** | pykrx（爬取）限于限流 + 内部分析，可通过 `sources.yaml` 的 `gray_enabled: false` 阻断 |
+| **GRAY 切换** | pykrx（爬取）限于限流、短 backoff 重试和内部分析，可通过 `sources.yaml` 的 `gray_enabled: false` 阻断 |
 | **密钥隔离** | 所有密钥/令牌仅放在 `.env`（本地）·Actions Secrets（CI），禁止提交 |
 | **无静默失败** | 失败会记录到清单并以非零退出发出信号——绝不悄悄吞掉 |
 | **免责** | 所有洞见·评估均包含“并非投资建议（not financial advice）”提示 |
@@ -222,7 +222,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 项目 | 值 |
 | :--- | :--- |
-| **测试** | 364 passing（适配器以录制的 fixture 在无网络下验证） |
+| **测试** | 368 passing（适配器以录制的 fixture 在无网络下验证） |
 | **覆盖率** | `mimir/` 97%（门槛 80%） |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — 每次 push/PR 执行 lint·type·test·coverage |

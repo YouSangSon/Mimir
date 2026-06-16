@@ -122,3 +122,29 @@ def test_one_invalid_record_is_counted_not_fatal(tmp_path: Path, monkeypatch):
     assert result.fetched == 2
     assert result.stored == 1
     assert result.invalid == 1
+
+
+def test_pykrx_retry_exhaustion_is_manifested_as_source_failure(tmp_path: Path):
+    from mimir.sources.pykrx_source import PykrxSource
+
+    def down_ohlcv_fn(fromdate, todate, ticker):
+        raise RuntimeError("naver timeout")
+
+    src = PykrxSource(
+        ohlcv_fn=down_ohlcv_fn,
+        max_retries=1,
+        backoff=0.1,
+        sleep=lambda seconds: None,
+    )
+    ctx = FetchContext(watchlist={"kr": ["005930"]}, now=datetime(2026, 5, 31, tzinfo=UTC))
+    orch = Orchestrator(Registry([src]), JsonlStore(root=tmp_path), Manifest(root=tmp_path))
+
+    summary = orch.run(Cadence.DAILY, ctx)
+
+    result = summary.results[0]
+    assert result.source == "pykrx"
+    assert result.ok is False
+    assert result.error is not None
+    assert "pykrx OHLCV failed after 2 attempts for 005930" in result.error
+    assert "naver timeout" in result.error
+    assert summary.had_failures is True
