@@ -13,7 +13,7 @@
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-313%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-334%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -55,9 +55,9 @@ cp .env.example .env          # 只需填入想用的免费密钥（自动加载
 #   config/watchlist.yaml      追踪标的（US 代码 / KR 证券代码）
 #   config/sources.yaml        数据源 on/off · GRAY 策略 · 系列/订阅源（无需改代码即可扩展）
 
-# 3. 运行完整流水线（采集→分析→历史模式→报告）
+# 3. 运行完整流水线（采集→分析→历史模式→评估→报告）
 .venv/bin/python -m mimir.run --cadence daily   # cadence: hourly|daily|weekly|monthly
-#   或按阶段运行: mimir.collect / mimir.analyze / mimir.history / mimir.deliver
+#   或按阶段运行: mimir.collect / mimir.analyze / mimir.history / mimir.evaluate / mimir.deliver
 ```
 
 `.env` 在运行时会从当前目录自动加载（密钥绝不会被提交）。在 CI 中以 GitHub Actions Secrets 为优先。
@@ -207,7 +207,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
 ```
 
-> 每日工作流将 `collect → analyze → deliver` 串联，并把 `data/`·`reports/` 提交到 repo。每日 HTML 报告以 `reports/YYYY/MM/DD.html` 永久保存，并通过 `reports/index.html` 浏览。
+> 每日工作流将 `collect → analyze → history → evaluate → deliver` 串联，并把 `data/`·`reports/` 提交到 repo。每日 HTML 报告以 `reports/YYYY/MM/DD.html` 永久保存，并通过 `reports/index.html` 浏览。
 
 ---
 
@@ -222,7 +222,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 项目 | 值 |
 | :--- | :--- |
-| **测试** | 313 passing（适配器以录制的 fixture 在无网络下验证） |
+| **测试** | 334 passing（适配器以录制的 fixture 在无网络下验证） |
 | **覆盖率** | `mimir/` 97%（门槛 80%） |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — 每次 push/PR 执行 lint·type·test·coverage |
@@ -249,9 +249,10 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 领域 | 状态 |
 | :--- | :--- |
-| **洞见/星级** | 计划在 S2 推进——当前仅到原始数据采集 |
+| **洞见/星级** | 已以规则驱动信号实现，包含 ⭐确信度、confidence、attention 和免责声明。LLM 情绪信号以 off-by-default seam 提供 |
 | **KR 价格** | pykrx 为 GRAY·可选安装（`[kr]`）。无密钥即可运行的价格源为 Stooq（需免费 apikey） |
 | **历史模式分析** | S4 已实现 (event-study)。需要样本 `n` 充分的价格历史——建议先回填 |
+| **信号记分卡** | 通过 `mimir.evaluate` 实现，并显示在每日报告和 dashboard 中。早期运行可能因历史洞见和价格样本不足而显示样本不足 |
 | **自动交易** | S5（未来）。目前仅设计边界（分析/执行分离） |
 | **API 配额** | 部分免费密钥的每日配额需在发放控制台确认 |
 
@@ -262,6 +263,8 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 | 文档 | 内容 |
 | :--- | :--- |
 | [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) | 整体项目分解与分阶段价值交付 |
+| [`docs/architecture/extensibility/README.md`](docs/architecture/extensibility/README.md) | 当前扩展点、再生成数据策略，以及剩余 A2/A3 扩展性债务 |
+| [`docs/reference/config/sources.md`](docs/reference/config/sources.md) | `config/sources.yaml` 运维参考 |
 | [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector 设计（架构·数据源目录·完成标准） |
 | [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring 设计（信号·评分器·Insight） |
 | [`docs/superpowers/specs/2026-05-31-delivery-design.md`](docs/superpowers/specs/2026-05-31-delivery-design.md) | S3 Delivery & Reporting 设计（HTML 报告·摘要） |

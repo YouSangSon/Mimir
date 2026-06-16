@@ -4,10 +4,11 @@ import html
 from pathlib import Path
 
 from mimir.manifest.manifest import RunRecord
-from mimir.report.i18n import DEFAULT_LANG, t
+from mimir.report.i18n import DEFAULT_LANG, normalize_lang, t
 
 
 def render_status_html(run: RunRecord, out_path: Path, lang: str = DEFAULT_LANG) -> None:
+    lang = normalize_lang(lang)
     rows = []
     for r in run.results:
         status = t("status_ok", lang) if r.ok else t("status_fail", lang)

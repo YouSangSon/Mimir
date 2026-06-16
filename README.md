@@ -13,7 +13,7 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-313%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-334%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -55,9 +55,9 @@ cp .env.example .env          # fill in only the free keys you want (auto-loaded
 #   config/watchlist.yaml      tracked symbols (US tickers / KR stock codes)
 #   config/sources.yaml        source on/off · GRAY policy · series/feeds (extend coverage, no code)
 
-# 3. Run the full pipeline (collect → analyze → historical patterns → report)
+# 3. Run the full pipeline (collect → analyze → historical patterns → evaluate → report)
 .venv/bin/python -m mimir.run --cadence daily   # cadence: hourly|daily|weekly|monthly
-#   or step by step: mimir.collect / mimir.analyze / mimir.history / mimir.deliver
+#   or step by step: mimir.collect / mimir.analyze / mimir.history / mimir.evaluate / mimir.deliver
 ```
 
 `.env` is auto-loaded from the current directory at runtime (keys are never committed). In CI, GitHub Actions Secrets take precedence.
@@ -207,7 +207,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
 ```
 
-> The daily workflow chains `collect → analyze → deliver` and commits `data/` and `reports/` to the repo. The daily HTML report is kept permanently at `reports/YYYY/MM/DD.html` and browsed from `reports/index.html`.
+> The daily workflow chains `collect → analyze → history → evaluate → deliver` and commits `data/` and `reports/` to the repo. The daily HTML report is kept permanently at `reports/YYYY/MM/DD.html` and browsed from `reports/index.html`.
 
 ---
 
@@ -222,7 +222,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | Item | Value |
 | :--- | :--- |
-| **Tests** | 313 passing (adapters verified with recorded fixtures, no network) |
+| **Tests** | 334 passing (adapters verified with recorded fixtures, no network) |
 | **Coverage** | `mimir/` 97% (gate 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |
@@ -249,9 +249,10 @@ The full picture is managed against [`docs/architecture/roadmap.md`](docs/archit
 
 | Area | Status |
 | :--- | :--- |
-| **Insights / star ratings** | S2 planned — currently only raw-data collection |
+| **Insights / star ratings** | Implemented as rule-based signals with ⭐ conviction, confidence, attention, and a disclaimer. LLM sentiment is available as an off-by-default seam |
 | **KR prices** | pykrx is GRAY and optional to install (`[kr]`). The price source that works without keys is Stooq (free apikey required) |
 | **Historical-pattern analysis** | S4 implemented (event-study). Needs price history with a large enough sample `n` — backfill recommended |
+| **Signal scorecard** | Implemented via `mimir.evaluate` and shown in the daily report/dashboard. Early runs may show insufficient sample until enough past insights and prices exist |
 | **Automated trading** | S5 (future). For now only the boundary is designed (analysis/execution split) |
 | **API limits** | Daily limits for some free keys must be checked in the issuing console |
 
@@ -262,6 +263,8 @@ The full picture is managed against [`docs/architecture/roadmap.md`](docs/archit
 | Document | Contents |
 | :--- | :--- |
 | [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) | Full program breakdown and phased value delivery |
+| [`docs/architecture/extensibility/README.md`](docs/architecture/extensibility/README.md) | Current extension points, regenerated-data policy, and remaining A2/A3 extensibility debt |
+| [`docs/reference/config/sources.md`](docs/reference/config/sources.md) | `config/sources.yaml` operator reference |
 | [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector design (architecture · source catalog · acceptance criteria) |
 | [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring design (signals · scorer · Insight) |
 | [`docs/superpowers/specs/2026-05-31-delivery-design.md`](docs/superpowers/specs/2026-05-31-delivery-design.md) | S3 Delivery & Reporting design (HTML report · digest) |

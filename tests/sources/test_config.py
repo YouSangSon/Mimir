@@ -116,3 +116,13 @@ def test_llm_sentiment_toggle_parsed_from_top_level_keys():
     cfg = parse_sources_config(raw)
     assert cfg.llm_sentiment_enabled is True
     assert cfg.llm_sentiment_max_headlines == 10
+
+
+def test_llm_sentiment_quoted_false_parses_as_false():
+    cfg = parse_sources_config({"llm_sentiment_enabled": "false"})
+    assert cfg.llm_sentiment_enabled is False
+
+
+def test_llm_sentiment_bad_headline_cap_raises_validation_error():
+    with pytest.raises(ValidationError):
+        parse_sources_config({"llm_sentiment_max_headlines": "nope"})

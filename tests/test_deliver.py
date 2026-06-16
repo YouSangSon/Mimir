@@ -5,6 +5,8 @@ from mimir.analysis.schema import Insight, to_record
 from mimir.analysis.signals.base import SignalDirection
 from mimir.core.source import Market
 from mimir.deliver import run_deliver
+from mimir.evaluation.schema import BucketStat, HorizonEval
+from mimir.evaluation.schema import to_record as evaluation_to_record
 from mimir.historical.analog import HorizonStat
 from mimir.historical.schema import HistoricalInsight
 from mimir.historical.schema import to_record as historical_to_record
@@ -34,6 +36,17 @@ def _insight() -> Insight:
         confidence=0.8,
         signals=[],
         reasons=["[price_momentum] +6%"],
+    )
+
+
+def _bucket() -> BucketStat:
+    return BucketStat(
+        dimension="per_signal",
+        key="price_momentum",
+        market=Market.US,
+        horizons=[
+            HorizonEval(horizon=5, n=12, hit_rate=0.58, mean_fwd_return=0.004, neutral_n=2)
+        ],
     )
 
 
@@ -74,6 +87,27 @@ def test_run_deliver_includes_historical_section(tmp_path: Path):
     assert "Historical cases" in html
     assert "sharp_drop" in html
     assert "Triggered today" in html  # triggered_today badge
+
+
+def test_run_deliver_includes_evaluation_scorecard(tmp_path: Path):
+    data_root = tmp_path / "data"
+    reports_root = tmp_path / "reports"
+    store = JsonlStore(root=data_root)
+    captured_at = datetime(2026, 5, 31, tzinfo=UTC)
+    store.append([to_record(_insight(), captured_at)])
+    store.append([evaluation_to_record(_bucket(), date(2026, 5, 31), captured_at)])
+
+    result = run_deliver(
+        cadence="daily",
+        env={},
+        data_root=data_root,
+        reports_root=reports_root,
+        as_of=date(2026, 5, 31),
+    )
+    assert result["evaluation"] == 1
+    html = (reports_root / "2026/05/31.html").read_text()
+    assert "Signal scorecard" in html
+    assert "price_momentum" in html
 
 
 def test_run_deliver_empty_is_graceful(tmp_path: Path):

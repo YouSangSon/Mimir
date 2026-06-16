@@ -9,7 +9,7 @@ from mimir.evaluation.schema import BucketStat
 from mimir.historical.schema import HistoricalInsight
 from mimir.manifest.manifest import RunRecord, SourceResult
 from mimir.report.daily_report import DIRECTION_COLOR
-from mimir.report.i18n import DEFAULT_LANG, t
+from mimir.report.i18n import DEFAULT_LANG, normalize_lang, t
 
 SEVERITY_COLOR: dict[Severity, str] = {
     Severity.OK: "#16a34a",
@@ -222,6 +222,7 @@ def build_dashboard_html(
     No I/O — all data is injected so this is deterministic and unit-testable.
     Every user-derived string is escaped; every section degrades gracefully.
     """
+    lang = normalize_lang(lang)
     sufficient = bool(buckets)
     generated = now.isoformat(timespec="seconds")
     badges = _badges(doctor_report, run, len(insights), sufficient, lang)

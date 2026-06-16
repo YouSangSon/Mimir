@@ -1,7 +1,7 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: 승인 대기 → 증분 실행 중
-> **목적**: S1–S4가 완성된 건강한 코드베이스(122 테스트 · 95% 커버리지 · mypy strict)에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 빠짐없이 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening 진행
+> **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
 ---
@@ -28,8 +28,9 @@
 | **A4** | 데이터셋별 타입드 페이로드 스키마 (`dict[str,Any]` 제거) | 견고성 | 신규 | **✅ 구현 완료 (Increment 2)** | 코드 + 테스트(293) · [spec](../superpowers/specs/2026-06-13-typed-payload-design.md) |
 | **A2** | 시리즈 식별자 단일 진실원 (macro_regime ↔ 어댑터) | 확장성 | 백로그 | 📐 설계 (후속) | [spec](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md) §9 |
 | **A3** | 선언적 소스 등록 (if-사다리 → 레지스트리/entry-point) | 아키텍처 | README 약속(부분) | 📐 설계 (후속) | [spec](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md) §8 |
-| **B1** | 시그널 백테스트·평가 하네스 (사후수익 적중률) | 분석심화 | 신규(최고가치) | **✅ 구현 완료 (Increment 4, MVP)** | 코드 + 테스트(208) |
-| **B2** | LLM 뉴스 감성 시그널 (news_volume 대체, 하이브리드) | 분석심화 | 로드맵 + 백로그 R1 | **✅ seam 구현 (Increment 5, off-by-default)** | 코드 + 테스트(313) |
+| **B1** | 시그널 백테스트·평가 하네스 (사후수익 적중률) | 분석심화 | 신규(최고가치) | **✅ 구현 완료 (Increment 4 + 리포트 합류)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-13-signal-backtest-design.md) |
+| **B2** | LLM 뉴스 감성 시그널 (news_volume 대체, 하이브리드) | 분석심화 | 로드맵 + 백로그 R1 | **✅ seam 구현 (Increment 5, off-by-default)** | 코드 + 테스트 |
+| **H1** | 재생성 데이터 stale 제거 + pipeline scorecard 갱신 | 견고성/운영 | B1 후속 + 리뷰 발견 | **✅ 구현 완료 (2026-06-16 hardening)** | `replace_partition`, `run_evaluate`, daily report scorecard |
 | **C1** | 데이터 신선도·품질 닥터 (`mimir doctor`) | 운영 | "무음 실패 금지" 약속 | **✅ 구현 완료 (Increment 3)** | 코드 + 테스트(179) |
 | **C2** | 파티션 인덱스 (git-as-DB rglob 스케일) | 성능 | 신규 | ⏸ 보류 | 본 문서 §6 |
 | **C3** | pykrx 타임아웃·재시도 (BaseSource 미사용) | 견고성 | 백로그 LOW | ⏸ 보류(GRAY/옵션) | 본 문서 §6 |
@@ -72,9 +73,11 @@
 
 ## 3. 분석 심화 (Analytical depth)
 
-### B1. 시그널 백테스트·평가 하네스 — **지금 설계 (최고 가치)**
+### B1. 시그널 백테스트·평가 하네스 — **구현 완료**
 
 Mimir는 시그널을 *발행*하지만, 그 시그널이 실제로 무언가를 예측하는지 **측정하지 않는다.** S4 event-study는 "과거에 이런 일이 있었다"를 보지만, "우리 인사이트의 과거 적중률"이라는 피드백 루프는 없다. 백테스트 하네스는 Mimir를 "시그널 발행"에서 "*검증된* 시그널 발행"으로 끌어올리고, 신뢰 가능한 S5(자동매매)의 토대가 된다. 분석/실행 분리 원칙 준수(읽기 전용). → [백테스트 설계문서](../superpowers/specs/2026-06-13-signal-backtest-design.md).
+
+**구현(Increment 4 + 2026-06-16 hardening).** `mimir.evaluate`가 저장된 `insights`와 `prices`만 읽어 `evaluation` 데이터셋을 만든다. `mimir.run`은 `collect -> analyze -> history -> evaluate -> deliver` 순서로 실행해 리포트가 같은 실행에서 갱신된 scorecard를 읽는다. `daily_report`와 `dashboard`는 시그널 성적표를 표로 보여준다. 표본 부족으로 모든 버킷이 사라지면 `JsonlStore.replace_partition`이 당일 evaluation 파티션을 삭제해 오래된 scorecard가 남지 않는다.
 
 ### B2. LLM 뉴스 감성 시그널 — **지금 설계 (off-by-default seam)**
 
@@ -106,8 +109,9 @@ Increment 1 (지금) ── 설정 기반 소스 척추 (A1)
         ▼
 Increment 2 ── 타입드 페이로드 (A4)            ✅ 구현 완료 (Record.payload 유니온; 바이트 동일)
 Increment 3 ── 데이터 닥터 (C1)               ✅ 구현 완료 (read-only `mimir doctor`)
-Increment 4 ── 시그널 백테스트 하네스 (B1)   ✅ 구현 완료 (MVP: engine+CLI; 리포트 합류 후속)
+Increment 4 ── 시그널 백테스트 하네스 (B1)   ✅ 구현 완료 (engine+CLI+pipeline+daily report scorecard)
 Increment 5 ── LLM 감성 seam (B2)            [사용자가 키·비용 승인 시 승격]
+Hardening ─── stale 재생성 데이터 제거 · lang 정규화 · SignalResult 범위 검증
 ```
 
 각 증분은 자기 spec → plan → 구현 → finish 사이클을 가진다. 본 카탈로그는 그 지도(map)다.
@@ -134,6 +138,6 @@ Increment 5 ── LLM 감성 seam (B2)            [사용자가 키·비용 승
 - `idempotency_key`는 소스 prefix로 교차충돌 없음 · 파티션은 자정 UTC라 안정.
 - 시크릿은 env/`.env`(gitignore)만 · ECOS 키 URL 유출은 이미 레다크션 처리.
 - `http_get` 429/5xx 재시도 + 4xx 빠른 실패 · 소스 격리(한 소스 실패가 전체를 멈추지 않음).
-- `append(overwrite=)` 재생성 데이터셋 last-write-wins · 원천 데이터 append-only.
+- 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 원천 데이터는 append-only.
 
-**결론.** 본 작업은 *버그 수정*이 아니라 *확장성 천장 제거 + 성숙기 피드백 루프 설계*다. 그래서 구현은 추적 가능한 A1에 한정하고, 나머지는 엄밀한 설계로 남긴다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. 구현은 추적 가능한 항목부터 진행하고, 신규 아키텍처(A2/A3)는 별도 설계로 남긴다.

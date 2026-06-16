@@ -15,6 +15,7 @@ from mimir.collect import run_collect
 from mimir.config import load_sources_config, load_watchlist, report_invalid_sources
 from mimir.core.source import Cadence
 from mimir.deliver import run_deliver
+from mimir.evaluate import run_evaluate
 from mimir.history import run_history
 from mimir.report.daily_report import DEFAULT_REPORTS_ROOT
 from mimir.report.i18n import DEFAULT_LANG
@@ -33,7 +34,10 @@ def run_pipeline(
     sources_config: dict[str, Any] | None = None,
     now: datetime | None = None,
 ) -> dict[str, Any]:
-    """Run the full cadence pipeline in one process: collect → analyze → history → deliver."""
+    """Run the full cadence pipeline in one process.
+
+    Flow: collect → analyze → history → evaluate → deliver.
+    """
     now = now or datetime.now(UTC)
     as_of: date = now.date()
     lang = (sources_config or {}).get("lang", DEFAULT_LANG)
@@ -56,6 +60,7 @@ def run_pipeline(
         settings=Settings.from_env(env),
     )
     historical = run_history(watchlist=watchlist, data_root=data_root, as_of=as_of, captured_at=now)
+    evaluation = run_evaluate(data_root=data_root, as_of=as_of, captured_at=now)
     delivery = run_deliver(
         cadence=cadence,
         env=env,
@@ -68,6 +73,7 @@ def run_pipeline(
         "collect_failures": collect_summary.had_failures,
         "insights": len(insights),
         "historical": len(historical),
+        "evaluation": len(evaluation.buckets),
         "report": delivery["report"],
         "telegram_sent": delivery["sent"],
     }
@@ -97,7 +103,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     print(
         f"[mimir] {args.cadence}: insights={result['insights']} "
-        f"historical={result['historical']} report={result['report']} "
+        f"historical={result['historical']} evaluation={result['evaluation']} "
+        f"report={result['report']} "
         f"telegram_sent={result['telegram_sent']}"
     )
     return 1 if result["collect_failures"] else 0

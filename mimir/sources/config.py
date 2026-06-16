@@ -42,6 +42,12 @@ class _SourcesBlock(BaseModel):
     rss: _RssBlock | None = None
 
 
+class _TopLevelSourcesConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    llm_sentiment_enabled: bool = False
+    llm_sentiment_max_headlines: int = 50
+
+
 def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
     """Read the optional ``raw['sources']`` block into a validated model.
 
@@ -55,11 +61,12 @@ def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
     # (0, false, [], "x") is malformed and must raise — not silently fall back.
     raw_sources = raw.get("sources")
     block = _SourcesBlock.model_validate({} if raw_sources is None else raw_sources)
+    top_level = _TopLevelSourcesConfig.model_validate(raw)
     return SourcesConfig(
         fred_series=block.fred.series if block.fred else None,
         ecos_series=block.ecos.series if block.ecos else None,
         rss_feeds=block.rss.feeds if block.rss else None,
         # Top-level analysis-plane toggles (siblings of gray_enabled), not under `sources:`.
-        llm_sentiment_enabled=bool(raw.get("llm_sentiment_enabled", False)),
-        llm_sentiment_max_headlines=int(raw.get("llm_sentiment_max_headlines", 50)),
+        llm_sentiment_enabled=top_level.llm_sentiment_enabled,
+        llm_sentiment_max_headlines=top_level.llm_sentiment_max_headlines,
     )

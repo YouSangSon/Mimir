@@ -2,7 +2,7 @@
 
 > **스펙 ID**: S3
 > **작성일**: 2026-05-31
-> **상태**: 구현 진행
+> **상태**: 구현 완료 · S4/B1 확장 반영
 > **선행**: [S2 Analysis](2026-05-31-analysis-design.md) · [로드맵](../../architecture/roadmap.md)
 
 ---
@@ -22,11 +22,13 @@ S3는 S2가 만든 `insights`(와 S1 원천 데이터)를 읽어 두 가지 산�
 - `save_report(html, as_of, root)` + `rebuild_index(root)` — 날짜 아카이브 + index.html
 - `build_digest(insights, cadence)` — 텔레그램용 짧은 텍스트(상위 ⭐ 종목)
 - `deliver` CLI (`python -m mimir.deliver --date D --cadence daily`) — 리포트 저장 + 다이제스트 발송
-- cadence 워크플로 체이닝: collect → analyze → deliver → 커밋(data+reports)
+- cadence 워크플로 체이닝: collect → analyze → history → evaluate → deliver → 커밋(data+reports)
 
 ### 제외(다음)
-- 과거 유사사례 인사이트(S4)가 리포트에 추가됨 — S4에서
 - 차트/그래프 시각화는 후속(텍스트·표 우선)
+
+> 현재 상태: 이 문서는 최초 S3 설계에서 시작했지만, 현재 구현은 S4 과거 유사사례와
+> B1 평가 성적표를 HTML 리포트에 함께 포함한다.
 
 ## 3. 설계 원칙
 - **읽기 전용 입력**: `insights`/원천 데이터만 읽음. 분석은 S2가 끝냄.
@@ -41,9 +43,9 @@ report/                         (기존 패키지 확장)
   daily_report.py   build_report_html · save_report · rebuild_index
   digest.py         build_digest(insights, cadence) -> str
   telegram.py       send_ping (기존) 재사용
-deliver.py          CLI: insights 읽기 → HTML 저장 → 다이제스트 발송
+deliver.py          CLI: insights/historical/evaluation 읽기 → HTML 저장 → 다이제스트 발송
 ```
-흐름: `deliver --date D --cadence C` → `DataReader(JsonlStore).read(INSIGHTS, D)` → HTML 저장 + index 갱신 → digest 생성 → `send_ping(settings, digest)`.
+흐름: `deliver --date D --cadence C` → `DataReader(JsonlStore).read(INSIGHTS/HISTORICAL/EVALUATION, D)` → HTML 저장 + index 갱신 → digest 생성 → `send_ping(settings, digest)`.
 
 ## 5. 산출물
 - **HTML**: 헤더(날짜·cadence), 종목별 카드(⭐ 1~5, 강세/약세 배지, confidence, 근거 목록), 데이터 커버리지 요약, 면책. 인라인 CSS.
@@ -55,6 +57,8 @@ deliver.py          CLI: insights 읽기 → HTML 저장 → 다이제스트 발
 ```
 python -m mimir.collect  --cadence <c>
 python -m mimir.analyze
+python -m mimir.history
+python -m mimir.evaluate
 python -m mimir.deliver  --cadence <c>
 git add data reports && commit || true && pull --rebase && push
 ```
@@ -69,5 +73,5 @@ git add data reports && commit || true && pull --rebase && push
 1. `python -m mimir.deliver --date D --cadence daily`가 `reports/YYYY/MM/DD.html` + `index.html` 생성.
 2. 봇 토큰이 있으면 다이제스트 발송, 없으면 graceful no-op(기록).
 3. 인사이트 0건도 깔끔한 리포트/다이제스트.
-4. 워크플로가 collect→analyze→deliver를 체이닝하고 reports를 커밋.
+4. 워크플로가 collect→analyze→history→evaluate→deliver를 체이닝하고 reports를 커밋.
 5. 커버리지 80%+, ruff·mypy --strict clean.

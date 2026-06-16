@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC4 (카탈로그 B1)
 > **작성일**: 2026-06-13
-> **상태**: ✅ 구현 완료 (Increment 4, MVP: evaluation engine + `mimir.evaluate` CLI · 208 테스트 · ruff·mypy strict 클린). §9 리포트 합류(deliver/daily_report/i18n)는 후속.
+> **상태**: ✅ 구현 완료 (Increment 4: evaluation engine + `mimir.evaluate` CLI + daily pipeline/report scorecard). 2026-06-16 hardening에서 stale scorecard 제거와 리포트 합류까지 완료.
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S4 Historical](2026-05-31-historical-design.md)
 
 ---
@@ -22,7 +22,7 @@ INC4는 발행된 인사이트를 **읽기 전용으로** 다시 채점한다: �
 - `evaluation/schema.py` — `EvaluationReport`/`BucketStat` envelope (`source="mimir_evaluation"`, `dataset="evaluation"`).
 - `evaluation/engine.py` — 저장된 `insights`(≤ as_of) × `prices`(≤ as_of) → 버킷별 통계 → `evaluation` JSONL 저장.
 - `mimir/evaluate.py` — CLI (`python -m mimir.evaluate [--date YYYY-MM-DD]`), `history.py` 미러.
-- 리포트 합류: `deliver.py`가 `Dataset.EVALUATION`을 읽어 `daily_report`에 "시그널 성적표" 섹션 추가.
+- 리포트 합류: `run.py`가 `evaluate`를 daily pipeline에 포함하고, `deliver.py`가 `Dataset.EVALUATION`을 읽어 `daily_report`에 "시그널 성적표" 섹션을 추가한다.
 
 ### 제외(후속)
 - 슬리피지·수수료·체결 모델, 포지션 사이징, 손익 시뮬레이션 — S4가 유의성 검정을 미룬 것과 동일하게 보류.
@@ -47,12 +47,13 @@ mimir/evaluation/
   metrics.py   anchor_index(series, as_of) · evaluate_bucket(...) -> BucketStat | None
                └ forward_returns(series, [anchor], h)  ← S4 analog.py 재사용 (재구현 금지)
   schema.py    BucketStat · EvaluationReport · to_record  (envelope)
-  engine.py    EvaluationEngine.run(as_of) -> EvaluationReport (+저장, overwrite=True)
+  engine.py    EvaluationEngine.run(as_of) -> EvaluationReport (+당일 파티션 교체)
 mimir/evaluate.py   CLI (history.py 미러)
 ```
 
 흐름:
 ```
+run      → collect → analyze → history → evaluate → deliver
 evaluate → DataReader.read(INSIGHTS, until=as_of)        # 발행된 모든 인사이트
          → DataReader.read(PRICES,   until=as_of)        # 가격 이력 (룩어헤드 차단)
          → 인사이트별: anchor = as_of 직후 첫 봉 인덱스
@@ -60,6 +61,7 @@ evaluate → DataReader.read(INSIGHTS, until=as_of)        # 발행된 모든 �
          → 방향 부호 적용 → 버킷(signal/direction/star)에 적립
          → evaluate_bucket → BucketStat (n ≥ MIN_EVAL_N 인 horizon만)
          → EvaluationReport → data/evaluation/YYYY/MM/DD.jsonl
+deliver  → Dataset.EVALUATION 당일 파티션 읽기 → 일일 리포트 "시그널 성적표"
 ```
 
 S4와의 의존 관계: `mimir.historical.analog.forward_returns`, `mimir.historical.series.bars_from_records`/`price_series`를 **그대로 import 해서 재사용**한다. 사후수익 산식(`(close[i+h]-close[i])/close[i]`, `i+h < len` 경계)을 **복제하지 않는다**.
@@ -190,7 +192,7 @@ def to_record(stat: BucketStat, as_of: date, captured_at: datetime) -> Record:
     ] } }
 ```
 
-저장은 `JsonlStore.append(records, overwrite=True)` — 같은 날 재실행 시 최신 계산이 last-write-wins(insights/historical과 동일 정책).
+저장은 `JsonlStore.replace_partition(Dataset.EVALUATION, as_of, records)`를 사용한다. 같은 날 재실행 시 당일 evaluation 파티션을 전체 교체한다. 모든 버킷이 표본 부족으로 탈락하면 파티션 파일을 삭제해 오래된 scorecard가 다음 리포트에 남지 않게 한다.
 
 **콜드스타트(명시)**: 발행 이력이 짧아 모든 버킷이 게이팅되면 `sufficient=False`, `buckets=[]`로 저장하고 CLI/리포트가 "표본 부족(insufficient sample)"을 출력한다 — "어떤 시그널도 안 통한다"로 오독되는 빈 성공을 만들지 않는다(no silent failure).
 
@@ -218,29 +220,34 @@ class EvaluationEngine:
         buckets = [s for s in (evaluate_bucket(k, obs) for k, obs in acc.items()) if s]
         report = EvaluationReport(as_of=as_of, insights_evaluated=len(insights),
                                   buckets=buckets, sufficient=bool(buckets))
-        self._store.append([to_record(b, as_of, captured_at) for b in buckets], overwrite=True)
+        self._store.replace_partition(
+            Dataset.EVALUATION, as_of, [to_record(b, as_of, captured_at) for b in buckets]
+        )
         return report
 ```
 
 `evaluate_bucket`은 horizon별로 `forward_returns(series, [anchor]…)` 결과를 모아 §6 산식을 적용하고 `MIN_EVAL_N` 게이팅 후 `BucketStat`을 만든다(없으면 `None`).
 
-## 9. 리포트 합류 (실제 seam)
+## 9. 리포트 합류 (구현 완료)
 
+- `mimir/run.py`: daily pipeline에서 `history` 뒤, `deliver` 앞에 `run_evaluate(...)`를 호출한다. 이 순서 때문에 리포트는 같은 실행에서 갱신된 scorecard를 읽는다.
 - `mimir/deliver.py`: 기존 `reader.read(Dataset.HISTORICAL, since=as_of, until=as_of)` 옆에 `reader.read(Dataset.EVALUATION, since=as_of, until=as_of)` 추가 → `BucketStat` 복원.
 - `mimir/report/daily_report.py`: `build_report_html(...)`에 `evaluation: list[BucketStat] | None = None` 파라미터 추가 + `_evaluation_section`(시그널 성적표 표) 생성, `historical_section` 아래 배치.
-- `mimir/report/i18n.py`: 신규 키 `evaluation_section_heading`, `evaluation_bucket_row`(예: `"{key}: {horizon}d hit {hit}% / edge {edge}% (n={n})"`)를 en/ko/zh 3종 추가(기존 `historical_*` 패턴 미러).
-- 텔레그램 다이제스트(`digest.py`)에는 별점 4~5 시그널의 5d 적중률 한 줄 요약을 옵션으로 노출(과밀 방지 위해 상위 N개만).
+- `mimir/report/i18n.py`: 신규 키 `evaluation_section_heading`, `evaluation_col_*`, `evaluation_horizon_cell`을 en/ko/zh 3종으로 추가한다.
+- 텔레그램 다이제스트(`digest.py`)에는 scorecard를 넣지 않는다. 다이제스트는 당일 주요 인사이트를 짧게 보내는 채널이고, scorecard는 표 형태가 필요한 운영 정보라 HTML 리포트와 대시보드에 둔다.
 
 ## 10. 수용 기준
 
-1. `python -m mimir.evaluate --date 2026-06-13`이 네트워크 없이 저장된 `insights`+`prices`만으로 동작하고 `data/evaluation/YYYY/MM/DD.jsonl`에 멱등(overwrite) 저장.
+1. `python -m mimir.evaluate --date 2026-06-13`이 네트워크 없이 저장된 `insights`+`prices`만으로 동작하고 `data/evaluation/YYYY/MM/DD.jsonl`에 당일 파티션 교체 방식으로 저장.
 2. **방향 인지 정확성**: bearish 인사이트가 음의 사후수익을 냈을 때 hit으로 집계됨(부호화 수익 `e>0`). neutral 관측은 hit-rate 분모에서 제외되고 `neutral_n`에만 카운트.
 3. **룩어헤드 회피**: 인사이트는 `as_of` *직후* 봉부터만 평가. `as_of`와 같은 날/이전 종가는 평가 진입점이 될 수 없음(테스트로 고정).
 4. **표본 게이팅**: `n < MIN_EVAL_N` horizon은 출력에서 제외. 모든 버킷 탈락 시 `sufficient=False` + "insufficient sample" 표기(빈 성공 금지).
 5. **재사용 검증**: 사후수익 계산이 `mimir.historical.analog.forward_returns`를 호출(재구현 아님) — import 추적으로 확인.
 6. per-signal/per-direction/per-star 3차원 모두 산출, market별 분리, `n` 항상 노출, 면책 포함.
-7. 리포트에 "시그널 성적표" 섹션이 en/ko/zh로 렌더.
-8. 커버리지 80%+, `ruff` clean, `mypy --strict` clean, 모든 파일 <800줄.
+7. `mimir.run` daily pipeline이 `collect -> analyze -> history -> evaluate -> deliver` 순서로 실행.
+8. 리포트에 "시그널 성적표" 섹션이 en/ko/zh로 렌더.
+9. 모든 버킷이 표본 부족으로 탈락하면 이전 evaluation 파티션이 삭제되어 stale scorecard가 남지 않음.
+10. 커버리지 80%+, `ruff` clean, `mypy --strict` clean, 모든 파일 <800줄.
 
 ## 11. 테스트 계획 (TDD, 합성 데이터 · 네트워크 없음)
 

@@ -4,6 +4,7 @@ from pathlib import Path
 from mimir.analysis.schema import Insight
 from mimir.analysis.signals.base import SignalDirection
 from mimir.core.source import Market
+from mimir.evaluation.schema import BucketStat, HorizonEval
 from mimir.report.daily_report import build_report_html, rebuild_index, save_report
 
 
@@ -17,6 +18,17 @@ def _insight(symbol="AAPL", stars=4, direction=SignalDirection.BULLISH) -> Insig
         confidence=0.8,
         signals=[],
         reasons=["[price_momentum] +6% over 6 sessions"],
+    )
+
+
+def _bucket(key: str = "price_momentum") -> BucketStat:
+    return BucketStat(
+        dimension="per_signal",
+        key=key,
+        market=Market.US,
+        horizons=[
+            HorizonEval(horizon=5, n=12, hit_rate=0.58, mean_fwd_return=0.004, neutral_n=2)
+        ],
     )
 
 
@@ -47,9 +59,45 @@ def test_build_report_html_chinese():
     assert "不构成投资建议" in h  # disclaimer
 
 
+def test_build_report_html_sanitizes_lang_attribute():
+    h = build_report_html(
+        [_insight()],
+        date(2026, 5, 31),
+        lang='en" onmouseover="alert(1)',
+    )
+    assert 'lang="en"' in h
+    assert "onmouseover" not in h
+
+
 def test_build_report_html_empty_korean():
     h = build_report_html([], date(2026, 5, 31), lang="ko")
     assert "특이사항 없음" in h
+
+
+def test_build_report_html_contains_evaluation_scorecard():
+    h = build_report_html([_insight()], date(2026, 5, 31), evaluation=[_bucket()])
+    assert "Signal scorecard" in h
+    assert "per_signal" in h
+    assert "price_momentum" in h
+    assert "5d: hit 58%" in h
+    assert "edge +0.4%" in h
+    assert "n=12" in h
+
+
+def test_build_report_html_evaluation_scorecard_korean():
+    h = build_report_html([_insight()], date(2026, 5, 31), evaluation=[_bucket()], lang="ko")
+    assert "시그널 성적표" in h
+    assert "5일: 적중 58%" in h
+
+
+def test_build_report_html_escapes_evaluation_bucket_key():
+    h = build_report_html(
+        [_insight()],
+        date(2026, 5, 31),
+        evaluation=[_bucket("<script>alert(1)</script>")],
+    )
+    assert "<script>alert(1)</script>" not in h
+    assert "&lt;script&gt;" in h
 
 
 def test_build_report_html_escapes_untrusted_data():
@@ -67,3 +115,10 @@ def test_save_report_and_rebuild_index(tmp_path: Path):
     index = rebuild_index(tmp_path)
     assert index.exists()
     assert "2026/05/31.html" in index.read_text()
+
+
+def test_rebuild_index_sanitizes_lang_attribute(tmp_path: Path):
+    index = rebuild_index(tmp_path, lang='en" onmouseover="alert(1)')
+    html_doc = index.read_text()
+    assert 'lang="en"' in html_doc
+    assert "onmouseover" not in html_doc

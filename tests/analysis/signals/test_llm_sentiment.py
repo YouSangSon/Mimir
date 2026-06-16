@@ -11,6 +11,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from mimir.analysis.signals.base import SignalDirection
 from mimir.analysis.signals.llm_sentiment import (
@@ -91,6 +92,16 @@ def test_returns_none_when_no_mentions(tmp_path: Path):
     recs = [_rec(None, 31, _news("Unrelated headline", ""))]
     sig = LlmSentimentSignal(classifier=FakeClassifier({}), max_headlines=50)
     assert sig.evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs)) is None
+
+
+@pytest.mark.parametrize("confidence", [-0.1, 1.1])
+def test_headline_verdict_rejects_out_of_range_confidence(confidence: float):
+    with pytest.raises(ValidationError):
+        HeadlineVerdict(
+            direction=SignalDirection.BULLISH,
+            confidence=confidence,
+            rationale="r",
+        )
 
 
 def test_aggregate_mixed_verdicts_is_bullish(tmp_path: Path):

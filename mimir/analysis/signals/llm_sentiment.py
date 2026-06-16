@@ -23,7 +23,7 @@ import logging
 from datetime import date
 from typing import Protocol
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from mimir.analysis.signals.base import DIRECTION_SIGN, SignalDirection, SignalResult
 from mimir.core.payloads import news_payload
@@ -42,7 +42,7 @@ class HeadlineVerdict(BaseModel):
     """Structured per-headline classification (tool-use / parse() output)."""
 
     direction: SignalDirection
-    confidence: float  # 0..1
+    confidence: float = Field(ge=0.0, le=1.0)
     rationale: str
 
 
