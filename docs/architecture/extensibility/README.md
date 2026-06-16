@@ -1,7 +1,7 @@
 # Mimir 확장성 아키텍처 가이드
 
 > **상태**: 현재 구현 기준
-> **최종 업데이트**: 2026-06-16
+> **최종 업데이트**: 2026-06-17
 > **대상 독자**: 새 데이터 소스, 새 분석 시그널, 새 리포트 섹션을 추가하려는 개발자
 
 ---
@@ -12,7 +12,7 @@ Mimir는 공개 데이터를 수집하고, 저장된 데이터로 인사이트�
 
 | 확장 지점 | 사용자가 바꾸는 것 | 코드 진입점 | 현재 상태 |
 |---|---|---|---|
-| 수집 소스 | `config/sources.yaml`, 새 `Source` 구현, 또는 `mimir.sources` plugin | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. RSS feed는 optional `symbol`로 종목 전용 feed를 표현한다. 새 내장 소스는 `SourceSpec` 한 줄로 등록. 외부 package는 entry point로 source를 추가 |
+| 수집 소스 | `config/sources.yaml`, 새 `Source` 구현, 또는 `mimir.sources` plugin | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. RSS feed는 optional `symbol`로 종목 전용 feed를 표현한다. 새 내장 소스는 `SourceSpec` 한 줄로 등록. 외부 package는 entry point와 `sources.plugins.<source_id>` 설정 namespace로 source를 추가 |
 | 분석 시그널 | `config/sources.yaml`의 `analysis:` 또는 `build_signals()`에 시그널 추가 | `mimir/analysis/builder.py` | 기본 뉴스 alias, 사용자 alias, symbol-tagged RSS, macro rate-series는 설정으로 제어 가능. LLM 시그널은 off-by-default gate로 배선됨 |
 | 출력 표면 | `daily_report`, `dashboard`, `digest` | `mimir/report/` | 일일 리포트와 대시보드가 인사이트·과거사례·평가를 표시 |
 
@@ -100,6 +100,39 @@ Plugin package는 Mimir 프로세스 안에서 실행된다. `SourceSpec.factory
 entry point가 단일 `SourceSpec`을 직접 로드하면 entry point 이름과 `SourceSpec.id`가 같아야 한다. 한 package가 여러 source를 제공할 때는 `tuple[SourceSpec, ...]`를 로드할 수 있다. Mimir는 built-in source를 먼저 만들고 plugin source를 이름순으로 뒤에 붙인다.
 
 Plugin import가 실패하면 warning을 남기고 해당 plugin만 건너뛴다. 잘못된 object type, source id 중복, `SourceSpec.id`와 실제 `source.meta.id` 불일치는 `ValueError`로 실패한다. source id는 backfill과 manifest에서 식별자로 쓰이기 때문에 충돌을 조용히 넘기지 않는다.
+
+### 3.4 외부 source plugin 설정
+
+외부 plugin이 설정을 필요로 하면 `sources.plugins.<source_id>` 아래에 둔다. 이 namespace는 built-in source 설정과 분리된다.
+
+```yaml
+sources:
+  plugins:
+    acme_news:
+      base_url: "https://internal.example.com/rss"
+      symbols: ["AAPL", "MSFT"]
+      timeout_seconds: 5
+```
+
+`source_id`는 `SourceSpec.id`와 같아야 한다. 한 package가 여러 source를 제공하면 각 source id 아래에 별도 설정을 둔다.
+
+Core parser는 plugin block이 mapping인지까지만 검증한다. Plugin factory는 자신이 소유한 pydantic 모델로 설정을 검증한다.
+
+```python
+class AcmeNewsConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    base_url: str
+    symbols: list[str] = []
+
+
+def build_acme_news(settings, cfg):
+    plugin_cfg = cfg.parse_plugin_config("acme_news", AcmeNewsConfig)
+    return AcmeNewsSource(base_url=plugin_cfg.base_url, symbols=plugin_cfg.symbols)
+```
+
+`sources.plugins.acme_news`가 있는데 matching `SourceSpec.id`가 없으면 builder는 warning을 남긴다. `sources.plugins.rss`처럼 built-in source id를 쓰면 builder가 warning을 남긴다. Built-in RSS 설정은 `sources.rss.feeds`를 써야 한다.
+
+Secret은 plugin 설정 block에 두지 않는다. API key와 token은 환경변수나 GitHub Secrets에 두고, plugin factory가 `Settings` 또는 직접 환경변수로 읽어야 한다.
 
 ---
 
@@ -193,7 +226,6 @@ NEWS 파티션은 다른 원천 데이터처럼 `ts.date()` 기준으로 저장�
 
 | 항목 | 왜 남았나 | 다음 행동 |
 |---|---|---|
-| 외부 source plugin 설정 namespace | 외부 package는 source를 주입할 수 있지만, plugin별 YAML 설정 스키마는 아직 없다 | 필요하면 `sources.plugins.<plugin>` 설정 namespace 설계 |
 | 종목별 RSS feed 자동 탐색 | 사용자가 알고 있는 종목별 feed는 `sources.rss.feeds[].symbol`로 연결할 수 있지만, Mimir가 vendor별 endpoint를 자동으로 찾아주지는 않는다 | 필요하면 provider별 feed discovery/catalog 설계 |
 
 이 문서는 현재 구현을 설명한다. 미래 설계가 확정되면 새 ADR 또는 증분 스펙에서 이 문서를 갱신한다.

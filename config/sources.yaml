@@ -47,3 +47,10 @@ llm_sentiment_max_headlines: 50   # per-run cap on newly classified headlines (c
 #     feeds:
 #       - { url: "https://www.sec.gov/news/pressreleases.rss", publisher: "SEC", market: "US" }
 #       - { url: "https://example.com/aapl.rss", publisher: "Example", market: "US", symbol: "AAPL" }
+#   plugins:
+#     # External source plugins read their own block by SourceSpec.id.
+#     # Keep secrets in environment variables / GitHub Secrets, not in this file.
+#     acme_news:
+#       base_url: "https://internal.example.com/rss"
+#       symbols: ["AAPL", "MSFT"]
+#       timeout_seconds: 5

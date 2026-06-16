@@ -86,6 +86,8 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
     ),
 )
 
+CONFIGURABLE_BUILTIN_SOURCE_IDS = frozenset({"ecos", "fred", "rss"})
+
 
 def _validate_unique_source_ids(specs: Sequence[SourceSpec]) -> None:
     seen: set[str] = set()
@@ -155,6 +157,7 @@ def _build_sources_from_specs(
     specs: Sequence[SourceSpec],
 ) -> list[Source]:
     _validate_unique_source_ids(specs)
+    _warn_for_unmatched_plugin_settings(config, specs)
     sources: list[Source] = []
     for spec in specs:
         if spec.required_secret_attr and not getattr(settings, spec.required_secret_attr):
@@ -172,6 +175,35 @@ def _build_sources_from_specs(
             raise ValueError(f"source spec id {spec.id!r} built source id {source.meta.id!r}")
         sources.append(source)
     return sources
+
+
+def _warn_for_unmatched_plugin_settings(
+    config: SourcesConfig, specs: Sequence[SourceSpec]
+) -> None:
+    source_ids = {spec.id for spec in specs}
+    builtin_ids = {spec.id for spec in BUILTIN_SOURCE_SPECS}
+    for source_id in sorted(config.plugin_settings):
+        if source_id in builtin_ids:
+            if source_id in CONFIGURABLE_BUILTIN_SOURCE_IDS:
+                logger.warning(
+                    "source plugin config '%s' targets built-in source '%s'; "
+                    "use sources.%s instead",
+                    source_id,
+                    source_id,
+                    source_id,
+                )
+            else:
+                logger.warning(
+                    "source plugin config '%s' targets built-in source '%s'; "
+                    "built-in sources do not read sources.plugins",
+                    source_id,
+                    source_id,
+                )
+        elif source_id not in source_ids:
+            logger.warning(
+                "source plugin config '%s' has no matching source spec",
+                source_id,
+            )
 
 
 def build_sources(settings: Settings, config: SourcesConfig | None = None) -> list[Source]:

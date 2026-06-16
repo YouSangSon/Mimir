@@ -1,5 +1,5 @@
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from mimir.sources.config import SourcesConfig, parse_sources_config
 from mimir.sources.ecos import EcosSeries
@@ -103,6 +103,64 @@ def test_partial_block_only_configures_present_source():
     assert cfg.fred_series == ["X"]
     assert cfg.ecos_series is None  # absent block -> None -> code default
     assert cfg.rss_feeds is None
+
+
+def test_sources_plugins_namespace_parses_mapping():
+    cfg = parse_sources_config(
+        {
+            "sources": {
+                "plugins": {
+                    "acme_news": {
+                        "base_url": "https://x",
+                        "limit": 10,
+                    }
+                }
+            }
+        }
+    )
+
+    assert cfg.plugin_settings == {"acme_news": {"base_url": "https://x", "limit": 10}}
+
+
+def test_sources_plugins_namespace_rejects_non_mapping_plugin_config():
+    with pytest.raises(ValidationError):
+        parse_sources_config({"sources": {"plugins": {"acme_news": "https://x"}}})
+
+
+def test_plugin_config_returns_copy_and_empty_default():
+    cfg = SourcesConfig(plugin_settings={"acme_news": {"limit": 10}})
+
+    plugin_cfg = cfg.plugin_config("acme_news")
+    plugin_cfg["limit"] = 99
+
+    assert cfg.plugin_config("acme_news") == {"limit": 10}
+    assert cfg.plugin_config("missing") == {}
+
+
+def test_parse_plugin_config_validates_with_pydantic_model():
+    class AcmeConfig(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+        base_url: str
+        limit: int
+
+    cfg = SourcesConfig(plugin_settings={"acme_news": {"base_url": "https://x", "limit": 10}})
+
+    parsed = cfg.parse_plugin_config("acme_news", AcmeConfig)
+
+    assert parsed == AcmeConfig(base_url="https://x", limit=10)
+
+
+def test_parse_plugin_config_rejects_plugin_schema_drift():
+    class AcmeConfig(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+        base_url: str
+
+    cfg = SourcesConfig(
+        plugin_settings={"acme_news": {"base_url": "https://x", "base_urll": "typo"}}
+    )
+
+    with pytest.raises(ValidationError):
+        cfg.parse_plugin_config("acme_news", AcmeConfig)
 
 
 def test_explicit_empty_list_is_distinct_from_none_at_parse_layer():

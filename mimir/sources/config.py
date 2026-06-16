@@ -1,17 +1,20 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypeVar
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from mimir.sources.ecos import EcosSeries
 from mimir.sources.rss import RssFeed
+
+PluginConfig = TypeVar("PluginConfig", bound=BaseModel)
 
 
 class SourcesConfig(BaseModel):
     fred_series: list[str] | None = None
     ecos_series: list[EcosSeries] | None = None
     rss_feeds: list[RssFeed] | None = None
+    plugin_settings: dict[str, dict[str, Any]] = Field(default_factory=dict)
     macro_regime_rate_series: list[str] | None = None
     news_aliases: dict[str, list[str]] | None = None
     use_default_news_aliases: bool = True
@@ -21,6 +24,16 @@ class SourcesConfig(BaseModel):
     # anthropic package before it registers the signal.
     llm_sentiment_enabled: bool = False
     llm_sentiment_max_headlines: int = 50
+
+    def plugin_config(self, source_id: str) -> dict[str, Any]:
+        """Return a copy of the plugin config block for ``source_id``."""
+        return dict(self.plugin_settings.get(source_id, {}))
+
+    def parse_plugin_config(
+        self, source_id: str, model: type[PluginConfig]
+    ) -> PluginConfig:
+        """Validate a plugin config block with the plugin-owned pydantic model."""
+        return model.model_validate(self.plugin_config(source_id))
 
 
 class _FredBlock(BaseModel):
@@ -43,6 +56,7 @@ class _SourcesBlock(BaseModel):
     fred: _FredBlock | None = None
     ecos: _EcosBlock | None = None
     rss: _RssBlock | None = None
+    plugins: dict[str, dict[str, Any]] | None = None
 
 
 class _MacroRegimeBlock(BaseModel):
@@ -91,6 +105,7 @@ def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
         fred_series=block.fred.series if block.fred else None,
         ecos_series=block.ecos.series if block.ecos else None,
         rss_feeds=block.rss.feeds if block.rss else None,
+        plugin_settings=block.plugins or {},
         macro_regime_rate_series=(
             top_level.analysis.macro_regime.rate_series
             if top_level.analysis and top_level.analysis.macro_regime

@@ -13,7 +13,7 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-415%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-424%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -88,7 +88,7 @@ reports/status.html               # per-source collection status
 
 | Feature | Behavior |
 | :--- | :--- |
-| **Source adapters** | 7 built-in sources behind a shared `Source` protocol, plus external source plugins via the `mimir.sources` entry point |
+| **Source adapters** | 7 built-in sources behind a shared `Source` protocol, plus external source plugins via the `mimir.sources` entry point and `sources.plugins.<source_id>` config namespace |
 | **Source isolation** | One source's failure or format change never halts another source or the whole run |
 | **Normalized envelope** | Every source converges to a common record validated with pydantic (`prices` · `filings` · `macro` · `news`) |
 | **Idempotent storage** | Re-running the same collection appends without duplicates thanks to the `idempotency_key` |
@@ -155,7 +155,7 @@ flowchart LR
 | **JsonlStore** | Date-partitioned `data/<dataset>/YYYY/MM/DD.jsonl` storage; prices/filings/news are first-write-wins, macro observations are last-write-wins for official revisions |
 | **Manifest** | Records every run one line at a time (what · when · how many · success or not) — the basis for data trustworthiness |
 
-Adding a built-in source is done with a single adapter in `sources/` plus one `SourceSpec` registration entry. External packages can register `SourceSpec` objects through the `mimir.sources` entry point. Install only trusted plugins: they run inside the Mimir process, are not sandboxed, and receive configured settings including API keys. The upper layers (analysis, trading) read only the stored envelope.
+Adding a built-in source is done with a single adapter in `sources/` plus one `SourceSpec` registration entry. External packages can register `SourceSpec` objects through the `mimir.sources` entry point and read their own `sources.plugins.<source_id>` config block. Install only trusted plugins: they run inside the Mimir process, are not sandboxed, and receive configured settings including API keys. The upper layers (analysis, trading) read only the stored envelope.
 
 ---
 
@@ -224,7 +224,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | Item | Value |
 | :--- | :--- |
-| **Tests** | 415 passing (adapters verified with recorded fixtures, no network) |
+| **Tests** | 424 passing (adapters verified with recorded fixtures, no network) |
 | **Coverage** | `mimir/` 97% (gate 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |

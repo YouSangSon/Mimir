@@ -1,6 +1,7 @@
 import logging
 
 import pytest
+from pydantic import BaseModel, ConfigDict
 
 from mimir.core.builder import (
     BUILTIN_SOURCE_SPECS,
@@ -43,6 +44,23 @@ class _PluginSource:
         legal_status=LegalStatus.OFFICIAL,
         rate_limit=RateLimit(max_per_second=1.0),
     )
+
+    def fetch(self, ctx):
+        return []
+
+
+class _ConfiguredPluginSource:
+    meta = SourceMeta(
+        id="plugin_news",
+        market=Market.GLOBAL,
+        dataset=Dataset.NEWS,
+        cadence=Cadence.HOURLY,
+        legal_status=LegalStatus.OFFICIAL,
+        rate_limit=RateLimit(max_per_second=1.0),
+    )
+
+    def __init__(self, base_url: str):
+        self.base_url = base_url
 
     def fetch(self, ctx):
         return []
@@ -213,6 +231,59 @@ def test_build_sources_includes_entry_point_sources_after_builtins(monkeypatch):
     sources = build_sources(Settings.from_env({}))
 
     assert [source.meta.id for source in sources] == ["sec_edgar", "rss", "plugin_news"]
+
+
+def test_build_sources_passes_plugin_namespace_to_factory():
+    class PluginConfig(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+        base_url: str
+
+    def build_plugin(settings, cfg):
+        plugin_cfg = cfg.parse_plugin_config("plugin_news", PluginConfig)
+        return _ConfiguredPluginSource(base_url=plugin_cfg.base_url)
+
+    specs = (SourceSpec("plugin_news", build_plugin),)
+    cfg = SourcesConfig(plugin_settings={"plugin_news": {"base_url": "https://plugin.test"}})
+
+    sources = _build_sources_from_specs(Settings.from_env({}), cfg, specs)
+
+    assert len(sources) == 1
+    assert isinstance(sources[0], _ConfiguredPluginSource)
+    assert sources[0].base_url == "https://plugin.test"
+
+
+def test_builder_warns_for_unmatched_plugin_config(caplog):
+    cfg = SourcesConfig(plugin_settings={"missing_plugin": {"base_url": "https://x"}})
+
+    with caplog.at_level(logging.WARNING):
+        _build_sources_from_specs(Settings.from_env({}), cfg, ())
+
+    assert "source plugin config 'missing_plugin' has no matching source spec" in " ".join(
+        r.message for r in caplog.records
+    )
+
+
+def test_builder_warns_when_plugin_namespace_targets_builtin_source(caplog):
+    cfg = SourcesConfig(plugin_settings={"rss": {"feeds": []}})
+
+    with caplog.at_level(logging.WARNING):
+        _build_sources_from_specs(Settings.from_env({}), cfg, ())
+
+    messages = " ".join(r.message for r in caplog.records)
+    assert "source plugin config 'rss' targets built-in source 'rss'" in messages
+    assert "use sources.rss instead" in messages
+
+
+def test_builder_warns_when_plugin_namespace_targets_non_configurable_builtin(caplog):
+    cfg = SourcesConfig(plugin_settings={"sec_edgar": {"user_agent": "x"}})
+
+    with caplog.at_level(logging.WARNING):
+        _build_sources_from_specs(Settings.from_env({}), cfg, ())
+
+    messages = " ".join(r.message for r in caplog.records)
+    assert "source plugin config 'sec_edgar' targets built-in source 'sec_edgar'" in messages
+    assert "built-in sources do not read sources.plugins" in messages
+    assert "use sources.sec_edgar instead" not in messages
 
 
 def test_entry_point_duplicate_builtin_source_id_raises_value_error(monkeypatch):

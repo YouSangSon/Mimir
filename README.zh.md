@@ -13,7 +13,7 @@
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-415%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-424%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -88,7 +88,7 @@ reports/status.html               # 各数据源采集状况
 
 | 功能 | 行为 |
 | :--- | :--- |
-| **数据源适配器** | 在统一的 `Source` 协议背后隔离实现 7 个内置数据源，并通过 `mimir.sources` entry point 支持外部 source plugin |
+| **数据源适配器** | 在统一的 `Source` 协议背后隔离实现 7 个内置数据源，并通过 `mimir.sources` entry point 与 `sources.plugins.<source_id>` 配置 namespace 支持外部 source plugin |
 | **数据源隔离** | 单个数据源的失败·格式变更不会让其他数据源或整次运行停下 |
 | **规范化 envelope** | 所有数据源汇聚为经 pydantic 校验的统一记录（`prices`·`filings`·`macro`·`news`） |
 | **幂等存储** | 即便重跑同一次采集，也通过 `idempotency_key` 无重复地 append |
@@ -155,7 +155,7 @@ flowchart LR
 | **JsonlStore** | `data/<dataset>/YYYY/MM/DD.jsonl` 按日期分区存储；价格/公告/新闻保持 first-write-wins，宏观观测值用 last-write-wins 反映官方修订 |
 | **Manifest** | 每次运行逐行记录（做了什么·何时·多少条·是否成功）——数据可信度的依据 |
 
-新增内置数据源只需在 `sources/` 加一个适配器 + 一条 `SourceSpec` 注册即可完成。外部 package 可以通过 `mimir.sources` entry point 注册 `SourceSpec`。只应安装可信 plugin：plugin 在 Mimir 进程内运行，不会被 sandbox 隔离，并且会收到包含 API key 在内的 settings。上层（分析·交易）只读取已存储的 envelope。
+新增内置数据源只需在 `sources/` 加一个适配器 + 一条 `SourceSpec` 注册即可完成。外部 package 可以通过 `mimir.sources` entry point 注册 `SourceSpec`，并读取自己的 `sources.plugins.<source_id>` 配置块。只应安装可信 plugin：plugin 在 Mimir 进程内运行，不会被 sandbox 隔离，并且会收到包含 API key 在内的 settings。上层（分析·交易）只读取已存储的 envelope。
 
 ---
 
@@ -224,7 +224,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 项目 | 值 |
 | :--- | :--- |
-| **测试** | 415 passing（适配器以录制的 fixture 在无网络下验证） |
+| **测试** | 424 passing（适配器以录制的 fixture 在无网络下验证） |
 | **覆盖率** | `mimir/` 97%（门槛 80%） |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — 每次 push/PR 执行 lint·type·test·coverage |

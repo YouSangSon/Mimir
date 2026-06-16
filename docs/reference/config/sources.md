@@ -1,7 +1,7 @@
 # `config/sources.yaml` 설정 레퍼런스
 
 > **상태**: 현재 구현 기준
-> **최종 업데이트**: 2026-06-16
+> **최종 업데이트**: 2026-06-17
 > **대상 독자**: 로컬 실행자, GitHub Actions 운영자, 새 데이터 커버리지를 추가하는 개발자
 
 ---
@@ -38,6 +38,11 @@ sources:
     feeds:
       - { url: "https://www.sec.gov/news/pressreleases.rss", publisher: "SEC", market: "US" }
       - { url: "https://example.com/aapl.rss", publisher: "Example", market: "US", symbol: "AAPL" }
+  plugins:
+    acme_news:
+      base_url: "https://internal.example.com/rss"
+      symbols: ["AAPL", "MSFT"]
+      timeout_seconds: 5
 ```
 
 ---
@@ -177,6 +182,33 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 
 `symbol`이 있으면 `RawRecord.symbol`에 그 값을 넣고, idempotency key는 `rss:{symbol}:{link}`가 된다. 같은 URL이 `AAPL` feed와 `MSFT` feed에 동시에 있어도 두 symbol 관계가 dedup으로 사라지지 않는다.
 
+### 4.4 Source plugin settings
+
+외부 source plugin은 `mimir.sources` entry point로 `SourceSpec`을 등록한다. Plugin이 자체 설정을 필요로 하면 `sources.plugins.<source_id>` 아래에 둔다.
+
+```yaml
+sources:
+  plugins:
+    acme_news:
+      base_url: "https://internal.example.com/rss"
+      symbols: ["AAPL", "MSFT"]
+      timeout_seconds: 5
+```
+
+`acme_news`는 plugin이 등록한 `SourceSpec.id`와 같아야 한다. 한 package가 여러 source를 제공하면 각 source id 아래에 별도 설정을 둔다.
+
+| 필드 | 의미 |
+|---|---|
+| `sources.plugins` | 외부 source plugin 전용 namespace |
+| `sources.plugins.<source_id>` | plugin source id별 설정 mapping |
+| block 내부 key | plugin package가 소유한 설정 schema |
+
+Mimir core는 plugin block이 mapping인지까지만 검증한다. 실제 필드 이름과 타입은 plugin factory가 `SourcesConfig.parse_plugin_config()`로 자기 pydantic 모델을 검증해야 한다. 이 구조는 core가 외부 plugin schema를 알 필요 없이 typo를 plugin 경계에서 크게 실패시키기 위한 것이다.
+
+Built-in source 설정은 이 namespace에 넣지 않는다. 예를 들어 RSS feed는 `sources.rss.feeds`를 써야 하고, `sources.plugins.rss`는 warning을 남긴다.
+
+민감한 값은 이 파일에 쓰지 않는다. API key, token, password는 환경변수나 GitHub Secrets에 둔다. Plugin factory는 `Settings`도 받으므로 secret은 그 경로로 읽어야 한다.
+
 ---
 
 ## 5. 끄는 방법
@@ -257,6 +289,22 @@ sources:
     feeds:
       - { url: "https://x/feed.rss", publisher: "Example", market: "US", symbol: "   " }
       # symbol은 공백만 있으면 안 된다.
+```
+
+```yaml
+sources:
+  plugins:
+    acme_news: "https://internal.example.com/rss"
+    # plugin 설정은 문자열이 아니라 mapping이어야 한다.
+```
+
+```yaml
+sources:
+  plugins:
+    rss:
+      feeds: []
+    # built-in RSS 설정은 sources.plugins.rss가 아니라 sources.rss.feeds를 써야 한다.
+    # 이 설정은 파서는 통과하지만 builder가 warning을 남기며 built-in RSS에는 적용하지 않는다.
 ```
 
 ```yaml
