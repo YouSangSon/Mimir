@@ -13,7 +13,7 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-407%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-415%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -53,7 +53,7 @@ python -m venv .venv
 # 2. Configure
 cp .env.example .env          # fill in only the free keys you want (auto-loaded, gitignored)
 #   config/watchlist.yaml      tracked symbols (US tickers / KR stock codes)
-#   config/sources.yaml        source on/off · GRAY policy · series/feeds (extend coverage, no code)
+#   config/sources.yaml        source on/off · GRAY policy · series/feeds/symbol-tagged RSS
 
 # 3. Run the full pipeline (collect → analyze → historical patterns → evaluate → report)
 .venv/bin/python -m mimir.run --cadence daily   # cadence: hourly|daily|weekly|monthly
@@ -224,7 +224,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | Item | Value |
 | :--- | :--- |
-| **Tests** | 407 passing (adapters verified with recorded fixtures, no network) |
+| **Tests** | 415 passing (adapters verified with recorded fixtures, no network) |
 | **Coverage** | `mimir/` 97% (gate 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |
@@ -251,7 +251,7 @@ The full picture is managed against [`docs/architecture/roadmap.md`](docs/archit
 
 | Area | Status |
 | :--- | :--- |
-| **Insights / star ratings** | Implemented as rule-based signals with ⭐ conviction, confidence, attention, and a disclaimer. News matching uses conservative default company aliases plus user aliases; LLM sentiment is available as an off-by-default seam |
+| **Insights / star ratings** | Implemented as rule-based signals with ⭐ conviction, confidence, attention, and a disclaimer. News matching uses symbol-tagged RSS feeds, conservative default company aliases, and user aliases; LLM sentiment is available as an off-by-default seam. Automatic feed discovery/catalog is not implemented |
 | **KR prices** | pykrx is GRAY and optional to install (`[kr]`). The price source that works without keys is Stooq (free apikey required) |
 | **Historical-pattern analysis** | S4 implemented (event-study). Needs price history with a large enough sample `n` — backfill recommended |
 | **Signal scorecard** | Implemented via `mimir.evaluate` and shown in the daily report/dashboard. Early runs may show insufficient sample until enough past insights and prices exist |

@@ -52,6 +52,8 @@ class NewsMentionMatcher:
         return tuple(terms)
 
     def mentions(self, record: Record, symbol: str) -> bool:
+        if record.symbol == symbol:
+            return True
         payload = news_payload(record)
         text = f"{payload.title or ''} {payload.summary or ''}"
         return any(self._matches_term(text, term) for term in self.terms_for(symbol))

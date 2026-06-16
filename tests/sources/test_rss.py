@@ -19,6 +19,13 @@ RSS = """<?xml version="1.0" encoding="UTF-8"?>
 """
 
 FEEDS = [RssFeed(url="https://example.test/feed", publisher="Example", market="US")]
+SYMBOL_FEEDS = [
+    RssFeed(url="https://example.test/feed", publisher="Example", market="US", symbol="AAPL")
+]
+MULTI_SYMBOL_FEEDS = [
+    RssFeed(url="https://example.test/aapl", publisher="Example", market="US", symbol="AAPL"),
+    RssFeed(url="https://example.test/msft", publisher="Example", market="US", symbol="MSFT"),
+]
 
 
 def _ctx():
@@ -38,6 +45,41 @@ def test_rss_parses_entries():
     assert rec.payload["publisher"] == "Example"
     assert rec.payload["market"] == "US"
     assert rec.ts == datetime(2026, 5, 29, 13, 0, 0, tzinfo=UTC)
+
+
+@responses.activate
+def test_rss_parses_entries_with_feed_symbol():
+    responses.add(responses.GET, "https://example.test/feed", body=RSS, status=200)
+    src = RssSource(feeds=SYMBOL_FEEDS, session=requests.Session())
+
+    recs = list(src.fetch(_ctx()))
+
+    assert len(recs) == 1
+    rec = recs[0]
+    assert rec.symbol == "AAPL"
+    assert rec.idempotency_key == "rss:AAPL:https://example.test/news/1"
+    assert rec.payload == {
+        "title": "Big news headline",
+        "url": "https://example.test/news/1",
+        "publisher": "Example",
+        "market": "US",
+        "published_at": "Fri, 29 May 2026 13:00:00 GMT",
+        "summary": "Short summary.",
+    }
+
+
+@responses.activate
+def test_rss_symbol_feed_key_keeps_same_url_for_multiple_symbols():
+    responses.add(responses.GET, "https://example.test/aapl", body=RSS, status=200)
+    responses.add(responses.GET, "https://example.test/msft", body=RSS, status=200)
+    src = RssSource(feeds=MULTI_SYMBOL_FEEDS, session=requests.Session())
+
+    recs = list(src.fetch(_ctx()))
+
+    assert [(rec.symbol, rec.idempotency_key) for rec in recs] == [
+        ("AAPL", "rss:AAPL:https://example.test/news/1"),
+        ("MSFT", "rss:MSFT:https://example.test/news/1"),
+    ]
 
 
 def test_rss_meta():

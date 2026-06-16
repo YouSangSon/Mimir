@@ -12,8 +12,8 @@ Mimir는 공개 데이터를 수집하고, 저장된 데이터로 인사이트�
 
 | 확장 지점 | 사용자가 바꾸는 것 | 코드 진입점 | 현재 상태 |
 |---|---|---|---|
-| 수집 소스 | `config/sources.yaml`, 새 `Source` 구현, 또는 `mimir.sources` plugin | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. 새 내장 소스는 `SourceSpec` 한 줄로 등록. 외부 package는 entry point로 source를 추가 |
-| 분석 시그널 | `config/sources.yaml`의 `analysis:` 또는 `build_signals()`에 시그널 추가 | `mimir/analysis/builder.py` | 기본 뉴스 alias, 사용자 alias, macro rate-series는 설정으로 제어 가능. LLM 시그널은 off-by-default gate로 배선됨 |
+| 수집 소스 | `config/sources.yaml`, 새 `Source` 구현, 또는 `mimir.sources` plugin | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. RSS feed는 optional `symbol`로 종목 전용 feed를 표현한다. 새 내장 소스는 `SourceSpec` 한 줄로 등록. 외부 package는 entry point로 source를 추가 |
+| 분석 시그널 | `config/sources.yaml`의 `analysis:` 또는 `build_signals()`에 시그널 추가 | `mimir/analysis/builder.py` | 기본 뉴스 alias, 사용자 alias, symbol-tagged RSS, macro rate-series는 설정으로 제어 가능. LLM 시그널은 off-by-default gate로 배선됨 |
 | 출력 표면 | `daily_report`, `dashboard`, `digest` | `mimir/report/` | 일일 리포트와 대시보드가 인사이트·과거사례·평가를 표시 |
 
 ---
@@ -65,6 +65,7 @@ sources:
   rss:
     feeds:
       - { url: "https://www.sec.gov/news/pressreleases.rss", publisher: "SEC", market: "US" }
+      - { url: "https://example.com/aapl.rss", publisher: "Example", market: "US", symbol: "AAPL" }
 ```
 
 이 경로는 파이썬 코드를 고치지 않는다. 설정이 없으면 기존 기본값을 그대로 쓴다. 설정 키가 틀리면 조용히 무시하지 않고 `ValidationError`로 실패한다.
@@ -136,7 +137,25 @@ analysis:
 
 뉴스 시그널의 날짜 윈도우는 `captured_at` 기준이다. `ts`는 기사 발행일로 남기고, `captured_at`은 Mimir가 그 기사를 관측한 실행일을 뜻한다. 그래서 어제 발행됐지만 오늘 수집된 뉴스는 오늘 `news_volume`과 opt-in `llm_sentiment` 입력에 들어간다.
 
-### 4.2 Macro regime 시리즈
+### 4.2 Symbol-tagged RSS feeds
+
+종목별 RSS feed를 이미 알고 있으면 `sources.rss.feeds[].symbol`을 쓴다.
+
+```yaml
+sources:
+  rss:
+    feeds:
+      - url: "https://example.com/aapl.rss"
+        publisher: "Example"
+        market: "US"
+        symbol: "AAPL"
+```
+
+이 설정은 feed에서 온 record의 top-level symbol을 `AAPL`로 저장한다. `NewsVolumeSignal`과 opt-in `LlmSentimentSignal`은 같은 matcher를 쓰며, matcher는 제목·요약을 보기 전에 record symbol을 먼저 확인한다. 그래서 제목에 `AAPL`이나 `Apple`이 없어도 해당 feed에서 온 뉴스는 `AAPL` 뉴스로 계산된다.
+
+Symbol이 없는 RSS feed는 기존 key 형식인 `rss:{link}`를 유지한다. Symbol이 있는 feed는 `rss:{symbol}:{link}`를 쓴다. 같은 기사 URL이 여러 종목 feed에 나타나도 symbol 관계가 dedup으로 사라지지 않게 하기 위한 정책이다.
+
+### 4.3 Macro regime 시리즈
 
 거시 경제 시리즈 메타데이터는 `mimir/core/macro_series.py`가 관리한다. 이 모듈은 기본 FRED 시리즈, 기본 ECOS 시리즈, doctor freshness cadence, macro-regime rate-series 기본값을 함께 제공한다.
 
@@ -175,6 +194,6 @@ NEWS 파티션은 다른 원천 데이터처럼 `ts.date()` 기준으로 저장�
 | 항목 | 왜 남았나 | 다음 행동 |
 |---|---|---|
 | 외부 source plugin 설정 namespace | 외부 package는 source를 주입할 수 있지만, plugin별 YAML 설정 스키마는 아직 없다 | 필요하면 `sources.plugins.<plugin>` 설정 namespace 설계 |
-| `news_volume` 실데이터 한계 | 기본/사용자 alias matcher와 captured window는 구현됐지만, 종목별 feed는 없다 | 필요하면 종목별 feed, alias metadata 확장, 또는 LLM 시그널 승격 설계 |
+| 종목별 RSS feed 자동 탐색 | 사용자가 알고 있는 종목별 feed는 `sources.rss.feeds[].symbol`로 연결할 수 있지만, Mimir가 vendor별 endpoint를 자동으로 찾아주지는 않는다 | 필요하면 provider별 feed discovery/catalog 설계 |
 
 이 문서는 현재 구현을 설명한다. 미래 설계가 확정되면 새 ADR 또는 증분 스펙에서 이 문서를 갱신한다.

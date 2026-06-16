@@ -116,6 +116,15 @@ def test_news_volume_matches_symbol_in_title(tmp_path: Path):
     assert r.direction is SignalDirection.NEUTRAL
 
 
+def test_news_volume_counts_symbol_tagged_feed_without_text_mention(tmp_path: Path):
+    recs = [_rec(Dataset.NEWS, "AAPL", 31, _news("Supplier update", "No ticker here"))]
+
+    r = NewsVolumeSignal().evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
+
+    assert r is not None
+    assert r.signal == "news_volume"
+
+
 def test_news_volume_counts_news_captured_today_even_when_published_yesterday(
     tmp_path: Path,
 ):
@@ -138,6 +147,14 @@ def test_news_mention_matcher_matches_case_insensitively(tmp_path: Path):
     record = _rec(Dataset.NEWS, None, 31, _news("supplier update", "apple reports"))
 
     assert matcher.mentions(record, "AAPL")
+
+
+def test_news_mention_matcher_matches_record_symbol_before_text(tmp_path: Path):
+    matcher = NewsMentionMatcher()
+    record = _rec(Dataset.NEWS, "AAPL", 31, _news("Supplier update", "No ticker here"))
+
+    assert matcher.mentions(record, "AAPL")
+    assert not matcher.mentions(record, "MSFT")
 
 
 def test_news_mention_matcher_rejects_alias_inside_adjacent_hangul(tmp_path: Path):

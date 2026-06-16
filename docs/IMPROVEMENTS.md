@@ -11,7 +11,7 @@
 - [x] **Orch 어댑터 mid-generator 예외**: `sec_edgar`/`dart`가 누락 필드에 인덱싱/브래킷 접근 → 소스 배치 전체 손실. → `.get()` + skip.
 - [x] **H3 RSS `ts=now` 폴백**: 발행일 없는 항목이 dedup 무력화·뉴스량 부풀림. → 발행일 없으면 skip.
 - [x] **H2 과거패턴 look-ahead**: `price_series`가 `as_of` 무시. → `until=as_of` 전달 + `triggered_today`를 as_of 기준으로.
-- [x] **R1 news_volume 실데이터 무력(해소 진행)**: 티커가 공식 피드 헤드라인에 안 나오는 문제를 줄이기 위해 `analysis.news.aliases` 회사명 alias matcher와 보수적 기본 alias 데이터셋을 추가. `news_volume`과 opt-in `llm_sentiment`가 같은 matcher를 사용한다. 두 뉴스 시그널은 발행일(`ts`)이 아니라 수집일(`captured_at`) 기준 윈도우로 오늘과 baseline을 읽는다. 짧은 티커/한글 인접어 오매칭은 단어 경계로 방지. 남은 한계: 종목별 feed.
+- [x] **R1 news_volume 실데이터 무력(해소 진행)**: 티커가 공식 피드 헤드라인에 안 나오는 문제를 줄이기 위해 `analysis.news.aliases` 회사명 alias matcher, 보수적 기본 alias 데이터셋, `sources.rss.feeds[].symbol` 기반 종목별 RSS feed 매칭을 추가. `news_volume`과 opt-in `llm_sentiment`가 같은 matcher를 사용한다. 두 뉴스 시그널은 발행일(`ts`)이 아니라 수집일(`captured_at`) 기준 윈도우로 오늘과 baseline을 읽는다. 짧은 티커/한글 인접어 오매칭은 단어 경계로 방지.
 - [x] **R2b DART/SEC 페이지네이션·백필**: DART는 `total_page` 루프(MAX_PAGES 가드)로 전 페이지 순회; SEC는 `ctx` 주입 + 백필 시 `files[]` 아카이브 페이징 + `filingDate >= since` 필터(50건 캡 제거). (Inc.3)
 - [x] **P-H1 DataReader 전체 재스캔**: → `JsonlStore.read_window(since,until)` 파티션 프루닝(S2 핫패스), S4는 PRICES 1회 읽어 symbol 버킷팅(load-once). (실행당 캐시는 `run.py` 단일 프로세스로 부분 완화)
 - [x] **E1 재생성 데이터 stale 잔존**: insights/historical/evaluation이 당일 재실행에서 0건 또는 더 작은 결과를 만들면 이전 레코드가 남아 다음 리포트에 노출될 수 있었다. → `JsonlStore.replace_partition(dataset, day, records)`를 추가하고 세 엔진이 당일 파티션을 전체 교체한다. 빈 결과면 파티션 파일을 삭제한다.
@@ -37,13 +37,13 @@
 - [x] **`_load_yaml` 4중복 + watchlist 폴백 중복**: → `mimir/config.py`(load_yaml/load_watchlist/load_sources_config)로 통합.
 - [x] **워크플로 4중복**: `_pipeline.yml`(workflow_call) + 4개 thin caller로 ~190줄 중복 제거.
 - [x] **단일 파이프라인 진입점**: `mimir/run.py run_pipeline`(collect→analyze→history→evaluate→deliver 단일 프로세스).
-- [x] **news_volume 단어경계 + alias 매칭 + captured window**: 짧은 티커 오매칭을 제거하고, 기본 watchlist용 보수적 회사명 alias와 `analysis.news.aliases` 사용자 alias를 지원한다. 공식 피드 ticker 부재는 기본/사용자 alias로 일부 완화된다. 뉴스 신호의 today/baseline은 `captured_at` 기준으로 읽어 늦게 수집된 발행 기사를 실행일 분석에 포함한다. 종목별 feed는 후속.
+- [x] **news_volume 단어경계 + alias 매칭 + captured window + 종목별 RSS feed**: 짧은 티커 오매칭을 제거하고, 기본 watchlist용 보수적 회사명 alias와 `analysis.news.aliases` 사용자 alias를 지원한다. 공식 피드 ticker 부재는 기본/사용자 alias로 일부 완화된다. 사용자가 종목별 RSS feed를 알고 있으면 `sources.rss.feeds[].symbol`로 연결할 수 있다. 뉴스 신호의 today/baseline은 `captured_at` 기준으로 읽어 늦게 수집된 발행 기사를 실행일 분석에 포함한다.
 - [x] **설정 기반 시리즈/피드 + macro series 단일 진실원**: FRED/ECOS series·RSS feeds를 `sources.yaml`의 `sources:` 블록으로 노출하고, macro rate-series와 doctor cadence를 `mimir/core/macro_series.py`로 통합. `analysis.macro_regime.rate_series`로 수집 대상과 분석 해석 대상을 분리한다.
 - [x] **GH Actions Node20 deprecation**: `actions/checkout@v4`·`setup-python@v5`가 Node20 세대 action이라 2026-06-16 Node24 기본 전환에 걸릴 수 있었다. → `checkout@v6`·`setup-python@v6`로 올리고, `tests/test_workflows.py`가 workflow action major를 검증한다.
 - [x] **pykrx 일시 실패 재시도**: `pykrx`는 `BaseSource`를 직접 쓰지 않는 library source라 공통 `http_get` 정책을 상속하지 못했다. → OHLCV 호출 경계에 throttle + 짧은 지수 backoff retry를 추가하고, 소진 시 `FetchError`로 ticker와 마지막 오류를 manifest에 남긴다. GRAY·선택 소스 정책은 유지한다.
 
-## 후속(Increment 3 후보)
-종목별 news feed.
+## 후속 후보
+- 종목별 RSS feed 자동 탐색/catalog. 지금은 사용자가 알고 있는 feed URL을 `sources.rss.feeds[].symbol`로 직접 연결한다.
 
 ## 안티-파인딩(확인됨, 수정 불필요)
 volume-surge는 현재 봉을 자기 평균에서 제외(정확) · forward_returns는 의도된 event-study(누수 아님) · 가격/공시/거시 ts는 자정 UTC라 파티션 안정 · idempotency_key는 소스 prefix로 교차충돌 없음 · 시크릿은 env만·.env gitignore·.env.example 플레이스홀더 · 워치리스트 심볼 URL 주입 안전 · 워크플로 커맨드 인젝션 없음 · 레이어 그래프는 순환 없음 · 파일 크기 건전.

@@ -7,7 +7,7 @@ from typing import Any
 
 import feedparser
 import requests
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from mimir.core.source import (
     Cadence,
@@ -26,9 +26,22 @@ SUMMARY_MAX = 500  # store only a short summary; never full article text (copyri
 
 
 class RssFeed(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     url: str
     publisher: str
     market: str  # US | KR | GLOBAL — recorded in payload (envelope market stays GLOBAL)
+    symbol: str | None = None
+
+    @field_validator("symbol")
+    @classmethod
+    def _normalize_symbol(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        symbol = value.strip()
+        if not symbol:
+            raise ValueError("RSS feed symbol must not be blank")
+        return symbol
 
 
 # Official, headline/metadata-only feeds. Override via constructor / config.
@@ -71,10 +84,11 @@ class RssSource(BaseSource):
                     # the same article in a different partition each run, defeating
                     # dedup and inflating news-volume counts.
                     continue
+                key = f"rss:{feed.symbol}:{link}" if feed.symbol else f"rss:{link}"
                 yield RawRecord(
-                    symbol=None,
+                    symbol=feed.symbol,
                     ts=ts,
-                    idempotency_key=f"rss:{link}",
+                    idempotency_key=key,
                     payload={
                         "title": entry.get("title"),
                         "url": link,

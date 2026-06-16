@@ -34,6 +34,70 @@ def test_full_block_parses_typed_models():
     assert cfg.rss_feeds == [RssFeed(url="https://x/feed.rss", publisher="SEC", market="US")]
 
 
+def test_rss_feed_symbol_parses_from_config():
+    raw = {
+        "sources": {
+            "rss": {
+                "feeds": [
+                    {
+                        "url": "https://x/feed.rss",
+                        "publisher": "Example",
+                        "market": "US",
+                        "symbol": " AAPL ",
+                    }
+                ]
+            }
+        }
+    }
+
+    cfg = parse_sources_config(raw)
+
+    assert cfg.rss_feeds == [
+        RssFeed(url="https://x/feed.rss", publisher="Example", market="US", symbol="AAPL")
+    ]
+    assert cfg.rss_feeds[0].symbol == "AAPL"
+
+
+def test_rss_feed_blank_symbol_raises_validation_error():
+    raw = {
+        "sources": {
+            "rss": {
+                "feeds": [
+                    {
+                        "url": "https://x/feed.rss",
+                        "publisher": "Example",
+                        "market": "US",
+                        "symbol": "   ",
+                    }
+                ]
+            }
+        }
+    }
+
+    with pytest.raises(ValidationError):
+        parse_sources_config(raw)
+
+
+def test_rss_feed_typo_field_raises_validation_error():
+    raw = {
+        "sources": {
+            "rss": {
+                "feeds": [
+                    {
+                        "url": "https://x/feed.rss",
+                        "publisher": "Example",
+                        "market": "US",
+                        "symbl": "AAPL",
+                    }
+                ]
+            }
+        }
+    }
+
+    with pytest.raises(ValidationError):
+        parse_sources_config(raw)
+
+
 def test_partial_block_only_configures_present_source():
     cfg = parse_sources_config({"sources": {"fred": {"series": ["X"]}}})
     assert cfg.fred_series == ["X"]

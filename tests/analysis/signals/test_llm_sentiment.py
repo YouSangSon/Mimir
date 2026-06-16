@@ -113,6 +113,19 @@ def test_matches_configured_alias_without_symbol_in_headline(tmp_path: Path):
     assert fake.calls == [["Apple announces supplier update"]]
 
 
+def test_llm_sentiment_matches_symbol_tagged_feed_without_text_mention(tmp_path: Path):
+    recs = [_rec("AAPL", 31, _news("Supplier update", ""))]
+    scripted = {"Supplier update": _verdict(SignalDirection.BULLISH, 0.8)}
+    fake = FakeClassifier(scripted)
+    sig = LlmSentimentSignal(classifier=fake, max_headlines=50)
+
+    r = sig.evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
+
+    assert r is not None
+    assert r.signal == "llm_sentiment"
+    assert fake.calls == [["Supplier update"]]
+
+
 def test_llm_sentiment_classifies_news_captured_today_even_when_published_yesterday(
     tmp_path: Path,
 ):

@@ -42,5 +42,8 @@ llm_sentiment_max_headlines: 50   # per-run cap on newly classified headlines (c
 #       - { stat_code: "722Y001", cycle: "M", item_code: "0101000" }   # base rate
 #   rss:
 #     # Official, headline/metadata-only feeds. Default: SEC press releases.
+#     # Add `symbol` for per-symbol feeds; news_volume and opt-in llm_sentiment
+#     # will count that feed's headlines for the symbol even when the title has no ticker.
 #     feeds:
 #       - { url: "https://www.sec.gov/news/pressreleases.rss", publisher: "SEC", market: "US" }
+#       - { url: "https://example.com/aapl.rss", publisher: "Example", market: "US", symbol: "AAPL" }

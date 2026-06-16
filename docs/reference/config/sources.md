@@ -37,6 +37,7 @@ sources:
   rss:
     feeds:
       - { url: "https://www.sec.gov/news/pressreleases.rss", publisher: "SEC", market: "US" }
+      - { url: "https://example.com/aapl.rss", publisher: "Example", market: "US", symbol: "AAPL" }
 ```
 
 ---
@@ -75,13 +76,15 @@ analysis:
 
 Mimir는 기본 watchlist의 핵심 symbol에 대해 보수적인 내장 alias를 기본으로 사용한다. 현재 기본값은 `AAPL`, `MSFT`, `NVDA`, `"005930"`의 대표 회사명이다. `aliases`는 여기에 사용자 회사명 표기를 추가하는 목록이다. RSS는 계속 공식 feed의 제목과 요약 metadata만 저장한다. 이 설정은 저장된 텍스트를 분석 단계에서 어떻게 해석할지만 바꾼다.
 
+종목별 RSS feed를 이미 알고 있다면 `sources.rss.feeds[].symbol`을 쓰는 편이 더 직접적이다. 이 값은 수집된 record의 top-level symbol이 되며, 뉴스 matcher는 제목·요약 텍스트보다 이 symbol을 먼저 확인한다.
+
 | 필드 | 의미 |
 |---|---|
 | `use_default_aliases` | 내장 alias를 쓸지 정한다. 기본값은 `true` |
 | `AAPL`, `"005930"` 같은 key | watchlist symbol |
 | list 안의 문자열 | 제목과 요약에서 추가로 찾을 회사명 또는 표기 |
 
-`news_volume`은 symbol과 alias를 모두 찾는다. 예를 들어 제목에 `AAPL`이 없어도 기본 alias인 `Apple`이 있으면 `AAPL` 관련 뉴스로 셀 수 있다. 사용자 alias는 기본 alias 뒤에 추가되고, 같은 symbol 안의 중복은 대소문자 무시 기준으로 제거된다.
+`news_volume`은 record symbol, symbol 텍스트, alias를 모두 찾는다. 예를 들어 제목에 `AAPL`이 없어도 symbol-tagged feed에서 온 record이거나 기본 alias인 `Apple`이 있으면 `AAPL` 관련 뉴스로 셀 수 있다. 사용자 alias는 기본 alias 뒤에 추가되고, 같은 symbol 안의 중복은 대소문자 무시 기준으로 제거된다.
 
 기본 alias를 끄고 직접 지정한 alias만 쓰려면 아래처럼 설정한다.
 
@@ -155,9 +158,24 @@ sources:
       - url: "https://www.sec.gov/news/pressreleases.rss"
         publisher: "SEC"
         market: "US"
+      - url: "https://example.com/aapl.rss"
+        publisher: "Example"
+        market: "US"
+        symbol: "AAPL"
 ```
 
 RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 전문을 가져오지 않는다. LLM 뉴스 감성 시그널도 저장된 제목과 요약만 사용한다.
+
+| 필드 | 필수 | 의미 |
+|---|---|---|
+| `url` | 예 | RSS feed URL |
+| `publisher` | 예 | payload에 저장할 발행자 이름 |
+| `market` | 예 | payload에 저장할 feed market. record envelope market은 source 특성상 `GLOBAL`이다 |
+| `symbol` | 아니오 | 이 feed가 특정 watchlist symbol 전용일 때 쓰는 값. 공백은 제거하고 빈 값은 오류로 처리한다 |
+
+`symbol`이 없으면 기존처럼 일반 뉴스 feed로 저장한다. idempotency key도 기존 형식인 `rss:{link}`를 유지한다.
+
+`symbol`이 있으면 `RawRecord.symbol`에 그 값을 넣고, idempotency key는 `rss:{symbol}:{link}`가 된다. 같은 URL이 `AAPL` feed와 `MSFT` feed에 동시에 있어도 두 symbol 관계가 dedup으로 사라지지 않는다.
 
 ---
 
@@ -223,6 +241,22 @@ analysis:
   news:
     aliases:
       AAPL: "Apple"  # aliases 값은 문자열 하나가 아니라 문자열 list여야 한다.
+```
+
+```yaml
+sources:
+  rss:
+    feeds:
+      - { url: "https://x/feed.rss", publisher: "Example", market: "US", symbl: "AAPL" }
+      # 오타. symbol이 맞다. RSS feed 항목의 알 수 없는 필드는 오류다.
+```
+
+```yaml
+sources:
+  rss:
+    feeds:
+      - { url: "https://x/feed.rss", publisher: "Example", market: "US", symbol: "   " }
+      # symbol은 공백만 있으면 안 된다.
 ```
 
 ```yaml
