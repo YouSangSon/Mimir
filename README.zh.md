@@ -68,6 +68,8 @@ cp .env.example .env          # 只需填入想用的免费密钥（自动加载
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
 ```
 
+回填也写入与采集相同的 manifest 格式。成功时记录获取数量、保存数量和无效记录数量。失败时先记录 `ok=false`，再把错误抛给调用方。
+
 采集结果会堆积在 repo 中，最新运行状况可通过一张 HTML 查看。
 
 ```text
@@ -76,7 +78,7 @@ data/_manifest/YYYY/MM/DD.jsonl   # 运行日志
 reports/status.html               # 各数据源采集状况
 ```
 
-> 💡 `collect` 即使部分数据源失败也会继续采集其余数据源，并在记录失败到清单后以 exit code `1` 发出信号。单个数据源的故障不会让整条流水线停下。
+> 💡 `collect` 即使部分数据源失败也会继续采集其余数据源，并在记录失败到清单后以 exit code `1` 发出信号。`backfill` 一次只处理一个数据源，因此会先记录失败，再以非零状态退出。
 
 ---
 
@@ -180,7 +182,7 @@ flowchart LR
 | **官方 API 优先** | 优先使用 DART·SEC EDGAR·FRED·ECOS 等官方免费 API |
 | **GRAY 切换** | pykrx（爬取）限于限流 + 内部分析，可通过 `sources.yaml` 的 `gray_enabled: false` 阻断 |
 | **密钥隔离** | 所有密钥/令牌仅放在 `.env`（本地）·Actions Secrets（CI），禁止提交 |
-| **无静默失败** | 失败会记录到清单并以非零退出发出信号——绝不悄悄吞掉 |
+| **无静默失败** | `collect` 和 `backfill` 的失败都会记录到清单并以非零退出发出信号——绝不悄悄吞掉 |
 | **免责** | 所有洞见·评估均包含“并非投资建议（not financial advice）”提示 |
 
 ---
@@ -222,7 +224,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 项目 | 值 |
 | :--- | :--- |
-| **测试** | 365 passing（适配器以录制的 fixture 在无网络下验证） |
+| **测试** | 368 passing（适配器以录制的 fixture 在无网络下验证） |
 | **覆盖率** | `mimir/` 97%（门槛 80%） |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — 每次 push/PR 执行 lint·type·test·coverage |

@@ -68,6 +68,8 @@ cp .env.example .env          # 원하는 무료 키만 채우면 됨 (자동 �
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
 ```
 
+백필도 수집과 같은 manifest 형식을 쓴다. 성공하면 가져온 건수, 저장된 건수, 무효 레코드 수를 기록한다. 실패하면 `ok=false`를 먼저 남기고 호출자에게 에러를 그대로 올린다.
+
 수집 결과는 repo에 쌓이고, 최신 실행 현황은 한 장의 HTML로 본다.
 
 ```text
@@ -76,7 +78,7 @@ data/_manifest/YYYY/MM/DD.jsonl   # 실행 로그
 reports/status.html               # 소스별 수집 현황
 ```
 
-> 💡 `collect`는 일부 소스가 실패해도 나머지를 계속 수집하고, 실패를 매니페스트에 남긴 뒤 exit code `1`로 신호한다. 한 소스의 장애가 파이프라인 전체를 멈추지 않는다.
+> 💡 `collect`는 일부 소스가 실패해도 나머지를 계속 수집하고, 실패를 매니페스트에 남긴 뒤 exit code `1`로 신호한다. `backfill`은 한 번에 한 소스만 처리하므로, 실패를 기록한 뒤 비제로 종료한다.
 
 ---
 
@@ -180,7 +182,7 @@ flowchart LR
 | **공식 API 우선** | DART·SEC EDGAR·FRED·ECOS 같은 공식 무료 API를 1차로 사용 |
 | **GRAY 토글** | pykrx(스크래핑)는 스로틀 + 내부분석 한정, `sources.yaml`의 `gray_enabled: false`로 차단 가능 |
 | **시크릿 분리** | 모든 키/토큰은 `.env`(로컬)·Actions Secrets(CI)로만, 커밋 금지 |
-| **무침묵 실패** | 실패는 매니페스트에 기록하고 비제로 종료로 신호 — 조용히 삼키지 않음 |
+| **무침묵 실패** | `collect`와 `backfill` 실패는 매니페스트에 기록하고 비제로 종료로 신호 — 조용히 삼키지 않음 |
 | **면책** | 모든 인사이트·평가에 "투자 권유가 아님(not financial advice)" 고지 포함 |
 
 ---
@@ -222,7 +224,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 항목 | 값 |
 | :--- | :--- |
-| **테스트** | 365 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
+| **테스트** | 368 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
 | **커버리지** | `mimir/` 97% (게이트 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — push/PR마다 lint·type·test·coverage |

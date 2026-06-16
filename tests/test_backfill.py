@@ -2,9 +2,11 @@ import json
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+import pytest
 import responses
 
 from mimir.backfill import main, run_backfill
+from mimir.manifest.manifest import Manifest
 
 CSV = (
     "Date,Open,High,Low,Close,Volume\n"
@@ -28,6 +30,15 @@ def test_backfill_stooq_loads_history(tmp_path: Path):
     )
     assert appended == 2
     assert (tmp_path / "data/prices/2018/01/02.jsonl").exists()
+    latest = Manifest(root=tmp_path / "data").latest_run()
+    assert latest is not None
+    assert latest.cadence == "daily"
+    result = latest.results[0]
+    assert result.source == "stooq"
+    assert result.ok is True
+    assert result.fetched == 2
+    assert result.stored == 2
+    assert result.invalid == 0
 
 
 @responses.activate
@@ -56,6 +67,117 @@ def test_backfill_fred_honors_configured_series(tmp_path: Path):
     record = json.loads(partition.read_text(encoding="utf-8").strip())
     assert record["idempotency_key"] == "fred:DGS10:2024-01-02"  # invariant 2
     assert record["payload"]["series_id"] == "DGS10"
+
+
+@responses.activate
+def test_backfill_records_invalid_count_in_manifest(tmp_path: Path, monkeypatch):
+    from mimir import backfill as backfill_mod
+    from mimir.core.errors import NormalizationError
+
+    responses.add(responses.GET, "https://stooq.com/q/d/l/", body=CSV, status=200)
+    real_normalize = backfill_mod.normalize
+    calls = {"n": 0}
+
+    def flaky_normalize(raw, meta, *, captured_at):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise NormalizationError("bad record")
+        return real_normalize(raw, meta, captured_at=captured_at)
+
+    monkeypatch.setattr(backfill_mod, "normalize", flaky_normalize)
+
+    appended = run_backfill(
+        source_id="stooq",
+        since=date(2018, 1, 1),
+        env={"STOOQ_API_KEY": "test-key"},
+        watchlist={"us": ["AAPL"], "kr": []},
+        data_root=tmp_path / "data",
+        now=datetime(2026, 5, 31, tzinfo=UTC),
+    )
+
+    assert appended == 1
+    latest = Manifest(root=tmp_path / "data").latest_run()
+    assert latest is not None
+    result = latest.results[0]
+    assert result.fetched == 2
+    assert result.stored == 1
+    assert result.invalid == 1
+
+
+def test_backfill_records_failure_manifest_before_reraising(tmp_path: Path, monkeypatch):
+    from mimir import backfill as backfill_mod
+    from mimir.core.source import (
+        Cadence,
+        Dataset,
+        FetchContext,
+        LegalStatus,
+        Market,
+        RateLimit,
+        SourceMeta,
+    )
+
+    class FailSource:
+        meta = SourceMeta(
+            id="fail",
+            market=Market.US,
+            dataset=Dataset.PRICES,
+            cadence=Cadence.DAILY,
+            legal_status=LegalStatus.OFFICIAL,
+            rate_limit=RateLimit(),
+        )
+
+        def fetch(self, ctx: FetchContext):
+            raise RuntimeError("upstream down")
+
+    monkeypatch.setattr(backfill_mod, "build_sources", lambda settings, config: [FailSource()])
+
+    with pytest.raises(RuntimeError, match="upstream down"):
+        run_backfill(
+            source_id="fail",
+            since=date(2018, 1, 1),
+            env={},
+            watchlist={"us": ["AAPL"], "kr": []},
+            data_root=tmp_path / "data",
+            now=datetime(2026, 5, 31, tzinfo=UTC),
+        )
+
+    latest = Manifest(root=tmp_path / "data").latest_run()
+    assert latest is not None
+    result = latest.results[0]
+    assert result.source == "fail"
+    assert result.ok is False
+    assert "upstream down" in (result.error or "")
+
+
+@responses.activate
+def test_backfill_preserves_original_error_when_failure_manifest_write_fails(
+    tmp_path: Path, monkeypatch
+):
+    from mimir import backfill as backfill_mod
+
+    class FailingManifest:
+        def __init__(self, root: Path) -> None:
+            self.root = root
+
+        def write(self, **kwargs):
+            raise OSError("manifest write failed")
+
+    def exploding_normalize(raw, meta, *, captured_at):
+        raise ValueError("normalize exploded")
+
+    responses.add(responses.GET, "https://stooq.com/q/d/l/", body=CSV, status=200)
+    monkeypatch.setattr(backfill_mod, "Manifest", FailingManifest)
+    monkeypatch.setattr(backfill_mod, "normalize", exploding_normalize)
+
+    with pytest.raises(ValueError, match="normalize exploded"):
+        run_backfill(
+            source_id="stooq",
+            since=date(2018, 1, 1),
+            env={"STOOQ_API_KEY": "test-key"},
+            watchlist={"us": ["AAPL"], "kr": []},
+            data_root=tmp_path / "data",
+            now=datetime(2026, 5, 31, tzinfo=UTC),
+        )
 
 
 def test_main_reports_invalid_sources_yaml(tmp_path: Path, capsys):
