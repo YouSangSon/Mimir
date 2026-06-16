@@ -39,7 +39,7 @@
 - [x] **news_volume 단어경계 + alias 매칭**: 짧은 티커 오매칭을 제거하고, `analysis.news.aliases`로 회사명 alias를 설정할 수 있게 했다. 공식 피드 ticker 부재는 설정 alias로 일부 완화된다. 발행일/captured_at 윈도우와 종목별 feed는 후속.
 - [x] **설정 기반 시리즈/피드 + macro series 단일 진실원**: FRED/ECOS series·RSS feeds를 `sources.yaml`의 `sources:` 블록으로 노출하고, macro rate-series와 doctor cadence를 `mimir/core/macro_series.py`로 통합. `analysis.macro_regime.rate_series`로 수집 대상과 분석 해석 대상을 분리한다.
 - [ ] **pykrx 타임아웃/재시도 없음**(BaseSource 미사용). GRAY라 LOW. **[후속]**
-- [ ] **GH Actions Node20 deprecation**: `actions/checkout@v4`·`setup-python@v5`가 Node20(2026-06-16 Node24 강제). 동작엔 문제 없음 — 안정 신버전 나오면 범프. **[후속, LOW]**
+- [x] **GH Actions Node20 deprecation**: `actions/checkout@v4`·`setup-python@v5`가 Node20 세대 action이라 2026-06-16 Node24 기본 전환에 걸릴 수 있었다. → `checkout@v6`·`setup-python@v6`로 올리고, `tests/test_workflows.py`가 workflow action major를 검증한다.
 
 ## 후속(Increment 3 후보)
 SEC `files[]` 백필 + DART/ECOS 페이지네이션(H-C), 거시 개정 last-write-wins(orchestrator per-dataset 정책), 종목별 news feed 또는 기본 alias 데이터셋, pykrx 타임아웃, 매니페스트 백필.
