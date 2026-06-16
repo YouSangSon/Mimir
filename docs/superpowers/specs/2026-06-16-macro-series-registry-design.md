@@ -2,7 +2,7 @@
 
 > **스펙 ID**: A2
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`mimir/core/macro_series.py` + `analysis.macro_regime.rate_series`). 349 테스트 · ruff · mypy · coverage 97% 클린.
+> **상태**: ✅ 구현 완료 (`mimir/core/macro_series.py` + `analysis.macro_regime.rate_series`). 현재 364 테스트 · ruff · mypy · coverage gate 클린.
 > **선행**: [설정 기반 소스 확장성](2026-06-13-config-driven-extensibility-design.md) · [데이터 닥터](2026-06-13-data-doctor-design.md) · [확장성 카탈로그](../../architecture/improvement-catalog.md)
 
 ---

@@ -10,6 +10,15 @@ llm_sentiment_max_headlines: 50   # per-run cap on newly classified headlines (c
 # the registry default from mimir/core/macro_series.py.
 #
 # analysis:
+#   news:
+#     # Optional company-name aliases used by news_volume and opt-in llm_sentiment.
+#     # RSS still stores only official title/summary metadata; aliases only affect
+#     # how stored news is matched to watchlist symbols during analysis.
+#     aliases:
+#       AAPL: ["Apple", "Apple Inc."]
+#       MSFT: ["Microsoft", "Microsoft Corp."]
+#       NVDA: ["NVIDIA", "Nvidia Corporation"]
+#       "005930": ["Samsung Electronics", "삼성전자"]
 #   macro_regime:
 #     # Macro series allowed to influence the market-wide rate-regime signal.
 #     # CPI-like series can be collected without being treated as policy/benchmark rates.

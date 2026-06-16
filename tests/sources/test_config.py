@@ -138,6 +138,23 @@ def test_analysis_macro_regime_typo_raises_validation_error():
         parse_sources_config({"analysis": {"macro_regime": {"rate_seriez": ["T10Y2Y"]}}})
 
 
+def test_analysis_news_aliases_parse_from_config():
+    cfg = parse_sources_config(
+        {"analysis": {"news": {"aliases": {"AAPL": ["Apple", "Apple Inc."]}}}}
+    )
+    assert cfg.news_aliases == {"AAPL": ["Apple", "Apple Inc."]}
+
+
+def test_analysis_news_alias_typo_raises_validation_error():
+    with pytest.raises(ValidationError):
+        parse_sources_config({"analysis": {"news": {"aliasez": {"AAPL": ["Apple"]}}}})
+
+
+def test_analysis_news_alias_value_must_be_list():
+    with pytest.raises(ValidationError):
+        parse_sources_config({"analysis": {"news": {"aliases": {"AAPL": "Apple"}}}})
+
+
 def test_analysis_top_level_typo_raises_validation_error():
     with pytest.raises(ValidationError):
         parse_sources_config({"analysys": {"macro_regime": {"rate_series": ["T10Y2Y"]}}})

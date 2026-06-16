@@ -94,6 +94,25 @@ def test_returns_none_when_no_mentions(tmp_path: Path):
     assert sig.evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs)) is None
 
 
+def test_matches_configured_alias_without_symbol_in_headline(tmp_path: Path):
+    recs = [_rec(None, 31, _news("Apple announces supplier update", ""))]
+    scripted = {
+        "Apple announces supplier update": _verdict(SignalDirection.BULLISH, 0.8),
+    }
+    fake = FakeClassifier(scripted)
+    sig = LlmSentimentSignal(
+        classifier=fake,
+        max_headlines=50,
+        aliases={"AAPL": ["Apple"]},
+    )
+
+    r = sig.evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
+
+    assert r is not None
+    assert r.signal == "llm_sentiment"
+    assert fake.calls == [["Apple announces supplier update"]]
+
+
 @pytest.mark.parametrize("confidence", [-0.1, 1.1])
 def test_headline_verdict_rejects_out_of_range_confidence(confidence: float):
     with pytest.raises(ValidationError):

@@ -2,7 +2,7 @@
 
 > **스펙 ID**: A3
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`SourceSpec` built-in source table). 349 테스트 · ruff · mypy · coverage 97% 클린.
+> **상태**: ✅ 구현 완료 (`SourceSpec` built-in source table). 현재 364 테스트 · ruff · mypy · coverage gate 클린.
 > **선행**: [설정 기반 소스 확장성](2026-06-13-config-driven-extensibility-design.md) · [A2 macro series registry](2026-06-16-macro-series-registry-design.md) · [확장성 카탈로그](../../architecture/improvement-catalog.md)
 
 ---

@@ -13,6 +13,7 @@ class SourcesConfig(BaseModel):
     ecos_series: list[EcosSeries] | None = None
     rss_feeds: list[RssFeed] | None = None
     macro_regime_rate_series: list[str] | None = None
+    news_aliases: dict[str, list[str]] | None = None
     # INC5: off-by-default toggle for the paid LLM news-sentiment signal. Mirrors
     # the top-level `gray_enabled` key in sources.yaml (analysis-plane gate, not a
     # nested `sources:` block). `build_signals` requires this AND a key AND the
@@ -48,9 +49,15 @@ class _MacroRegimeBlock(BaseModel):
     rate_series: list[str] | None = None
 
 
+class _NewsBlock(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    aliases: dict[str, list[str]] | None = None
+
+
 class _AnalysisBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
     macro_regime: _MacroRegimeBlock | None = None
+    news: _NewsBlock | None = None
 
 
 class _TopLevelSourcesConfig(BaseModel):
@@ -84,6 +91,11 @@ def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
         macro_regime_rate_series=(
             top_level.analysis.macro_regime.rate_series
             if top_level.analysis and top_level.analysis.macro_regime
+            else None
+        ),
+        news_aliases=(
+            top_level.analysis.news.aliases
+            if top_level.analysis and top_level.analysis.news
             else None
         ),
         # Top-level analysis-plane toggles (siblings of gray_enabled), not under `sources:`.

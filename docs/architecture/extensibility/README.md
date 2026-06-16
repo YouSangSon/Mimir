@@ -13,7 +13,7 @@ Mimir는 공개 데이터를 수집하고, 저장된 데이터로 인사이트�
 | 확장 지점 | 사용자가 바꾸는 것 | 코드 진입점 | 현재 상태 |
 |---|---|---|---|
 | 수집 소스 | `config/sources.yaml` 또는 새 `Source` 구현 | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. 새 내장 소스는 `SourceSpec` 한 줄로 등록 |
-| 분석 시그널 | `build_signals()`에 시그널 추가 | `mimir/analysis/builder.py` | LLM 시그널은 off-by-default gate로 배선됨 |
+| 분석 시그널 | `config/sources.yaml`의 `analysis:` 또는 `build_signals()`에 시그널 추가 | `mimir/analysis/builder.py` | 뉴스 alias와 macro rate-series는 설정으로 확장 가능. LLM 시그널은 off-by-default gate로 배선됨 |
 | 출력 표면 | `daily_report`, `dashboard`, `digest` | `mimir/report/` | 일일 리포트와 대시보드가 인사이트·과거사례·평가를 표시 |
 
 ---
@@ -98,7 +98,21 @@ def evaluate(
 
 유료 또는 외부 호출 시그널은 기본으로 켜면 안 된다. LLM 뉴스 감성 시그널은 `llm_sentiment_enabled`, `ANTHROPIC_API_KEY`, optional package 설치가 모두 맞을 때만 등록된다. 새 유료 시그널도 같은 방식으로 off-by-default gate를 가져야 한다.
 
-### 4.1 Macro regime 시리즈
+### 4.1 News mention alias
+
+공식 RSS feed는 제목에 티커를 잘 싣지 않는다. `analysis.news.aliases`는 저장된 뉴스 제목과 요약을 watchlist symbol에 연결하기 위한 회사명 표기 목록이다.
+
+```yaml
+analysis:
+  news:
+    aliases:
+      AAPL: ["Apple", "Apple Inc."]
+      "005930": ["Samsung Electronics", "삼성전자"]
+```
+
+이 설정은 수집을 늘리지 않는다. RSS는 계속 공식 제목과 요약 metadata만 저장한다. `NewsVolumeSignal`과 opt-in `LlmSentimentSignal`이 같은 matcher를 사용해 `Apple` 같은 alias를 `AAPL` mention으로 해석한다. Alias만 설정해도 LLM 호출은 생기지 않는다.
+
+### 4.2 Macro regime 시리즈
 
 거시 경제 시리즈 메타데이터는 `mimir/core/macro_series.py`가 관리한다. 이 모듈은 기본 FRED 시리즈, 기본 ECOS 시리즈, doctor freshness cadence, macro-regime rate-series 기본값을 함께 제공한다.
 
@@ -132,6 +146,6 @@ def evaluate(
 | 항목 | 왜 남았나 | 다음 행동 |
 |---|---|---|
 | 외부 source plugin entry-point | 내장 소스는 `SourceSpec`으로 정리됐지만, 외부 package가 source를 주입하는 구조는 아직 없다 | `importlib.metadata` entry-point 설계 |
-| `news_volume` 실데이터 한계 | 공식 피드 제목에 티커가 잘 안 나온다 | alias 맵, 종목별 피드, 또는 LLM 시그널 승격 |
+| `news_volume` 실데이터 한계 | alias matcher는 구현됐지만, 기본 alias 사전과 종목별 feed는 없다 | 필요하면 보수적 기본 alias 데이터셋, 종목별 feed, 또는 LLM 시그널 승격 설계 |
 
 이 문서는 현재 구현을 설명한다. 미래 설계가 확정되면 새 ADR 또는 증분 스펙에서 이 문서를 갱신한다.
