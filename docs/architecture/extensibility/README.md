@@ -12,7 +12,7 @@ Mimir는 공개 데이터를 수집하고, 저장된 데이터로 인사이트�
 
 | 확장 지점 | 사용자가 바꾸는 것 | 코드 진입점 | 현재 상태 |
 |---|---|---|---|
-| 수집 소스 | `config/sources.yaml` 또는 새 `Source` 구현 | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. 새 내장 소스는 `SourceSpec` 한 줄로 등록 |
+| 수집 소스 | `config/sources.yaml`, 새 `Source` 구현, 또는 `mimir.sources` plugin | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. 새 내장 소스는 `SourceSpec` 한 줄로 등록. 외부 package는 entry point로 source를 추가 |
 | 분석 시그널 | `config/sources.yaml`의 `analysis:` 또는 `build_signals()`에 시그널 추가 | `mimir/analysis/builder.py` | 기본 뉴스 alias, 사용자 alias, macro rate-series는 설정으로 제어 가능. LLM 시그널은 off-by-default gate로 배선됨 |
 | 출력 표면 | `daily_report`, `dashboard`, `digest` | `mimir/report/` | 일일 리포트와 대시보드가 인사이트·과거사례·평가를 표시 |
 
@@ -79,7 +79,24 @@ sources:
 
 `SourceSpec`은 secret gate, optional package gate, 생성자 인자를 한 곳에 묶는다. `build_sources()`는 이 테이블을 순회해 만들 수 있는 소스만 생성한다. 생성된 뒤의 cadence 선택, GRAY 소스 토글, `disabled_ids` 필터링은 기존 `Registry`가 계속 담당한다.
 
-외부 Python package가 Mimir 밖에서 source를 제공하는 entry-point 플러그인은 아직 구현하지 않았다. 현재 A3 구현은 내장 소스 등록을 선언적으로 만드는 범위다.
+### 3.3 외부 source plugin 추가
+
+Mimir 밖의 Python package는 `mimir.sources` entry point로 source를 추가할 수 있다. 이 방식은 Mimir repo를 fork하지 않고 내부 feed나 실험 adapter를 배포할 때 쓴다.
+
+```toml
+[project.entry-points."mimir.sources"]
+acme_feed = "acme_mimir.sources:ACME_FEED_SPEC"
+```
+
+```python
+from mimir.core.builder import SourceSpec
+
+ACME_FEED_SPEC = SourceSpec("acme_feed", lambda settings, cfg: AcmeSource())
+```
+
+entry point가 단일 `SourceSpec`을 직접 로드하면 entry point 이름과 `SourceSpec.id`가 같아야 한다. 한 package가 여러 source를 제공할 때는 `tuple[SourceSpec, ...]`를 로드할 수 있다. Mimir는 built-in source를 먼저 만들고 plugin source를 이름순으로 뒤에 붙인다.
+
+Plugin import가 실패하면 warning을 남기고 해당 plugin만 건너뛴다. 잘못된 object type, source id 중복, `SourceSpec.id`와 실제 `source.meta.id` 불일치는 `ValueError`로 실패한다. source id는 backfill과 manifest에서 식별자로 쓰이기 때문에 충돌을 조용히 넘기지 않는다.
 
 ---
 
@@ -152,7 +169,7 @@ NEWS 파티션은 다른 원천 데이터처럼 `ts.date()` 기준으로 저장�
 
 | 항목 | 왜 남았나 | 다음 행동 |
 |---|---|---|
-| 외부 source plugin entry-point | 내장 소스는 `SourceSpec`으로 정리됐지만, 외부 package가 source를 주입하는 구조는 아직 없다 | `importlib.metadata` entry-point 설계 |
+| 외부 source plugin 설정 namespace | 외부 package는 source를 주입할 수 있지만, plugin별 YAML 설정 스키마는 아직 없다 | 필요하면 `sources.plugins.<plugin>` 설정 namespace 설계 |
 | `news_volume` 실데이터 한계 | 기본/사용자 alias matcher와 captured window는 구현됐지만, 종목별 feed는 없다 | 필요하면 종목별 feed, alias metadata 확장, 또는 LLM 시그널 승격 설계 |
 
 이 문서는 현재 구현을 설명한다. 미래 설계가 확정되면 새 ADR 또는 증분 스펙에서 이 문서를 갱신한다.

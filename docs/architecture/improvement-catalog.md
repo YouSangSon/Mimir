@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/R1a/R1b/R1c/C3 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/R1a/R1b/R1c/C3 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -28,6 +28,7 @@
 | **A4** | 데이터셋별 타입드 페이로드 스키마 (`dict[str,Any]` 제거) | 견고성 | 신규 | **✅ 구현 완료 (Increment 2)** | 코드 + 테스트(293) · [spec](../superpowers/specs/2026-06-13-typed-payload-design.md) |
 | **A2** | 시리즈 식별자 단일 진실원 (macro_regime ↔ 어댑터) | 확장성 | 백로그 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-macro-series-registry-design.md) |
 | **A3** | 선언적 소스 등록 (`SourceSpec` built-in table) | 아키텍처 | README 약속(부분) | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-declarative-source-registration-design.md) |
+| **A3b** | 외부 source plugin entry point (`mimir.sources`) | 확장성 | A3 보류 항목 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-source-entry-points-design.md) |
 | **B1** | 시그널 백테스트·평가 하네스 (사후수익 적중률) | 분석심화 | 신규(최고가치) | **✅ 구현 완료 (Increment 4 + 리포트 합류)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-13-signal-backtest-design.md) |
 | **B2** | LLM 뉴스 감성 시그널 (news_volume 대체, 하이브리드) | 분석심화 | 로드맵 + 백로그 R1 | **✅ seam 구현 (Increment 5, off-by-default)** | 코드 + 테스트 |
 | **R1a** | 뉴스 mention alias matcher (`analysis.news.aliases`) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-mention-alias-design.md) |
@@ -77,7 +78,11 @@ A1 이전에는 FRED 시리즈 하나를 추가하려면 **파이썬 코드를 �
 
 이 구현은 public `build_sources(settings, config=None)` 진입점을 유지한다. SEC EDGAR와 RSS는 keyless로 계속 생성되고, Stooq/DART/FRED/ECOS는 secret이 없으면 warning 후 skip된다. pykrx는 `importlib.util.find_spec("pykrx")` gate를 통과할 때만 생성된다.
 
-외부 package entry-point는 아직 보류다. 지금 구현은 내장 소스 등록을 데이터화해 builder 분기 증가를 멈추는 slice다.
+### A3b. 외부 source plugin entry point — **구현 완료 (2026-06-16)**
+
+A3는 내장 소스를 데이터화했지만, 외부 package가 source를 추가하려면 여전히 Mimir repo를 수정해야 했다. A3b는 `mimir.sources` entry-point group을 추가해 이 한계를 제거한다.
+
+외부 package는 `SourceSpec` 객체 하나 또는 `tuple[SourceSpec, ...]`를 entry point로 노출한다. `build_sources()`는 built-in spec을 먼저 두고 plugin spec을 이름순으로 뒤에 붙인다. Plugin load 실패는 warning 후 skip하고, 잘못된 object type, source id 중복, `source.meta.id` 불일치는 `ValueError`로 실패한다. `Registry`가 맡는 cadence, GRAY, `disabled_ids` 필터링은 그대로 유지한다.
 
 ---
 
@@ -150,6 +155,7 @@ Increment 5 ── LLM 감성 seam (B2)            ✅ seam 구현 (off-by-defau
 Hardening ─── stale 재생성 데이터 제거 · lang 정규화 · SignalResult 범위 검증
 A2 ───────── macro series registry · analysis.macro_regime.rate_series
 A3 ───────── built-in source registry · SourceSpec construction table
+A3b ──────── external source plugin entry points · mimir.sources
 R1a ──────── news mention alias matcher · analysis.news.aliases
 R1b ──────── news captured window · DataReader.read_captured_window
 R1c ──────── default news aliases · analysis.news.use_default_aliases
@@ -168,6 +174,7 @@ BF-MANIFEST ─ backfill success/failure manifest
 |---|---|
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 핫패스를 처리. 인덱스는 데이터가 수년 누적된 *뒤*의 최적화 — 지금은 시기상조(YAGNI). 신선도 닥터(C1)가 먼저 스케일 신호를 준다. |
 | **D1 통합 CLI** | 순수 DX. 5개 `python -m mimir.X`는 동작에 문제없음. console_scripts entry-point는 좋지만 약속에 추적되지 않음 → 보류. |
+| **A3c plugin 설정 namespace** | 외부 source plugin은 등록할 수 있지만, plugin별 YAML 설정을 안전하게 검증하는 namespace는 아직 없다. 지금은 `Settings`와 `SourcesConfig`를 그대로 받는 `SourceSpec.factory`만 제공한다. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서는 KO-only 유지(백로그 결정). 사용자 문서(README ×3)는 이미 trilingual. |
 
 ---
@@ -185,4 +192,4 @@ BF-MANIFEST ─ backfill success/failure manifest
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 원천 데이터는 append-only.
 - 백필은 성공과 실패를 manifest에 기록한다. 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, R1a, R1b, R1c, D2, C3, BF-MANIFEST까지 구현되었고, 남은 신규 아키텍처 부채는 외부 source plugin entry-point와 종목별 news feed다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, A3b, R1a, R1b, R1c, D2, C3, BF-MANIFEST까지 구현되었고, 남은 신규 아키텍처 부채는 plugin 설정 namespace와 종목별 news feed다.

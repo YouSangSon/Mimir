@@ -13,7 +13,7 @@
 
 A3는 이 분기를 내장 소스 등록 테이블로 옮긴다. `build_sources(settings, config)`라는 공개 진입점은 그대로 두고, 각 소스의 생성 조건과 생성 인자를 `SourceSpec` 데이터로 선언한다.
 
-이번 증분은 Python package entry-point를 구현하지 않는다. entry-point는 외부 플러그인을 받을 때 필요하지만, 지금은 기존 내장 소스 7개를 안전하게 데이터화하는 것이 더 작은 변경이다.
+이번 증분은 Python package entry-point를 구현하지 않았다. entry-point는 외부 플러그인을 받을 때 필요하지만, A3 당시에는 기존 내장 소스 7개를 안전하게 데이터화하는 것이 더 작은 변경이었다. 이후 A3b에서 `mimir.sources` entry point를 별도 증분으로 구현했다.
 
 ---
 
@@ -60,7 +60,7 @@ doctor는 secret이 없거나 optional package가 없어도 "원래 기대되는
 
 ### 비목표
 
-- Python package entry-point 기반 외부 플러그인 로딩은 하지 않는다.
+- Python package entry-point 기반 외부 플러그인 로딩은 이 증분에서 하지 않는다. 이후 A3b에서 `mimir.sources`로 구현한다.
 - `mimir/core/registry.py`의 runtime filtering 책임을 바꾸지 않는다.
 - doctor expected coverage를 등록 테이블에서 파생하지 않는다.
 - pykrx timeout/retry 개선은 하지 않는다.
