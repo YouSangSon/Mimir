@@ -94,6 +94,8 @@ from mimir.core.builder import SourceSpec
 ACME_FEED_SPEC = SourceSpec("acme_feed", lambda settings, cfg: AcmeSource())
 ```
 
+Plugin package는 Mimir 프로세스 안에서 실행된다. `SourceSpec.factory`는 `Settings`와 `SourcesConfig`를 받으므로, plugin 코드는 설정된 API key와 로컬 설정을 읽을 수 있다. 따라서 신뢰한 package만 설치해야 하며, Mimir는 plugin을 sandbox하지 않는다.
+
 entry point가 단일 `SourceSpec`을 직접 로드하면 entry point 이름과 `SourceSpec.id`가 같아야 한다. 한 package가 여러 source를 제공할 때는 `tuple[SourceSpec, ...]`를 로드할 수 있다. Mimir는 built-in source를 먼저 만들고 plugin source를 이름순으로 뒤에 붙인다.
 
 Plugin import가 실패하면 warning을 남기고 해당 plugin만 건너뛴다. 잘못된 object type, source id 중복, `SourceSpec.id`와 실제 `source.meta.id` 불일치는 `ValueError`로 실패한다. source id는 backfill과 manifest에서 식별자로 쓰이기 때문에 충돌을 조용히 넘기지 않는다.
