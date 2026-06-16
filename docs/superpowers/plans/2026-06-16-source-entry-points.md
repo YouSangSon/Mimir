@@ -195,7 +195,7 @@ uv run coverage report --fail-under=80
 git diff --check
 ```
 
-Expected: all commands exit 0. Final run: 396 tests passed, total coverage 97%.
+Expected: all commands exit 0. Final run: 397 tests passed, total coverage 97%.
 
 - [x] **Step 4: Commit**
 

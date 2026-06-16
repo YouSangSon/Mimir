@@ -13,7 +13,7 @@ repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 �
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-396%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-407%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -73,7 +73,7 @@ cp .env.example .env          # 원하는 무료 키만 채우면 됨 (자동 �
 수집 결과는 repo에 쌓이고, 최신 실행 현황은 한 장의 HTML로 본다.
 
 ```text
-data/<dataset>/YYYY/MM/DD.jsonl   # 수집물 (append-only)
+data/<dataset>/YYYY/MM/DD.jsonl   # 수집물 (소스별 dedup 정책)
 data/_manifest/YYYY/MM/DD.jsonl   # 실행 로그
 reports/status.html               # 소스별 수집 현황
 ```
@@ -152,10 +152,10 @@ flowchart LR
 | **RawRecord → Record** | 소스별 원본을 공통 envelope로 정규화(pydantic 검증), `idempotency_key`로 멱등 |
 | **Registry** | cadence와 GRAY 정책으로 "이번 틱에 돌릴 소스"를 선택 |
 | **Orchestrator** | 선택 → 스로틀 → fetch → 정규화 → 저장 → 매니페스트 (소스별 격리) |
-| **JsonlStore** | `data/<dataset>/YYYY/MM/DD.jsonl` 날짜 파티션 append-only 저장 |
+| **JsonlStore** | `data/<dataset>/YYYY/MM/DD.jsonl` 날짜 파티션 저장. 가격/공시/뉴스는 first-write-wins, 거시 관측값은 공식 개정을 반영하기 위해 last-write-wins |
 | **Manifest** | 매 실행을 한 줄씩 기록(무엇을·언제·몇 건·성공 여부) — 데이터 신뢰성의 근거 |
 
-내장 소스 추가는 `sources/`에 어댑터 하나 + `SourceSpec` 등록 한 줄로 끝난다. 외부 package는 `mimir.sources` entry point로 `SourceSpec`을 등록할 수 있다. 상위 레이어(분석·매매)는 저장된 envelope만 읽는다.
+내장 소스 추가는 `sources/`에 어댑터 하나 + `SourceSpec` 등록 한 줄로 끝난다. 외부 package는 `mimir.sources` entry point로 `SourceSpec`을 등록할 수 있다. 신뢰한 plugin만 설치해야 한다. Plugin은 Mimir 프로세스 안에서 실행되고 sandbox되지 않으며, API key를 포함한 설정값을 받을 수 있다. 상위 레이어(분석·매매)는 저장된 envelope만 읽는다.
 
 ---
 
@@ -224,7 +224,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 항목 | 값 |
 | :--- | :--- |
-| **테스트** | 396 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
+| **테스트** | 407 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
 | **커버리지** | `mimir/` 97% (게이트 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — push/PR마다 lint·type·test·coverage |

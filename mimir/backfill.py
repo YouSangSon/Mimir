@@ -20,6 +20,7 @@ from mimir.manifest.manifest import Manifest, SourceResult
 from mimir.settings import Settings
 from mimir.sources.config import parse_sources_config
 from mimir.storage.jsonl_store import JsonlStore
+from mimir.storage.policy import append_overwrite_enabled
 from mimir.storage.schema import Record
 
 logger = logging.getLogger(__name__)
@@ -59,7 +60,7 @@ def run_backfill(
                 invalid += 1
         if invalid:
             logger.warning("backfill %s: skipped %d invalid record(s)", source_id, invalid)
-        stored = store.append(records)
+        stored = store.append(records, overwrite=append_overwrite_enabled(source.meta.dataset))
     except Exception as exc:
         try:
             manifest.write(

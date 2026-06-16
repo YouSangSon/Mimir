@@ -28,6 +28,17 @@ def _meta(id_: str) -> SourceMeta:
     )
 
 
+def _macro_meta(id_: str) -> SourceMeta:
+    return SourceMeta(
+        id=id_,
+        market=Market.US,
+        dataset=Dataset.MACRO,
+        cadence=Cadence.DAILY,
+        legal_status=LegalStatus.OFFICIAL,
+        rate_limit=RateLimit(max_per_second=1000.0),
+    )
+
+
 def _price_payload(close: float) -> dict:
     # A full, schema-conforming PRICES payload (normalize now validates payloads).
     return {
@@ -39,6 +50,10 @@ def _price_payload(close: float) -> dict:
         "currency": "USD",
         "interval": "1d",
     }
+
+
+def _macro_payload(value: float) -> dict:
+    return {"series_id": "DGS10", "value": value, "period": "2024-01-02"}
 
 
 class _OkSource:
@@ -62,6 +77,70 @@ class _BoomSource:
 
 def _ctx():
     return FetchContext(watchlist={"us": ["AAPL"]}, now=datetime(2026, 5, 31, tzinfo=UTC))
+
+
+class _RevisionMacroSource:
+    meta = _macro_meta("macro")
+
+    def __init__(self, value: float) -> None:
+        self._value = value
+
+    def fetch(self, ctx: FetchContext):
+        yield RawRecord(
+            symbol="DGS10",
+            ts=datetime(2024, 1, 2, tzinfo=UTC),
+            idempotency_key="fred:DGS10:2024-01-02",
+            payload=_macro_payload(self._value),
+        )
+
+
+class _RevisionPriceSource:
+    meta = _meta("price")
+
+    def __init__(self, close: float) -> None:
+        self._close = close
+
+    def fetch(self, ctx: FetchContext):
+        yield RawRecord(
+            symbol="AAPL",
+            ts=datetime(2026, 5, 29, tzinfo=UTC),
+            idempotency_key="stooq:AAPL:2026-05-29",
+            payload=_price_payload(self._close),
+        )
+
+
+def test_macro_sources_overwrite_existing_observations(tmp_path: Path):
+    store = JsonlStore(root=tmp_path)
+    manifest = Manifest(root=tmp_path)
+    Orchestrator(Registry([_RevisionMacroSource(4.0)]), store, manifest).run(
+        Cadence.DAILY, _ctx()
+    )
+
+    summary = Orchestrator(Registry([_RevisionMacroSource(4.25)]), store, manifest).run(
+        Cadence.DAILY, _ctx()
+    )
+
+    recs = list(store.read_all(Dataset.MACRO))
+    assert summary.results[0].stored == 1
+    assert len(recs) == 1
+    assert recs[0].payload.value == 4.25
+
+
+def test_non_macro_sources_keep_first_write_wins(tmp_path: Path):
+    store = JsonlStore(root=tmp_path)
+    manifest = Manifest(root=tmp_path)
+    Orchestrator(Registry([_RevisionPriceSource(1.0)]), store, manifest).run(
+        Cadence.DAILY, _ctx()
+    )
+
+    summary = Orchestrator(Registry([_RevisionPriceSource(99.0)]), store, manifest).run(
+        Cadence.DAILY, _ctx()
+    )
+
+    recs = list(store.read_all(Dataset.PRICES))
+    assert summary.results[0].stored == 0
+    assert len(recs) == 1
+    assert recs[0].payload.close == 1.0
 
 
 def test_one_source_failure_does_not_block_others(tmp_path: Path):

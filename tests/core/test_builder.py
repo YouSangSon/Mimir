@@ -164,6 +164,23 @@ def test_load_entry_point_source_specs_accepts_sequence(monkeypatch):
     assert _load_entry_point_source_specs() == (news_spec, macro_spec)
 
 
+def test_entry_point_source_specs_are_loaded_in_name_order(monkeypatch):
+    alpha_spec = SourceSpec("alpha_plugin", lambda settings, cfg: _PluginSource())
+    zulu_spec = SourceSpec("zulu_plugin", lambda settings, cfg: _PluginSource())
+    _patch_entry_points(
+        monkeypatch,
+        [
+            _FakeEntryPoint("zulu_plugin", zulu_spec),
+            _FakeEntryPoint("alpha_plugin", alpha_spec),
+        ],
+    )
+
+    assert [spec.id for spec in _load_entry_point_source_specs()] == [
+        "alpha_plugin",
+        "zulu_plugin",
+    ]
+
+
 def test_entry_point_source_spec_id_must_match_entry_point_name(monkeypatch):
     spec = SourceSpec("plugin_b", lambda settings, cfg: _PluginSource())
     _patch_entry_points(monkeypatch, [_FakeEntryPoint("plugin_a", spec)])

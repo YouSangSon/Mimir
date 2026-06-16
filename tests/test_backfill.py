@@ -15,6 +15,12 @@ CSV = (
 )
 
 FRED_OBS = {"observations": [{"date": "2024-01-02", "value": "4.00"}]}
+FRED_REVISED_OBS = {"observations": [{"date": "2024-01-02", "value": "4.25"}]}
+CSV_REVISED = (
+    "Date,Open,High,Low,Close,Volume\n"
+    "2018-01-02,9.0,9.0,9.0,9.5,900\n"
+    "2018-01-03,9.5,9.5,9.5,10.0,1000\n"
+)
 
 
 @responses.activate
@@ -67,6 +73,104 @@ def test_backfill_fred_honors_configured_series(tmp_path: Path):
     record = json.loads(partition.read_text(encoding="utf-8").strip())
     assert record["idempotency_key"] == "fred:DGS10:2024-01-02"  # invariant 2
     assert record["payload"]["series_id"] == "DGS10"
+
+
+@responses.activate
+def test_backfill_fred_revisions_overwrite_existing_observation(tmp_path: Path):
+    responses.add(
+        responses.GET,
+        "https://api.stlouisfed.org/fred/series/observations",
+        body=json.dumps(FRED_OBS),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "https://api.stlouisfed.org/fred/series/observations",
+        body=json.dumps(FRED_REVISED_OBS),
+        status=200,
+    )
+    kwargs = {
+        "source_id": "fred",
+        "since": date(2024, 1, 1),
+        "env": {"FRED_API_KEY": "test-key"},
+        "watchlist": {"us": [], "kr": []},
+        "data_root": tmp_path / "data",
+        "sources_config": {"sources": {"fred": {"series": ["DGS10"]}}},
+        "now": datetime(2026, 5, 31, tzinfo=UTC),
+    }
+
+    run_backfill(**kwargs)
+    revised = run_backfill(**kwargs)
+
+    partition = tmp_path / "data/macro/2024/01/02.jsonl"
+    lines = partition.read_text(encoding="utf-8").strip().splitlines()
+    record = json.loads(lines[0])
+    latest = Manifest(root=tmp_path / "data").latest_run()
+    assert revised == 1
+    assert len(lines) == 1
+    assert record["payload"]["value"] == 4.25
+    assert latest is not None
+    assert latest.results[0].stored == 1
+
+
+@responses.activate
+def test_backfill_fred_unchanged_observation_does_not_update_capture_time(tmp_path: Path):
+    responses.add(
+        responses.GET,
+        "https://api.stlouisfed.org/fred/series/observations",
+        body=json.dumps(FRED_OBS),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "https://api.stlouisfed.org/fred/series/observations",
+        body=json.dumps(FRED_OBS),
+        status=200,
+    )
+    kwargs = {
+        "source_id": "fred",
+        "since": date(2024, 1, 1),
+        "env": {"FRED_API_KEY": "test-key"},
+        "watchlist": {"us": [], "kr": []},
+        "data_root": tmp_path / "data",
+        "sources_config": {"sources": {"fred": {"series": ["DGS10"]}}},
+    }
+
+    run_backfill(**kwargs, now=datetime(2026, 5, 31, tzinfo=UTC))
+    stored = run_backfill(**kwargs, now=datetime(2026, 6, 1, tzinfo=UTC))
+
+    partition = tmp_path / "data/macro/2024/01/02.jsonl"
+    record = json.loads(partition.read_text(encoding="utf-8").strip())
+    latest = Manifest(root=tmp_path / "data").latest_run()
+    assert stored == 0
+    assert record["captured_at"] == "2026-05-31T00:00:00Z"
+    assert latest is not None
+    assert latest.results[0].stored == 0
+
+
+@responses.activate
+def test_backfill_stooq_keeps_first_write_wins_for_prices(tmp_path: Path):
+    responses.add(responses.GET, "https://stooq.com/q/d/l/", body=CSV, status=200)
+    responses.add(responses.GET, "https://stooq.com/q/d/l/", body=CSV_REVISED, status=200)
+    kwargs = {
+        "source_id": "stooq",
+        "since": date(2018, 1, 1),
+        "env": {"STOOQ_API_KEY": "test-key"},
+        "watchlist": {"us": ["AAPL"], "kr": []},
+        "data_root": tmp_path / "data",
+        "now": datetime(2026, 5, 31, tzinfo=UTC),
+    }
+
+    run_backfill(**kwargs)
+    stored = run_backfill(**kwargs)
+
+    partition = tmp_path / "data/prices/2018/01/02.jsonl"
+    record = json.loads(partition.read_text(encoding="utf-8").strip())
+    latest = Manifest(root=tmp_path / "data").latest_run()
+    assert stored == 0
+    assert record["payload"]["close"] == 1.5
+    assert latest is not None
+    assert latest.results[0].stored == 0
 
 
 @responses.activate

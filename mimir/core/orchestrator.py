@@ -8,6 +8,7 @@ from mimir.core.registry import Registry
 from mimir.core.source import Cadence, FetchContext, Source
 from mimir.manifest.manifest import Manifest, SourceResult
 from mimir.storage.jsonl_store import JsonlStore
+from mimir.storage.policy import append_overwrite_enabled
 from mimir.storage.schema import Record
 
 
@@ -41,7 +42,9 @@ class Orchestrator:
                     records.append(normalize(raw, source.meta, captured_at=ctx.now))
                 except NormalizationError:  # one bad record must not lose the rest
                     invalid += 1
-            stored = self._store.append(records)
+            stored = self._store.append(
+                records, overwrite=append_overwrite_enabled(source.meta.dataset)
+            )
             return SourceResult(
                 source=source.meta.id, ok=True, fetched=len(raws), stored=stored, invalid=invalid
             )

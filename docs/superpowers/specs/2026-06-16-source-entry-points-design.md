@@ -2,7 +2,7 @@
 
 > **스펙 ID**: A3b
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`mimir.sources` entry point + plugin `SourceSpec` loader). 396 테스트 · ruff · mypy · coverage gate 클린.
+> **상태**: ✅ 구현 완료 (`mimir.sources` entry point + plugin `SourceSpec` loader). 397 테스트 · ruff · mypy · coverage gate 클린.
 > **선행**: [A3 선언적 소스 등록](2026-06-16-declarative-source-registration-design.md) · [확장성 카탈로그](../../architecture/improvement-catalog.md)
 
 ---
@@ -27,7 +27,9 @@ A3b는 Python package entry point를 source 확장 seam으로 추가한다. Mimi
 
 ### 2.2 plugin 실패가 core source를 깨면 안 된다
 
-외부 plugin은 Mimir가 통제하지 않는 코드다. plugin import가 실패하거나 잘못된 객체를 반환해도 SEC EDGAR, RSS 같은 built-in source가 같이 죽으면 안 된다.
+외부 plugin은 Mimir가 통제하지 않는 코드다. plugin import가 실패해도 SEC EDGAR, RSS 같은 built-in source가 같이 죽으면 안 된다.
+
+반대로 잘못된 객체를 반환하는 plugin은 설치자가 바로 고쳐야 하는 선언 오류다. 이 경우까지 조용히 건너뛰면 사용자는 source가 왜 사라졌는지 모른다.
 
 반대로 source id 충돌은 조용히 넘어가면 안 된다. built-in `rss`와 plugin `rss`가 같은 id를 쓰면 registry와 manifest가 같은 source로 오해한다.
 
@@ -41,7 +43,8 @@ A3b는 Python package entry point를 source 확장 seam으로 추가한다. Mimi
 - entry point는 `SourceSpec` 하나 또는 `Sequence[SourceSpec]`를 직접 로드할 수 있다.
 - 단일 `SourceSpec` entry point는 entry point 이름과 `SourceSpec.id`를 일치시킨다.
 - built-in source 순서와 기본 동작을 유지한다.
-- plugin load 오류와 잘못된 반환값은 warning으로 남기고 해당 plugin만 skip한다.
+- plugin load 오류는 warning으로 남기고 해당 plugin만 skip한다.
+- 잘못된 반환값, source id 충돌, source metadata 불일치는 `ValueError`로 실패한다.
 - built-in과 plugin source id 중복은 기존 duplicate-id 검증으로 `ValueError`를 낸다.
 - 문서에 plugin package 예시와 failure 정책을 남긴다.
 
@@ -121,6 +124,7 @@ SOURCE_SPECS = (
 |---|---|
 | `test_load_entry_point_source_specs_accepts_single_spec` | entry point가 `SourceSpec` 하나를 로드할 수 있다 |
 | `test_load_entry_point_source_specs_accepts_sequence` | entry point가 여러 `SourceSpec`을 로드할 수 있다 |
+| `test_entry_point_source_specs_are_loaded_in_name_order` | plugin entry point는 이름순으로 로드된다 |
 | `test_entry_point_source_spec_id_must_match_entry_point_name` | 단일 spec entry point 이름과 source id가 어긋나면 실패한다 |
 | `test_build_sources_includes_entry_point_sources_after_builtins` | `build_sources()`가 plugin source를 built-in 뒤에 붙인다 |
 | `test_broken_entry_point_source_spec_is_skipped_and_logged` | broken plugin이 built-in source를 깨지 않는다 |

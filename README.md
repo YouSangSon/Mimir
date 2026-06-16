@@ -13,7 +13,7 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-396%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-407%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -73,7 +73,7 @@ Backfill writes the same manifest format as collection. A successful run records
 Collection results accumulate in the repo, and you can view the latest run status as a single HTML page.
 
 ```text
-data/<dataset>/YYYY/MM/DD.jsonl   # collected data (append-only)
+data/<dataset>/YYYY/MM/DD.jsonl   # collected data (source-policy dedup)
 data/_manifest/YYYY/MM/DD.jsonl   # run log
 reports/status.html               # per-source collection status
 ```
@@ -152,10 +152,10 @@ flowchart LR
 | **RawRecord → Record** | Normalizes each source's raw output into the common envelope (validated with pydantic), made idempotent via `idempotency_key` |
 | **Registry** | Selects "which sources run this tick" based on cadence and GRAY policy |
 | **Orchestrator** | Select → throttle → fetch → normalize → store → manifest (isolated per source) |
-| **JsonlStore** | Append-only storage in date-partitioned `data/<dataset>/YYYY/MM/DD.jsonl` |
+| **JsonlStore** | Date-partitioned `data/<dataset>/YYYY/MM/DD.jsonl` storage; prices/filings/news are first-write-wins, macro observations are last-write-wins for official revisions |
 | **Manifest** | Records every run one line at a time (what · when · how many · success or not) — the basis for data trustworthiness |
 
-Adding a built-in source is done with a single adapter in `sources/` plus one `SourceSpec` registration entry. External packages can register `SourceSpec` objects through the `mimir.sources` entry point. The upper layers (analysis, trading) read only the stored envelope.
+Adding a built-in source is done with a single adapter in `sources/` plus one `SourceSpec` registration entry. External packages can register `SourceSpec` objects through the `mimir.sources` entry point. Install only trusted plugins: they run inside the Mimir process, are not sandboxed, and receive configured settings including API keys. The upper layers (analysis, trading) read only the stored envelope.
 
 ---
 
@@ -224,7 +224,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | Item | Value |
 | :--- | :--- |
-| **Tests** | 396 passing (adapters verified with recorded fixtures, no network) |
+| **Tests** | 407 passing (adapters verified with recorded fixtures, no network) |
 | **Coverage** | `mimir/` 97% (gate 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |
