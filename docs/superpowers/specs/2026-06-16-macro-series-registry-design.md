@@ -198,4 +198,4 @@ flowchart TD
 
 A2는 macro series metadata만 다뤘다. 새 소스를 추가할 때 `mimir/core/builder.py`에 분기를 추가해야 하는 문제는 이 증분 밖으로 분리했다.
 
-이 남은 문제는 A3에서 `BUILTIN_SOURCE_SPECS`와 `SourceSpec`으로 구현 완료됐다. Python entry-point 기반 외부 source plugin은 여전히 별도 미래 증분이다.
+이 남은 문제는 A3에서 `BUILTIN_SOURCE_SPECS`와 `SourceSpec`으로 구현 완료됐다. Python entry-point 기반 외부 source plugin은 이후 A3b에서 `mimir.sources` entry point로 구현됐다.

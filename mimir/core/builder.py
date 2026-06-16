@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import importlib.metadata
 import importlib.util
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from typing import cast
 
 from mimir.core.source import Source
 from mimir.settings import Settings
@@ -17,6 +19,7 @@ from mimir.sources.sec_edgar import SecEdgarSource
 from mimir.sources.stooq import StooqSource
 
 logger = logging.getLogger(__name__)
+SOURCE_ENTRY_POINT_GROUP = "mimir.sources"
 
 
 @dataclass(frozen=True)
@@ -96,6 +99,56 @@ def _validate_unique_source_ids(specs: Sequence[SourceSpec]) -> None:
         raise ValueError(f"duplicate source id(s): {joined}")
 
 
+def _entry_points_for_group(group: str) -> tuple[importlib.metadata.EntryPoint, ...]:
+    entry_points: Iterable[importlib.metadata.EntryPoint]
+    try:
+        entry_points = importlib.metadata.entry_points(group=group)
+    except TypeError:
+        all_entry_points = importlib.metadata.entry_points()
+        if hasattr(all_entry_points, "select"):
+            entry_points = all_entry_points.select(group=group)
+        elif isinstance(all_entry_points, Mapping):
+            entry_points = cast(
+                Iterable[importlib.metadata.EntryPoint],
+                all_entry_points.get(group, ()),
+            )
+        else:
+            entry_points = ()
+    return tuple(sorted(entry_points, key=lambda entry_point: entry_point.name))
+
+
+def _source_specs_from_entry_point(name: str, loaded: object) -> tuple[SourceSpec, ...]:
+    if isinstance(loaded, SourceSpec):
+        if loaded.id != name:
+            raise ValueError(f"entry point {name!r} loaded source spec {loaded.id!r}")
+        return (loaded,)
+    if isinstance(loaded, Sequence) and not isinstance(loaded, str | bytes):
+        specs = tuple(loaded)
+        for spec in specs:
+            if not isinstance(spec, SourceSpec):
+                raise ValueError(f"entry point {name!r} must load SourceSpec objects")
+        return specs
+    raise ValueError(f"entry point {name!r} must load SourceSpec objects")
+
+
+def _load_entry_point_source_specs(
+    group: str = SOURCE_ENTRY_POINT_GROUP,
+) -> tuple[SourceSpec, ...]:
+    specs: list[SourceSpec] = []
+    for entry_point in _entry_points_for_group(group):
+        try:
+            loaded = entry_point.load()
+        except Exception as exc:
+            logger.warning(
+                "skipping source plugin '%s': failed to load entry point: %s",
+                entry_point.name,
+                exc,
+            )
+            continue
+        specs.extend(_source_specs_from_entry_point(entry_point.name, loaded))
+    return tuple(specs)
+
+
 def _build_sources_from_specs(
     settings: Settings,
     config: SourcesConfig,
@@ -126,6 +179,7 @@ def build_sources(settings: Settings, config: SourcesConfig | None = None) -> li
         logger.warning(
             "MIMIR_SEC_USER_AGENT has no contact email; SEC EDGAR may return 403. "
             "Set it to e.g. 'Your Name you@example.com'."
-        )
+    )
     cfg = config or SourcesConfig()
-    return _build_sources_from_specs(settings, cfg, BUILTIN_SOURCE_SPECS)
+    specs = (*BUILTIN_SOURCE_SPECS, *_load_entry_point_source_specs())
+    return _build_sources_from_specs(settings, cfg, specs)

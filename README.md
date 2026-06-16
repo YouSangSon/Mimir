@@ -13,7 +13,7 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-388%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-396%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -88,7 +88,7 @@ reports/status.html               # per-source collection status
 
 | Feature | Behavior |
 | :--- | :--- |
-| **Source adapters** | 7 sources implemented in isolation behind a shared `Source` protocol (adding a built-in source = adapter file + `SourceSpec` registration) |
+| **Source adapters** | 7 built-in sources behind a shared `Source` protocol, plus external source plugins via the `mimir.sources` entry point |
 | **Source isolation** | One source's failure or format change never halts another source or the whole run |
 | **Normalized envelope** | Every source converges to a common record validated with pydantic (`prices` · `filings` · `macro` · `news`) |
 | **Idempotent storage** | Re-running the same collection appends without duplicates thanks to the `idempotency_key` |
@@ -155,7 +155,7 @@ flowchart LR
 | **JsonlStore** | Append-only storage in date-partitioned `data/<dataset>/YYYY/MM/DD.jsonl` |
 | **Manifest** | Records every run one line at a time (what · when · how many · success or not) — the basis for data trustworthiness |
 
-Adding a built-in source is done with a single adapter in `sources/` plus one `SourceSpec` registration entry, and the upper layers (analysis, trading) read only the stored envelope.
+Adding a built-in source is done with a single adapter in `sources/` plus one `SourceSpec` registration entry. External packages can register `SourceSpec` objects through the `mimir.sources` entry point. The upper layers (analysis, trading) read only the stored envelope.
 
 ---
 
@@ -224,7 +224,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | Item | Value |
 | :--- | :--- |
-| **Tests** | 388 passing (adapters verified with recorded fixtures, no network) |
+| **Tests** | 396 passing (adapters verified with recorded fixtures, no network) |
 | **Coverage** | `mimir/` 97% (gate 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |

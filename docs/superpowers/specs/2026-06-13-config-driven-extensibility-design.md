@@ -140,7 +140,7 @@ def build_sources(settings: Settings, config: SourcesConfig | None = None) -> li
 
 if-사다리(`build_sources`)를 데이터화하는 작업은 A3에서 구현 완료됐다. `mimir/core/builder.py`의 `BUILTIN_SOURCE_SPECS`가 내장 소스의 secret gate, optional package gate, 생성자 인자를 선언한다.
 
-이번 A3 구현은 Python package entry-point까지 확장하지 않는다. 외부 플러그인 source는 별도 증분으로 남긴다. 상세 설계는 [A3 declarative source registration 설계](2026-06-16-declarative-source-registration-design.md)를 따른다.
+이번 A3 구현은 Python package entry-point까지 확장하지 않았다. 외부 플러그인 source는 이후 A3b에서 `mimir.sources` entry point로 구현됐다. 상세 설계는 [A3 declarative source registration 설계](2026-06-16-declarative-source-registration-design.md)와 [A3b source entry-point 설계](2026-06-16-source-entry-points-design.md)를 따른다.
 
 ## 9. 부록 — 시리즈 식별자 단일 진실원 (A2, 구현 완료)
 

@@ -6,9 +6,11 @@ from mimir.core.builder import (
     BUILTIN_SOURCE_SPECS,
     SourceSpec,
     _build_sources_from_specs,
+    _load_entry_point_source_specs,
     _validate_unique_source_ids,
     build_sources,
 )
+from mimir.core.source import Cadence, Dataset, LegalStatus, Market, RateLimit, SourceMeta
 from mimir.settings import Settings
 from mimir.sources.config import SourcesConfig
 from mimir.sources.ecos import DEFAULT_SERIES as ECOS_DEFAULT_SERIES
@@ -18,6 +20,67 @@ from mimir.sources.fred import FredSource
 from mimir.sources.rss import DEFAULT_FEEDS as RSS_DEFAULT_FEEDS
 from mimir.sources.rss import RssFeed, RssSource
 from mimir.sources.sec_edgar import SecEdgarSource
+
+
+class _FakeEntryPoint:
+    def __init__(self, name, value=None, error: Exception | None = None):
+        self.name = name
+        self._value = value
+        self._error = error
+
+    def load(self):
+        if self._error:
+            raise self._error
+        return self._value
+
+
+class _PluginSource:
+    meta = SourceMeta(
+        id="plugin_news",
+        market=Market.GLOBAL,
+        dataset=Dataset.NEWS,
+        cadence=Cadence.HOURLY,
+        legal_status=LegalStatus.OFFICIAL,
+        rate_limit=RateLimit(max_per_second=1.0),
+    )
+
+    def fetch(self, ctx):
+        return []
+
+
+class _PluginMacroSource:
+    meta = SourceMeta(
+        id="plugin_macro",
+        market=Market.GLOBAL,
+        dataset=Dataset.MACRO,
+        cadence=Cadence.DAILY,
+        legal_status=LegalStatus.OFFICIAL,
+        rate_limit=RateLimit(max_per_second=1.0),
+    )
+
+    def fetch(self, ctx):
+        return []
+
+
+class _MismatchedPluginSource:
+    meta = SourceMeta(
+        id="plugin_news",
+        market=Market.GLOBAL,
+        dataset=Dataset.NEWS,
+        cadence=Cadence.HOURLY,
+        legal_status=LegalStatus.OFFICIAL,
+        rate_limit=RateLimit(max_per_second=1.0),
+    )
+
+    def fetch(self, ctx):
+        return []
+
+
+def _patch_entry_points(monkeypatch, entry_points):
+    monkeypatch.setattr(
+        "mimir.core.builder.importlib.metadata.entry_points",
+        lambda group=None: entry_points if group == "mimir.sources" else [],
+    )
 
 
 def _by_id(sources):
@@ -84,6 +147,74 @@ def test_build_sources_from_specs_rejects_source_id_mismatch():
 
     with pytest.raises(ValueError, match="source spec id 'stooq' built source id 'sec_edgar'"):
         _build_sources_from_specs(Settings.from_env({}), SourcesConfig(), specs)
+
+
+def test_load_entry_point_source_specs_accepts_single_spec(monkeypatch):
+    spec = SourceSpec("plugin_news", lambda settings, cfg: _PluginSource())
+    _patch_entry_points(monkeypatch, [_FakeEntryPoint("plugin_news", spec)])
+
+    assert _load_entry_point_source_specs() == (spec,)
+
+
+def test_load_entry_point_source_specs_accepts_sequence(monkeypatch):
+    news_spec = SourceSpec("plugin_news", lambda settings, cfg: _PluginSource())
+    macro_spec = SourceSpec("plugin_macro", lambda settings, cfg: _PluginMacroSource())
+    _patch_entry_points(monkeypatch, [_FakeEntryPoint("plugin_bundle", (news_spec, macro_spec))])
+
+    assert _load_entry_point_source_specs() == (news_spec, macro_spec)
+
+
+def test_entry_point_source_spec_id_must_match_entry_point_name(monkeypatch):
+    spec = SourceSpec("plugin_b", lambda settings, cfg: _PluginSource())
+    _patch_entry_points(monkeypatch, [_FakeEntryPoint("plugin_a", spec)])
+
+    with pytest.raises(ValueError, match="entry point 'plugin_a' loaded source spec 'plugin_b'"):
+        _load_entry_point_source_specs()
+
+
+def test_broken_entry_point_source_spec_is_skipped_and_logged(monkeypatch, caplog):
+    _patch_entry_points(monkeypatch, [_FakeEntryPoint("broken", error=RuntimeError("boom"))])
+
+    with caplog.at_level(logging.WARNING):
+        assert _load_entry_point_source_specs() == ()
+
+    assert "skipping source plugin 'broken'" in " ".join(r.message for r in caplog.records)
+
+
+def test_entry_point_wrong_object_type_raises_value_error(monkeypatch):
+    _patch_entry_points(monkeypatch, [_FakeEntryPoint("bad", object())])
+
+    with pytest.raises(ValueError, match="entry point 'bad' must load SourceSpec"):
+        _load_entry_point_source_specs()
+
+
+def test_build_sources_includes_entry_point_sources_after_builtins(monkeypatch):
+    spec = SourceSpec("plugin_news", lambda settings, cfg: _PluginSource())
+    _patch_entry_points(monkeypatch, [_FakeEntryPoint("plugin_news", spec)])
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+
+    sources = build_sources(Settings.from_env({}))
+
+    assert [source.meta.id for source in sources] == ["sec_edgar", "rss", "plugin_news"]
+
+
+def test_entry_point_duplicate_builtin_source_id_raises_value_error(monkeypatch):
+    spec = SourceSpec("rss", lambda settings, cfg: RssSource())
+    _patch_entry_points(monkeypatch, [_FakeEntryPoint("rss", spec)])
+
+    with pytest.raises(ValueError, match="duplicate source id"):
+        build_sources(Settings.from_env({}))
+
+
+def test_plugin_source_meta_id_mismatch_uses_existing_guard(monkeypatch):
+    spec = SourceSpec("plugin_bad", lambda settings, cfg: _MismatchedPluginSource())
+    _patch_entry_points(monkeypatch, [_FakeEntryPoint("plugin_bad", spec)])
+
+    with pytest.raises(
+        ValueError,
+        match="source spec id 'plugin_bad' built source id 'plugin_news'",
+    ):
+        build_sources(Settings.from_env({}))
 
 
 def test_builder_skips_pykrx_when_optional_package_missing(monkeypatch, caplog):
