@@ -20,6 +20,7 @@ from mimir.sources.fred import DEFAULT_SERIES as FRED_DEFAULT_SERIES
 from mimir.sources.fred import FredSource
 from mimir.sources.rss import DEFAULT_FEEDS as RSS_DEFAULT_FEEDS
 from mimir.sources.rss import RssFeed, RssSource
+from mimir.sources.rss_catalog import RssCatalogSelection
 from mimir.sources.sec_edgar import SecEdgarSource
 
 
@@ -405,3 +406,63 @@ def test_config_overrides_rss_feeds():
     feed = RssFeed(url="https://x/feed.rss", publisher="P", market="US")
     by_id = _by_id(build_sources(settings, SourcesConfig(rss_feeds=[feed])))
     assert by_id["rss"]._feeds == [feed]
+
+
+def test_build_sources_resolves_rss_catalog_feeds(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    cfg = SourcesConfig(rss_catalogs=[RssCatalogSelection(id="sec_press_releases")])
+
+    sources = build_sources(Settings.from_env({}), cfg)
+    rss = _by_id(sources)["rss"]
+
+    assert isinstance(rss, RssSource)
+    assert rss._feeds == [
+        RssFeed(
+            url="https://www.sec.gov/news/pressreleases.rss",
+            publisher="SEC",
+            market="US",
+        )
+    ]
+
+
+def test_build_sources_combines_rss_catalog_and_manual_feeds(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    manual = RssFeed(
+        url="https://example.com/aapl.rss",
+        publisher="Example",
+        market="US",
+        symbol="AAPL",
+    )
+    cfg = SourcesConfig(
+        rss_catalogs=[RssCatalogSelection(id="sec_press_releases")],
+        rss_feeds=[manual],
+    )
+
+    sources = build_sources(Settings.from_env({}), cfg)
+    rss = _by_id(sources)["rss"]
+
+    assert isinstance(rss, RssSource)
+    assert rss._feeds == [
+        RssFeed(
+            url="https://www.sec.gov/news/pressreleases.rss",
+            publisher="SEC",
+            market="US",
+        ),
+        manual,
+    ]
+
+
+def test_build_sources_rejects_duplicate_rss_catalog_and_manual_feed(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    manual = RssFeed(
+        url="https://www.sec.gov/news/pressreleases.rss",
+        publisher="SEC",
+        market="US",
+    )
+    cfg = SourcesConfig(
+        rss_catalogs=[RssCatalogSelection(id="sec_press_releases")],
+        rss_feeds=[manual],
+    )
+
+    with pytest.raises(ValueError, match="duplicate RSS feed"):
+        build_sources(Settings.from_env({}), cfg)

@@ -15,6 +15,7 @@ from mimir.sources.ecos import EcosSource
 from mimir.sources.fred import FredSource
 from mimir.sources.pykrx_source import PykrxSource
 from mimir.sources.rss import RssSource
+from mimir.sources.rss_catalog import resolve_rss_feeds
 from mimir.sources.sec_edgar import SecEdgarSource
 from mimir.sources.stooq import StooqSource
 
@@ -43,7 +44,12 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
         "sec_edgar",
         lambda settings, cfg: SecEdgarSource(user_agent=settings.sec_user_agent),
     ),
-    SourceSpec("rss", lambda settings, cfg: RssSource(feeds=cfg.rss_feeds)),
+    SourceSpec(
+        "rss",
+        lambda settings, cfg: RssSource(
+            feeds=resolve_rss_feeds(cfg.rss_catalogs, cfg.rss_feeds)
+        ),
+    ),
     SourceSpec(
         "stooq",
         lambda settings, cfg: StooqSource(
