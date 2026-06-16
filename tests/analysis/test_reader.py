@@ -7,16 +7,20 @@ from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
 
 
-def _rec(symbol: str, day: int, dataset: Dataset = Dataset.PRICES) -> Record:
-    return Record(
-        source="stooq",
-        dataset=dataset,
-        market=Market.US,
-        symbol=symbol,
-        ts=datetime(2026, 5, day, tzinfo=UTC),
-        captured_at=datetime(2026, 5, 31, tzinfo=UTC),
-        idempotency_key=f"{dataset.value}:{symbol}:{day}",
-        payload={
+def _rec(
+    symbol: str, day: int, dataset: Dataset = Dataset.PRICES, captured_day: int = 31
+) -> Record:
+    payload = (
+        {
+            "title": f"{symbol} headline",
+            "url": "https://example.com/news",
+            "publisher": "Example",
+            "market": "US",
+            "published_at": None,
+            "summary": "",
+        }
+        if dataset is Dataset.NEWS
+        else {
             "open": float(day),
             "high": float(day),
             "low": float(day),
@@ -24,7 +28,17 @@ def _rec(symbol: str, day: int, dataset: Dataset = Dataset.PRICES) -> Record:
             "volume": 1.0,
             "currency": "USD",
             "interval": "1d",
-        },
+        }
+    )
+    return Record(
+        source="stooq",
+        dataset=dataset,
+        market=Market.US,
+        symbol=symbol,
+        ts=datetime(2026, 5, day, tzinfo=UTC),
+        captured_at=datetime(2026, 5, captured_day, tzinfo=UTC),
+        idempotency_key=f"{dataset.value}:{symbol}:{day}:{captured_day}",
+        payload=payload,
     )
 
 
@@ -51,3 +65,39 @@ def test_read_filters_by_window(tmp_path: Path):
 def test_read_empty_dataset_returns_empty(tmp_path: Path):
     reader = _reader(tmp_path, [_rec("AAPL", 28)])
     assert reader.read(Dataset.NEWS) == []
+
+
+def test_read_captured_window_filters_by_captured_at_date(tmp_path: Path):
+    records = [
+        _rec("AAPL", 30, Dataset.NEWS, captured_day=31),
+        _rec("AAPL", 30, Dataset.NEWS, captured_day=30),
+        _rec("AAPL", 31, Dataset.NEWS, captured_day=30),
+    ]
+    reader = _reader(tmp_path, records)
+
+    recs = reader.read_captured_window(
+        Dataset.NEWS, since=date(2026, 5, 31), until=date(2026, 5, 31)
+    )
+
+    assert len(recs) == 1
+    assert recs[0].captured_at.date() == date(2026, 5, 31)
+
+
+def test_read_captured_window_applies_symbol_and_inclusive_bounds(tmp_path: Path):
+    records = [
+        _rec("AAPL", 20, Dataset.NEWS, captured_day=24),
+        _rec("MSFT", 20, Dataset.NEWS, captured_day=24),
+        _rec("AAPL", 20, Dataset.NEWS, captured_day=30),
+        _rec("AAPL", 20, Dataset.NEWS, captured_day=31),
+    ]
+    reader = _reader(tmp_path, records)
+
+    recs = reader.read_captured_window(
+        Dataset.NEWS,
+        symbol="AAPL",
+        since=date(2026, 5, 24),
+        until=date(2026, 5, 30),
+    )
+
+    assert {r.symbol for r in recs} == {"AAPL"}
+    assert {r.captured_at.date() for r in recs} == {date(2026, 5, 24), date(2026, 5, 30)}

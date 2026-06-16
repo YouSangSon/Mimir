@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/R1a/C3 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/R1a/R1b/C3 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -31,6 +31,7 @@
 | **B1** | 시그널 백테스트·평가 하네스 (사후수익 적중률) | 분석심화 | 신규(최고가치) | **✅ 구현 완료 (Increment 4 + 리포트 합류)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-13-signal-backtest-design.md) |
 | **B2** | LLM 뉴스 감성 시그널 (news_volume 대체, 하이브리드) | 분석심화 | 로드맵 + 백로그 R1 | **✅ seam 구현 (Increment 5, off-by-default)** | 코드 + 테스트 |
 | **R1a** | 뉴스 mention alias matcher (`analysis.news.aliases`) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-mention-alias-design.md) |
+| **R1b** | 뉴스 captured window (`captured_at` 기준 today/baseline) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-captured-window-design.md) |
 | **H1** | 재생성 데이터 stale 제거 + pipeline scorecard 갱신 | 견고성/운영 | B1 후속 + 리뷰 발견 | **✅ 구현 완료 (2026-06-16 hardening)** | `replace_partition`, `run_evaluate`, daily report scorecard |
 | **BF-MANIFEST** | 백필 실행 manifest 기록 | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | backfill success/failure run log |
 | **C1** | 데이터 신선도·품질 닥터 (`mimir doctor`) | 운영 | "무음 실패 금지" 약속 | **✅ 구현 완료 (Increment 3)** | 코드 + 테스트(179) |
@@ -101,7 +102,15 @@ Mimir는 시그널을 *발행*하지만, 그 시그널이 실제로 무언가를
 
 Matcher는 Unicode word boundary를 사용해 `A`가 `Apple` 안에서 매칭되거나 `삼성전자`가 `삼성전자우` 안에서 매칭되는 일을 막는다. Alias는 생성 시 tuple로 복사해 설정 dict/list가 나중에 mutate되어도 기존 signal 동작이 바뀌지 않는다.
 
-남은 한계는 기본 alias 사전, 종목별 feed, `captured_at` 기준 뉴스 윈도우다. v1은 사용자가 명시한 alias만 해석한다.
+남은 한계는 기본 alias 사전과 종목별 feed다. v1은 사용자가 명시한 alias만 해석한다.
+
+### R1b. 뉴스 captured window — **구현 완료 (2026-06-16)**
+
+뉴스 레코드의 `ts`는 기사가 발행된 시간이고, `captured_at`은 Mimir가 그 기사를 저장한 시간이다. 기존 뉴스 시그널은 `ts` 날짜로 today와 baseline을 잘랐다. 그래서 어제 발행됐지만 오늘 처음 수집된 뉴스가 오늘 분석에서 빠질 수 있었다.
+
+`DataReader.read_captured_window()`는 저장 파티션을 바꾸지 않고 `captured_at.date()`로 윈도우를 자른다. `NewsVolumeSignal`과 opt-in `LlmSentimentSignal`만 이 API를 사용한다. 가격, 공시, 거시 신호는 기존처럼 이벤트 날짜(`ts`) 기준 reader를 쓴다.
+
+이 구현은 `read_all(Dataset.NEWS)` 후 필터링한다. JSONL 파티션은 여전히 `ts.date()` 기준이므로, `captured_at` 윈도우에 `read_window()` 파티션 프루닝을 쓰면 늦게 수집된 오래된 발행 기사를 읽기 전에 놓친다. 뉴스 데이터가 커지면 `captured_at` 보조 인덱스나 파티션을 별도 설계한다.
 
 ---
 
@@ -141,6 +150,7 @@ Hardening ─── stale 재생성 데이터 제거 · lang 정규화 · Signal
 A2 ───────── macro series registry · analysis.macro_regime.rate_series
 A3 ───────── built-in source registry · SourceSpec construction table
 R1a ──────── news mention alias matcher · analysis.news.aliases
+R1b ──────── news captured window · DataReader.read_captured_window
 D2 ───────── GitHub Actions Node24-compatible action majors
 C3 ───────── pykrx retry/backoff · FetchError manifest surface
 BF-MANIFEST ─ backfill success/failure manifest
@@ -173,4 +183,4 @@ BF-MANIFEST ─ backfill success/failure manifest
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 원천 데이터는 append-only.
 - 백필은 성공과 실패를 manifest에 기록한다. 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, R1a, D2, C3, BF-MANIFEST까지 구현되었고, 남은 신규 아키텍처 부채는 외부 source plugin entry-point, 기본 news alias 데이터셋, 종목별 news feed, captured_at 기준 뉴스 윈도우다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, R1a, R1b, D2, C3, BF-MANIFEST까지 구현되었고, 남은 신규 아키텍처 부채는 외부 source plugin entry-point, 기본 news alias 데이터셋, 종목별 news feed다.
