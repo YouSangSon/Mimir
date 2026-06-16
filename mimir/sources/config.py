@@ -14,6 +14,7 @@ class SourcesConfig(BaseModel):
     rss_feeds: list[RssFeed] | None = None
     macro_regime_rate_series: list[str] | None = None
     news_aliases: dict[str, list[str]] | None = None
+    use_default_news_aliases: bool = True
     # INC5: off-by-default toggle for the paid LLM news-sentiment signal. Mirrors
     # the top-level `gray_enabled` key in sources.yaml (analysis-plane gate, not a
     # nested `sources:` block). `build_signals` requires this AND a key AND the
@@ -52,6 +53,7 @@ class _MacroRegimeBlock(BaseModel):
 class _NewsBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
     aliases: dict[str, list[str]] | None = None
+    use_default_aliases: bool = True
 
 
 class _AnalysisBlock(BaseModel):
@@ -84,6 +86,7 @@ def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
     # (0, false, [], "x") is malformed and must raise — not silently fall back.
     top_level = _TopLevelSourcesConfig.model_validate(raw)
     block = top_level.sources or _SourcesBlock()
+    news_block = top_level.analysis.news if top_level.analysis and top_level.analysis.news else None
     return SourcesConfig(
         fred_series=block.fred.series if block.fred else None,
         ecos_series=block.ecos.series if block.ecos else None,
@@ -93,11 +96,8 @@ def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
             if top_level.analysis and top_level.analysis.macro_regime
             else None
         ),
-        news_aliases=(
-            top_level.analysis.news.aliases
-            if top_level.analysis and top_level.analysis.news
-            else None
-        ),
+        news_aliases=news_block.aliases if news_block else None,
+        use_default_news_aliases=news_block.use_default_aliases if news_block else True,
         # Top-level analysis-plane toggles (siblings of gray_enabled), not under `sources:`.
         llm_sentiment_enabled=top_level.llm_sentiment_enabled,
         llm_sentiment_max_headlines=top_level.llm_sentiment_max_headlines,

@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/R1a/R1b/C3 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/R1a/R1b/R1c/C3 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -32,6 +32,7 @@
 | **B2** | LLM 뉴스 감성 시그널 (news_volume 대체, 하이브리드) | 분석심화 | 로드맵 + 백로그 R1 | **✅ seam 구현 (Increment 5, off-by-default)** | 코드 + 테스트 |
 | **R1a** | 뉴스 mention alias matcher (`analysis.news.aliases`) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-mention-alias-design.md) |
 | **R1b** | 뉴스 captured window (`captured_at` 기준 today/baseline) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-captured-window-design.md) |
+| **R1c** | 기본 news alias 데이터셋 (`analysis.news.use_default_aliases`) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-default-news-aliases-design.md) |
 | **H1** | 재생성 데이터 stale 제거 + pipeline scorecard 갱신 | 견고성/운영 | B1 후속 + 리뷰 발견 | **✅ 구현 완료 (2026-06-16 hardening)** | `replace_partition`, `run_evaluate`, daily report scorecard |
 | **BF-MANIFEST** | 백필 실행 manifest 기록 | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | backfill success/failure run log |
 | **C1** | 데이터 신선도·품질 닥터 (`mimir doctor`) | 운영 | "무음 실패 금지" 약속 | **✅ 구현 완료 (Increment 3)** | 코드 + 테스트(179) |
@@ -102,7 +103,7 @@ Mimir는 시그널을 *발행*하지만, 그 시그널이 실제로 무언가를
 
 Matcher는 Unicode word boundary를 사용해 `A`가 `Apple` 안에서 매칭되거나 `삼성전자`가 `삼성전자우` 안에서 매칭되는 일을 막는다. Alias는 생성 시 tuple로 복사해 설정 dict/list가 나중에 mutate되어도 기존 signal 동작이 바뀌지 않는다.
 
-남은 한계는 기본 alias 사전과 종목별 feed다. v1은 사용자가 명시한 alias만 해석한다.
+남은 한계는 종목별 feed다. R1c는 기본 watchlist의 핵심 symbol에 대해 보수적 기본 alias를 제공하고, 사용자가 `analysis.news.use_default_aliases: false`로 끌 수 있게 했다.
 
 ### R1b. 뉴스 captured window — **구현 완료 (2026-06-16)**
 
@@ -151,6 +152,7 @@ A2 ───────── macro series registry · analysis.macro_regime.ra
 A3 ───────── built-in source registry · SourceSpec construction table
 R1a ──────── news mention alias matcher · analysis.news.aliases
 R1b ──────── news captured window · DataReader.read_captured_window
+R1c ──────── default news aliases · analysis.news.use_default_aliases
 D2 ───────── GitHub Actions Node24-compatible action majors
 C3 ───────── pykrx retry/backoff · FetchError manifest surface
 BF-MANIFEST ─ backfill success/failure manifest
@@ -183,4 +185,4 @@ BF-MANIFEST ─ backfill success/failure manifest
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 원천 데이터는 append-only.
 - 백필은 성공과 실패를 manifest에 기록한다. 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, R1a, R1b, D2, C3, BF-MANIFEST까지 구현되었고, 남은 신규 아키텍처 부채는 외부 source plugin entry-point, 기본 news alias 데이터셋, 종목별 news feed다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프*를 만드는 흐름이다. A3, R1a, R1b, R1c, D2, C3, BF-MANIFEST까지 구현되었고, 남은 신규 아키텍처 부채는 외부 source plugin entry-point와 종목별 news feed다.

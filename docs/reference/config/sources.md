@@ -20,6 +20,7 @@ llm_sentiment_max_headlines: 50
 # Optional. Omit to inherit the macro-series registry default.
 analysis:
   news:
+    use_default_aliases: true
     aliases:
       AAPL: ["Apple", "Apple Inc."]
       MSFT: ["Microsoft", "Microsoft Corp."]
@@ -72,14 +73,25 @@ analysis:
       "005930": ["Samsung Electronics", "삼성전자"]
 ```
 
-`aliases`는 뉴스 제목과 요약을 watchlist symbol에 연결하는 회사명 표기 목록이다. RSS는 계속 공식 feed의 제목과 요약 metadata만 저장한다. 이 설정은 저장된 텍스트를 분석 단계에서 어떻게 해석할지만 바꾼다.
+Mimir는 기본 watchlist의 핵심 symbol에 대해 보수적인 내장 alias를 기본으로 사용한다. 현재 기본값은 `AAPL`, `MSFT`, `NVDA`, `"005930"`의 대표 회사명이다. `aliases`는 여기에 사용자 회사명 표기를 추가하는 목록이다. RSS는 계속 공식 feed의 제목과 요약 metadata만 저장한다. 이 설정은 저장된 텍스트를 분석 단계에서 어떻게 해석할지만 바꾼다.
 
 | 필드 | 의미 |
 |---|---|
+| `use_default_aliases` | 내장 alias를 쓸지 정한다. 기본값은 `true` |
 | `AAPL`, `"005930"` 같은 key | watchlist symbol |
 | list 안의 문자열 | 제목과 요약에서 추가로 찾을 회사명 또는 표기 |
 
-`news_volume`은 symbol과 alias를 모두 찾는다. 예를 들어 제목에 `AAPL`이 없어도 `Apple`이 있으면 `AAPL` 관련 뉴스로 셀 수 있다.
+`news_volume`은 symbol과 alias를 모두 찾는다. 예를 들어 제목에 `AAPL`이 없어도 기본 alias인 `Apple`이 있으면 `AAPL` 관련 뉴스로 셀 수 있다. 사용자 alias는 기본 alias 뒤에 추가되고, 같은 symbol 안의 중복은 대소문자 무시 기준으로 제거된다.
+
+기본 alias를 끄고 직접 지정한 alias만 쓰려면 아래처럼 설정한다.
+
+```yaml
+analysis:
+  news:
+    use_default_aliases: false
+    aliases:
+      AAPL: ["Cupertino company"]
+```
 
 LLM 감성 시그널도 같은 alias matcher를 사용한다. 단, alias 설정만으로 LLM 호출이 켜지지는 않는다. LLM 감성 시그널은 여전히 `llm_sentiment_enabled`, `ANTHROPIC_API_KEY`, `[llm]` extra 세 조건이 모두 맞을 때만 등록된다.
 
@@ -192,6 +204,12 @@ sources:
 
 ```yaml
 sources: "fred"          # sources는 mapping이어야 한다.
+```
+
+```yaml
+analysis:
+  news:
+    use_defaults_aliases: false  # 오타. use_default_aliases가 맞다.
 ```
 
 ```yaml

@@ -7,11 +7,15 @@ llm_sentiment_max_headlines: 50   # per-run cap on newly classified headlines (c
 
 # Analysis-plane settings. `sources:` decides what gets collected; this block
 # decides how collected data is interpreted by signals. Omit this block to keep
-# the registry default from mimir/core/macro_series.py.
+# analysis defaults.
 #
 # analysis:
 #   news:
+#     # Built-in aliases for the default watchlist are enabled by default.
+#     # Set false if a broad company name causes false positives in your feeds.
+#     use_default_aliases: true
 #     # Optional company-name aliases used by news_volume and opt-in llm_sentiment.
+#     # User aliases are added to the built-in defaults and deduped per symbol.
 #     # RSS still stores only official title/summary metadata; aliases only affect
 #     # how stored news is matched to watchlist symbols during analysis.
 #     aliases:

@@ -155,8 +155,56 @@ def test_build_signals_passes_news_aliases_to_news_volume(tmp_path: Path):
     assert result.signal == "news_volume"
 
 
+def test_build_signals_uses_default_news_aliases_for_news_volume(tmp_path: Path):
+    news_volume = next(s for s in build_signals() if s.id == "news_volume")
+
+    result = news_volume.evaluate(
+        "AAPL",
+        Market.US,
+        AS_OF,
+        _reader(tmp_path, [_news_record(31, "Apple supplier update", "")]),
+    )
+
+    assert result is not None
+    assert result.signal == "news_volume"
+
+
+def test_build_signals_can_disable_default_news_aliases(tmp_path: Path):
+    cfg = SourcesConfig(use_default_news_aliases=False)
+    news_volume = next(s for s in build_signals(cfg) if s.id == "news_volume")
+
+    result = news_volume.evaluate(
+        "AAPL",
+        Market.US,
+        AS_OF,
+        _reader(tmp_path, [_news_record(31, "Apple supplier update", "")]),
+    )
+
+    assert result is None
+
+
 def test_build_signals_passes_news_aliases_to_llm_sentiment(tmp_path: Path):
     cfg = SourcesConfig(llm_sentiment_enabled=True, news_aliases={"AAPL": ["Apple"]})
+    settings = Settings(anthropic_api_key="sk-test")
+    llm_sentiment = next(
+        s
+        for s in build_signals(cfg, settings, classifier=_FakeClassifier())
+        if s.id == "llm_sentiment"
+    )
+
+    result = llm_sentiment.evaluate(
+        "AAPL",
+        Market.US,
+        AS_OF,
+        _reader(tmp_path, [_news_record(31, "Apple supplier update", "")]),
+    )
+
+    assert result is not None
+    assert result.signal == "llm_sentiment"
+
+
+def test_build_signals_uses_default_news_aliases_for_llm_sentiment(tmp_path: Path):
+    cfg = SourcesConfig(llm_sentiment_enabled=True)
     settings = Settings(anthropic_api_key="sk-test")
     llm_sentiment = next(
         s
