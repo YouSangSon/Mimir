@@ -13,7 +13,7 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-495%20passing%20%C2%B7%2098%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-499%20passing%20%C2%B7%2098%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -42,7 +42,7 @@ Mímir is the guardian of the well of wisdom in Norse mythology.
 | **Python** | `>=3.14` | Pinned for asdf via `.tool-versions` (3.14.5) |
 | **Virtualenv** | `.venv` | `python -m venv .venv` |
 | **Repository** | Local read/write | Collected data and reports are written to `data/` and `reports/` |
-| **API keys** | All optional | Without a key, that source is skipped (recorded in the manifest). SEC EDGAR + RSS work even with no keys |
+| **API keys** | All optional | SEC EDGAR + RSS work without keys. Keyed sources are skipped when keys are missing; targeted backfill records registered unavailable sources in the manifest |
 | **GitHub** | Public repo recommended | Public repos get unlimited Actions minutes |
 
 ```bash
@@ -69,7 +69,7 @@ Backfill historical data in one pass.
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
 ```
 
-Backfill writes the same manifest format as collection. A successful run records fetched, stored, and invalid counts. A failed run records `ok=false` before surfacing the error to the caller.
+Backfill writes the same manifest format as collection. A successful run records fetched, stored, and invalid counts. A registered source failure records `ok=false` before surfacing the error to the caller, including preflight unavailability such as a missing API key or optional package. A truly unknown source id remains an argument error without a manifest entry because there is no registered cadence to record.
 
 Collection results accumulate in the repo, and you can view the latest run status as a single HTML page.
 
@@ -79,7 +79,7 @@ data/_manifest/YYYY/MM/DD.jsonl   # run log
 reports/status.html               # per-source collection status
 ```
 
-> 💡 If some sources fail, `collect` keeps collecting the rest, records the failures in the manifest, and signals with exit code `1`. `backfill` handles one source at a time, so it records the failure and then exits non-zero.
+> 💡 If some sources fail, `collect` keeps collecting the rest, records runtime source failures in the manifest, and signals with exit code `1`. `backfill` handles one registered source at a time, so it records runtime and registered-unavailable failures before exiting non-zero.
 
 ---
 
@@ -228,7 +228,7 @@ Each command also keeps its module form, for example `.venv/bin/python -m mimir.
 
 | Item | Value |
 | :--- | :--- |
-| **Tests** | 495 passing (adapters verified with recorded fixtures, no network) |
+| **Tests** | 499 passing (adapters verified with recorded fixtures, no network) |
 | **Coverage** | `mimir/` 98% (gate 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |

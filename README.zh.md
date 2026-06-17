@@ -13,7 +13,7 @@
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-495%20passing%20%C2%B7%2098%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-499%20passing%20%C2%B7%2098%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -42,7 +42,7 @@ Mímir 是北欧神话中守护智慧之泉的存在。
 | **Python** | `>=3.14` | 通过 `.tool-versions` 固定 asdf（3.14.5） |
 | **虚拟环境** | `.venv` | `python -m venv .venv` |
 | **存储库** | 本地 read/write | 在 `data/`·`reports/` 生成采集物·报告 |
-| **API 密钥** | 全部可选 | 无密钥则跳过对应数据源（记入清单）。无密钥也能运行 SEC EDGAR + RSS |
+| **API 密钥** | 全部可选 | SEC EDGAR + RSS 无密钥也能运行。需要密钥的数据源在缺少密钥时会被跳过；定向回填会把已注册但不可用的数据源写入 manifest |
 | **GitHub** | 推荐公开 repo | 公开 repo 时 Actions 分钟数无限制 |
 
 ```bash
@@ -69,7 +69,7 @@ cp .env.example .env          # 只需填入想用的免费密钥（自动加载
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
 ```
 
-回填也写入与采集相同的 manifest 格式。成功时记录获取数量、保存数量和无效记录数量。失败时先记录 `ok=false`，再把错误抛给调用方。
+回填也写入与采集相同的 manifest 格式。成功时记录获取数量、保存数量和无效记录数量。已注册数据源失败时会先记录 `ok=false`，再把错误抛给调用方；缺少 API key 或可选 package 导致 fetch 前不可用时，也会以 0 条计数记录失败。完全未知的 source id 没有可记录的 cadence，因此只作为参数错误结束，不写 manifest。
 
 采集结果会堆积在 repo 中，最新运行状况可通过一张 HTML 查看。
 
@@ -79,7 +79,7 @@ data/_manifest/YYYY/MM/DD.jsonl   # 运行日志
 reports/status.html               # 各数据源采集状况
 ```
 
-> 💡 `collect` 即使部分数据源失败也会继续采集其余数据源，并在记录失败到清单后以 exit code `1` 发出信号。`backfill` 一次只处理一个数据源，因此会先记录失败，再以非零状态退出。
+> 💡 `collect` 即使部分数据源失败也会继续采集其余数据源，并把 runtime 数据源失败写入 manifest 后以 exit code `1` 发出信号。`backfill` 一次只处理一个已注册数据源，因此会先记录 runtime 失败和已注册但不可用的失败，再以非零状态退出。
 
 ---
 
@@ -228,7 +228,7 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 
 | 项目 | 值 |
 | :--- | :--- |
-| **测试** | 495 passing（适配器以录制的 fixture 在无网络下验证） |
+| **测试** | 499 passing（适配器以录制的 fixture 在无网络下验证） |
 | **覆盖率** | `mimir/` 98%（门槛 80%） |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — 每次 push/PR 执行 lint·type·test·coverage |

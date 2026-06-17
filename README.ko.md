@@ -13,7 +13,7 @@ repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 �
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-495%20passing%20%C2%B7%2098%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-499%20passing%20%C2%B7%2098%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -42,7 +42,7 @@ Mímir는 북유럽 신화에서 지혜의 샘을 지키는 존재다.
 | **Python** | `>=3.14` | `.tool-versions`로 asdf 핀(3.14.5) |
 | **가상환경** | `.venv` | `python -m venv .venv` |
 | **저장소** | 로컬 read/write | `data/`·`reports/`에 수집물·리포트 생성 |
-| **API 키** | 전부 선택 | 키 없으면 해당 소스는 스킵(매니페스트에 기록). 키 없이도 SEC EDGAR + RSS 동작 |
+| **API 키** | 전부 선택 | SEC EDGAR + RSS는 키 없이 동작한다. 키가 필요한 소스는 키가 없으면 스킵되고, 지정 백필은 등록됐지만 사용할 수 없는 소스를 manifest에 기록한다 |
 | **GitHub** | 공개 repo 권장 | 공개 repo면 Actions 분(分) 무제한 |
 
 ```bash
@@ -69,7 +69,7 @@ cp .env.example .env          # 원하는 무료 키만 채우면 됨 (자동 �
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
 ```
 
-백필도 수집과 같은 manifest 형식을 쓴다. 성공하면 가져온 건수, 저장된 건수, 무효 레코드 수를 기록한다. 실패하면 `ok=false`를 먼저 남기고 호출자에게 에러를 그대로 올린다.
+백필도 수집과 같은 manifest 형식을 쓴다. 성공하면 가져온 건수, 저장된 건수, 무효 레코드 수를 기록한다. 등록된 소스의 실패는 `ok=false`를 먼저 남기고 호출자에게 에러를 그대로 올린다. API key나 선택 패키지가 없어 fetch 전에 사용할 수 없는 경우도 0건 실패로 기록한다. 완전히 알 수 없는 source id는 기록할 cadence가 없으므로 argument error로만 끝난다.
 
 수집 결과는 repo에 쌓이고, 최신 실행 현황은 한 장의 HTML로 본다.
 
@@ -79,7 +79,7 @@ data/_manifest/YYYY/MM/DD.jsonl   # 실행 로그
 reports/status.html               # 소스별 수집 현황
 ```
 
-> 💡 `collect`는 일부 소스가 실패해도 나머지를 계속 수집하고, 실패를 매니페스트에 남긴 뒤 exit code `1`로 신호한다. `backfill`은 한 번에 한 소스만 처리하므로, 실패를 기록한 뒤 비제로 종료한다.
+> 💡 `collect`는 일부 소스가 실패해도 나머지를 계속 수집하고, runtime 소스 실패를 manifest에 남긴 뒤 exit code `1`로 신호한다. `backfill`은 한 번에 등록된 한 소스만 처리하므로, runtime 실패와 등록됐지만 사용할 수 없는 실패를 기록한 뒤 비제로 종료한다.
 
 ---
 
@@ -228,7 +228,7 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 
 | 항목 | 값 |
 | :--- | :--- |
-| **테스트** | 495 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
+| **테스트** | 499 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
 | **커버리지** | `mimir/` 98% (게이트 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — push/PR마다 lint·type·test·coverage |

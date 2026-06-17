@@ -7,7 +7,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import cast
 
-from mimir.core.source import Source
+from mimir.core.source import Source, SourceMeta
 from mimir.settings import Settings
 from mimir.sources.config import SourcesConfig
 from mimir.sources.dart import DartSource
@@ -31,6 +31,7 @@ class SourceSpec:
     required_secret_name: str | None = None
     required_module: str | None = None
     missing_module_hint: str | None = None
+    meta: SourceMeta | None = None
 
 
 def _required_secret(value: str | None, name: str) -> str:
@@ -43,6 +44,7 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
     SourceSpec(
         "sec_edgar",
         lambda settings, cfg: SecEdgarSource(user_agent=settings.sec_user_agent),
+        meta=SecEdgarSource.meta,
     ),
     SourceSpec(
         "rss",
@@ -54,6 +56,7 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
             ),
             user_agent=settings.sec_user_agent,
         ),
+        meta=RssSource.meta,
     ),
     SourceSpec(
         "stooq",
@@ -62,6 +65,7 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
         ),
         required_secret_attr="stooq_api_key",
         required_secret_name="STOOQ_API_KEY",
+        meta=StooqSource.meta,
     ),
     SourceSpec(
         "dart",
@@ -70,6 +74,7 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
         ),
         required_secret_attr="dart_api_key",
         required_secret_name="DART_API_KEY",
+        meta=DartSource.meta,
     ),
     SourceSpec(
         "fred",
@@ -79,6 +84,7 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
         ),
         required_secret_attr="fred_api_key",
         required_secret_name="FRED_API_KEY",
+        meta=FredSource.meta,
     ),
     SourceSpec(
         "ecos",
@@ -88,12 +94,14 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
         ),
         required_secret_attr="ecos_api_key",
         required_secret_name="ECOS_API_KEY",
+        meta=EcosSource.meta,
     ),
     SourceSpec(
         "pykrx",
         lambda settings, cfg: PykrxSource(),
         required_module="pykrx",
         missing_module_hint="package not installed (pip install -e '.[kr]')",
+        meta=PykrxSource.meta,
     ),
 )
 
@@ -162,6 +170,12 @@ def _load_entry_point_source_specs(
     return tuple(specs)
 
 
+def load_source_specs(
+    group: str = SOURCE_ENTRY_POINT_GROUP,
+) -> tuple[SourceSpec, ...]:
+    return (*BUILTIN_SOURCE_SPECS, *_load_entry_point_source_specs(group))
+
+
 def _build_sources_from_specs(
     settings: Settings,
     config: SourcesConfig,
@@ -217,12 +231,17 @@ def _warn_for_unmatched_plugin_settings(
             )
 
 
-def build_sources(settings: Settings, config: SourcesConfig | None = None) -> list[Source]:
+def build_sources(
+    settings: Settings,
+    config: SourcesConfig | None = None,
+    *,
+    specs: Sequence[SourceSpec] | None = None,
+) -> list[Source]:
     if "@" not in settings.sec_user_agent:
         logger.warning(
             "MIMIR_SEC_USER_AGENT has no contact email; SEC EDGAR may return 403. "
             "Set it to e.g. 'Your Name you@example.com'."
     )
     cfg = config or SourcesConfig()
-    specs = (*BUILTIN_SOURCE_SPECS, *_load_entry_point_source_specs())
-    return _build_sources_from_specs(settings, cfg, specs)
+    selected_specs = tuple(specs) if specs is not None else load_source_specs()
+    return _build_sources_from_specs(settings, cfg, selected_specs)

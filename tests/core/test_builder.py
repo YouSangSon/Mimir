@@ -118,6 +118,16 @@ def test_builtin_source_specs_keep_existing_order():
     ]
 
 
+def test_builtin_source_specs_expose_static_metadata_for_preflight_manifest():
+    metas = {spec.id: spec.meta for spec in BUILTIN_SOURCE_SPECS}
+
+    assert all(meta is not None for meta in metas.values())
+    assert metas["stooq"] is not None
+    assert metas["stooq"].id == "stooq"
+    assert metas["stooq"].cadence == Cadence.DAILY
+    assert metas["stooq"].requires_secret == "STOOQ_API_KEY"
+
+
 def test_duplicate_source_spec_ids_raise_value_error():
     specs = (
         SourceSpec(

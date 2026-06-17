@@ -233,7 +233,11 @@ def test_backfill_records_failure_manifest_before_reraising(tmp_path: Path, monk
         def fetch(self, ctx: FetchContext):
             raise RuntimeError("upstream down")
 
-    monkeypatch.setattr(backfill_mod, "build_sources", lambda settings, config: [FailSource()])
+    monkeypatch.setattr(
+        backfill_mod,
+        "build_sources",
+        lambda settings, config, **kwargs: [FailSource()],
+    )
 
     with pytest.raises(RuntimeError, match="upstream down"):
         run_backfill(
@@ -251,6 +255,80 @@ def test_backfill_records_failure_manifest_before_reraising(tmp_path: Path, monk
     assert result.source == "fail"
     assert result.ok is False
     assert "upstream down" in (result.error or "")
+
+
+def test_backfill_records_unavailable_registered_source_manifest_before_system_exit(
+    tmp_path: Path,
+):
+    data_root = tmp_path / "data"
+
+    with pytest.raises(SystemExit, match="unknown or unavailable source: stooq"):
+        run_backfill(
+            source_id="stooq",
+            since=date(2018, 1, 1),
+            env={},
+            watchlist={"us": ["AAPL"], "kr": []},
+            data_root=data_root,
+            now=datetime(2026, 5, 31, tzinfo=UTC),
+        )
+
+    latest = Manifest(root=data_root).latest_run()
+    assert latest is not None
+    assert latest.cadence == "daily"
+    result = latest.results[0]
+    assert result.source == "stooq"
+    assert result.ok is False
+    assert result.fetched == 0
+    assert result.stored == 0
+    assert result.invalid == 0
+    assert result.error == "STOOQ_API_KEY is not set"
+
+
+def test_backfill_records_missing_optional_package_manifest_before_system_exit(
+    tmp_path: Path, monkeypatch
+):
+    data_root = tmp_path / "data"
+    monkeypatch.setattr(
+        "mimir.core.builder.importlib.util.find_spec",
+        lambda name: None if name == "pykrx" else object(),
+    )
+
+    with pytest.raises(SystemExit, match="unknown or unavailable source: pykrx"):
+        run_backfill(
+            source_id="pykrx",
+            since=date(2018, 1, 1),
+            env={},
+            watchlist={"us": [], "kr": ["005930"]},
+            data_root=data_root,
+            now=datetime(2026, 5, 31, tzinfo=UTC),
+        )
+
+    latest = Manifest(root=data_root).latest_run()
+    assert latest is not None
+    assert latest.cadence == "daily"
+    result = latest.results[0]
+    assert result.source == "pykrx"
+    assert result.ok is False
+    assert result.fetched == 0
+    assert result.stored == 0
+    assert result.invalid == 0
+    assert result.error == "package not installed (pip install -e '.[kr]')"
+
+
+def test_backfill_unknown_source_remains_argument_error_without_manifest(tmp_path: Path):
+    data_root = tmp_path / "data"
+
+    with pytest.raises(SystemExit, match="unknown or unavailable source: not_a_source"):
+        run_backfill(
+            source_id="not_a_source",
+            since=date(2018, 1, 1),
+            env={},
+            watchlist={"us": ["AAPL"], "kr": []},
+            data_root=data_root,
+            now=datetime(2026, 5, 31, tzinfo=UTC),
+        )
+
+    assert Manifest(root=data_root).latest_run() is None
 
 
 @responses.activate
