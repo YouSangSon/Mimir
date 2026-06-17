@@ -1,11 +1,13 @@
 # Merge Check Report
 
-**Date:** 2026-06-18 04:20:05 KST
+**Date:** 2026-06-18 04:31:02 KST
 **Current Branch:** `feat/sec-ticker-cik-map`
 **Target Branch:** `main`
 **Merge Base:** `7fc4e06` (`docs(doctor): add DCHTML merge check`)
-**Checked Branch Tip:** `4a57eb3` (`fix(cli): report SEC ticker map build errors`)
+**Checked Branch Tip:** `ae4654f` (`fix(cli): handle missing SEC ticker map entries`)
 **Target HEAD:** `7fc4e06` (`docs(doctor): add DCHTML merge check`)
+
+> 이 보고서는 구현/검증 tip `ae4654f`를 기준으로 작성했습니다. 보고서 자체를 커밋하는 후속 docs commit은 self-referential churn을 피하기 위해 `Checked Branch Tip` 범위에 넣지 않습니다.
 
 ---
 
@@ -75,7 +77,7 @@
 
 없음.
 
-`git merge-tree --write-tree --no-messages HEAD main`이 exit code 0을 반환했고 merge tree `ee1d6f137aa1b7dda0641d5a285c5f6a38ac5854`를 만들었습니다. 이는 git이 텍스트 충돌 없이 merge tree를 만들 수 있다는 뜻입니다.
+`git merge-tree --write-tree --no-messages HEAD main`이 exit code 0을 반환했고 merge tree `555b4586f7da6c6a59a779e49e14691f1dd9a585`를 만들었습니다. 이는 git이 텍스트 충돌 없이 merge tree를 만들 수 있다는 뜻입니다.
 
 ---
 
@@ -97,14 +99,14 @@
 
 | 명령 | 결과 |
 | ---- | ---- |
-| `uv run pytest tests/test_collect.py::test_collect_cli_reports_sec_ticker_map_build_error tests/test_run.py::test_main_reports_sec_ticker_map_build_error tests/test_run.py::test_main_does_not_mask_downstream_validation_error tests/test_run.py::test_main_does_not_mask_non_config_value_error tests/test_backfill.py::test_main_reports_sec_ticker_map_build_error tests/test_readme_docs.py -q` | 7 passed |
+| `uv run pytest tests/test_collect.py::test_collect_cli_reports_sec_ticker_map_build_error tests/test_collect.py::test_collect_cli_reports_missing_sec_ticker_mapping tests/test_run.py::test_main_reports_sec_ticker_map_build_error tests/test_run.py::test_main_reports_missing_sec_ticker_mapping tests/test_run.py::test_main_does_not_mask_downstream_validation_error tests/test_run.py::test_main_does_not_mask_non_config_value_error tests/test_backfill.py::test_main_reports_sec_ticker_map_build_error tests/test_backfill.py::test_main_reports_missing_sec_ticker_mapping tests/test_readme_docs.py -q` | 10 passed |
 | `uv run ruff check .` | pass |
 | `uv run mypy mimir` | pass, 82 files |
-| `uv run pytest -q` | 532 passed |
-| `uv run coverage run -m pytest` | 532 passed |
+| `uv run pytest -q` | 535 passed |
+| `uv run coverage run -m pytest` | 535 passed |
 | `uv run coverage report --fail-under=80` | TOTAL 98% |
 | `git diff --check` | pass |
-| reviewer subagent | R1l Medium finding fixed by narrowing the exception type and adding non-config `ValueError` regression coverage |
+| reviewer subagent | whole-branch P1 finding fixed by converting missing SEC ticker mapping lookup failures into friendly `SourcesConfigError` reports |
 
 ---
 
@@ -112,6 +114,8 @@
 
 ### 현재 브랜치 (검사 시점)
 
+- `ae4654f fix(cli): handle missing SEC ticker map entries`
+- `1790a51 docs(merge): update R1l merge check`
 - `4a57eb3 fix(cli): report SEC ticker map build errors`
 - `5732bbc docs(merge): update R1k merge check`
 - `3d027b9 fix(sources): add SEC ticker map entry context`
