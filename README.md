@@ -209,7 +209,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
 ```
 
-> The daily workflow chains `collect → analyze → history → evaluate → deliver` and commits `data/` and `reports/` to the repo. The daily HTML report is kept permanently at `reports/YYYY/MM/DD.html` and browsed from `reports/index.html`.
+> The scheduled workflows (hourly/daily/weekly/monthly) call the reusable pipeline, which chains `collect → analyze → history → evaluate → deliver → dashboard` and commits `data/` and `reports/` to the repo. The daily HTML report is kept permanently at `reports/YYYY/MM/DD.html`, `reports/index.html` browses the archive, and `reports/dashboard.html` is refreshed as the latest operations dashboard.
 
 ---
 

@@ -209,7 +209,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
 ```
 
-> 每日工作流将 `collect → analyze → history → evaluate → deliver` 串联，并把 `data/`·`reports/` 提交到 repo。每日 HTML 报告以 `reports/YYYY/MM/DD.html` 永久保存，并通过 `reports/index.html` 浏览。
+> 调度工作流（hourly/daily/weekly/monthly）会调用 reusable pipeline，按 `collect → analyze → history → evaluate → deliver → dashboard` 执行，并把 `data/` 和 `reports/` 提交到 repo。每日 HTML 报告以 `reports/YYYY/MM/DD.html` 永久保存，`reports/index.html` 用于浏览报告归档，`reports/dashboard.html` 会刷新为最新运维仪表盘。
 
 ---
 

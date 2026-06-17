@@ -209,7 +209,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 .venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
 ```
 
-> 매일 워크플로는 `collect → analyze → history → evaluate → deliver`를 체이닝하고 `data/`·`reports/`를 repo에 커밋한다. 일일 HTML 리포트는 `reports/YYYY/MM/DD.html`로 영구 보관되고 `reports/index.html`에서 열람한다.
+> 스케줄 워크플로(hourly/daily/weekly/monthly)는 reusable pipeline을 호출해 `collect → analyze → history → evaluate → deliver → dashboard`를 실행하고 `data/`·`reports/`를 repo에 커밋한다. 일일 HTML 리포트는 `reports/YYYY/MM/DD.html`로 영구 보관되고, `reports/index.html`은 리포트 archive를 보여주며, `reports/dashboard.html`은 최신 운영 대시보드로 갱신된다.
 
 ---
 
