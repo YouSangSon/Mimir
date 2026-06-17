@@ -171,6 +171,30 @@ def test_rss_sec_company_filings_ticker_parses_from_config():
     ]
 
 
+def test_rss_sec_ticker_cik_map_path_parses_from_config():
+    cfg = parse_sources_config(
+        {
+            "sources": {
+                "rss": {
+                    "sec": {
+                        "ticker_cik_map_path": "company_tickers.json",
+                        "company_filings": [{"ticker": "AAPL"}],
+                    }
+                }
+            }
+        }
+    )
+
+    assert str(cfg.rss_sec_ticker_cik_map_path) == "company_tickers.json"
+
+
+def test_rss_sec_ticker_cik_map_path_rejects_blank_value():
+    with pytest.raises(ValidationError):
+        parse_sources_config(
+            {"sources": {"rss": {"sec": {"ticker_cik_map_path": " "}}}}
+        )
+
+
 def test_rss_sec_company_filings_accept_unquoted_numeric_cik():
     cfg = parse_sources_config(
         {"sources": {"rss": {"sec": {"company_filings": [{"cik": 320193}]}}}}

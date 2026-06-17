@@ -5,6 +5,7 @@ from mimir.sources.rss import RssFeed
 from mimir.sources.rss_catalog import (
     RssCatalogSelection,
     SecCompanyFilingFeed,
+    load_sec_ticker_cik_map,
     resolve_rss_catalogs,
     resolve_rss_feeds,
 )
@@ -201,6 +202,71 @@ def test_resolve_sec_company_filing_feed_with_ticker():
             symbol="AAPL",
         )
     ]
+
+
+def test_resolve_sec_company_filing_feed_maps_ticker_to_cik():
+    feeds = resolve_rss_feeds(
+        None,
+        None,
+        [SecCompanyFilingFeed(ticker=" aapl ", symbol="AAPL")],
+        {"AAPL": "0000320193"},
+    )
+
+    assert feeds == [
+        RssFeed(
+            url=(
+                "https://www.sec.gov/cgi-bin/browse-edgar?"
+                "action=getcompany&CIK=0000320193&owner=exclude&count=40&output=atom"
+            ),
+            publisher="SEC",
+            market="US",
+            symbol="AAPL",
+        )
+    ]
+
+
+def test_resolve_sec_company_filing_feed_missing_ticker_mapping_raises():
+    with pytest.raises(ValueError, match="SEC ticker CIK map has no entry for ticker MSFT"):
+        resolve_rss_feeds(
+            None,
+            None,
+            [SecCompanyFilingFeed(ticker="MSFT", symbol="MSFT")],
+            {"AAPL": "0000320193"},
+        )
+
+
+def test_load_sec_ticker_cik_map_reads_official_json_shape(tmp_path):
+    path = tmp_path / "company_tickers.json"
+    path.write_text(
+        """
+        {
+          "0": {"cik_str": 320193, "ticker": "aapl", "title": "Apple Inc."},
+          "1": {"cik_str": "789019", "ticker": "MSFT", "title": "Microsoft Corp."}
+        }
+        """,
+        encoding="utf-8",
+    )
+
+    assert load_sec_ticker_cik_map(path) == {
+        "AAPL": "0000320193",
+        "MSFT": "0000789019",
+    }
+
+
+def test_load_sec_ticker_cik_map_rejects_ambiguous_duplicate_ticker(tmp_path):
+    path = tmp_path / "company_tickers.json"
+    path.write_text(
+        """
+        {
+          "0": {"cik_str": 1, "ticker": "DUP", "title": "One"},
+          "1": {"cik_str": 2, "ticker": "dup", "title": "Two"}
+        }
+        """,
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="ambiguous SEC ticker mapping for DUP"):
+        load_sec_ticker_cik_map(path)
 
 
 def test_resolve_sec_company_filing_feeds_with_encoded_form_filters():

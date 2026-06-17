@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/BF-PREFLIGHT 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/BF-PREFLIGHT 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -40,6 +40,7 @@
 | **R1f-SEC** | SEC EDGAR company filing RSS provider | 분석품질/확장성 | R1f 보류 항목의 안전한 일부 | **✅ 구현 완료 (2026-06-17)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-17-sec-edgar-rss-provider-design.md) |
 | **R1g-SEC-STRUCTURED** | SEC structured disclosure RSS catalog | 분석품질/확장성 | R1e/R1f-SEC 후속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-sec-structured-rss-catalog-design.md) |
 | **R1h-SEC-TICKER** | SEC company filing RSS ticker input | 분석품질/확장성 | R1f-SEC 후속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-sec-rss-ticker-input-design.md) |
+| **R1i-SEC-CIK** | SEC ticker CIK local mapping lookup | 분석품질/확장성 | R1h 보류 항목의 안전한 일부 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/sources/R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md) |
 | **MR1** | 거시 개정 저장 정책 (`macro` last-write-wins) | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-macro-revision-policy-design.md) |
 | **H1** | 재생성 데이터 stale 제거 + pipeline scorecard 갱신 | 견고성/운영 | B1 후속 + 리뷰 발견 | **✅ 구현 완료 (2026-06-16 hardening)** | `replace_partition`, `run_evaluate`, daily report scorecard |
 | **BF-MANIFEST** | 백필 실행 manifest 기록 | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | backfill success/failure run log |
@@ -179,7 +180,15 @@ SEC Company Search RSS는 현재 `browse-edgar?action=getcompany&output=atom` UR
 
 구현 후 각 SEC company filing 항목은 `cik` 또는 `ticker` 중 정확히 하나를 받아야 한다. `cik`는 기존처럼 10자리로 zero-pad하고, `ticker`는 공백 제거 후 대문자로 정규화하며 letters/digits/dot/hyphen token만 허용한다. Resolver는 여전히 네트워크를 호출하지 않는다. SEC mapping file을 다운로드하거나 cache하지 않고, watchlist 전체에서 feed를 자동 생성하지 않는다.
 
-남은 generic discovery 부채는 SEC mapping file 기반 ticker→CIK 자동 조회·cache·ambiguity policy, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference다.
+남은 generic discovery 부채는 SEC mapping file live download/cache, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference다.
+
+### R1i-SEC-CIK. SEC ticker CIK local mapping lookup — **구현 완료 (2026-06-18)**
+
+R1h는 ticker token을 SEC Company Search RSS URL에 그대로 넣는 편의 입력을 제공했다. 그러나 같은 feed를 CIK로 명확히 만들고 싶으면 사용자가 직접 CIK를 찾아야 했다.
+
+구현 후 `sources.rss.sec.ticker_cik_map_path`는 사용자가 내려받아 둔 SEC `company_tickers.json` 로컬 파일을 읽는다. `company_filings[].ticker`가 있고 mapping file에도 같은 ticker가 있으면 resolver는 URL의 `CIK=` 값을 10자리 CIK로 바꾼다. 같은 ticker가 서로 다른 CIK로 중복되면 ambiguous mapping으로 실패한다. 파일에 ticker가 없으면 feed를 조용히 ticker token으로 되돌리지 않고 실패한다.
+
+이 증분은 resolver-time network call을 추가하지 않는다. Mimir는 SEC mapping file을 다운로드하지 않고, freshness를 판단하지 않고, watchlist 전체에서 SEC feed를 자동 생성하지 않는다. 그래서 SEC fair-access 부담은 늘리지 않으면서 사용자가 제공한 공식 mapping file만 안전하게 활용한다.
 
 ---
 
@@ -278,6 +287,7 @@ R1e ──────── static RSS feed catalog · sources.rss.catalogs
 R1f-SEC ─── SEC EDGAR company filing RSS provider
 R1g-SEC-STRUCTURED ─ SEC structured disclosure RSS catalog
 R1h-SEC-TICKER ─ SEC company filing RSS ticker input
+R1i-SEC-CIK ─ SEC ticker CIK local mapping lookup
 D1 ───────── unified CLI entry points · mimir + mimir.<command>
 ENV1 ─────── runtime .env autoload · CLI default env=None
 CFG1 ─────── sources.yaml CLI validation · shared load_validated_sources_config
@@ -300,7 +310,7 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 | 항목 | 보류 근거 |
 |---|---|
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 핫패스를 처리. 인덱스는 데이터가 수년 누적된 *뒤*의 최적화 — 지금은 시기상조(YAGNI). 신선도 닥터(C1)가 먼저 스케일 신호를 준다. |
-| **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. R1h-SEC-TICKER는 SEC Company Search RSS의 ticker token 입력을 추가했다. SEC mapping file 기반 ticker→CIK 조회·cache·ambiguity policy, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference는 provider 정책과 ToS 검토가 더 필요하다. |
+| **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. R1h-SEC-TICKER는 SEC Company Search RSS의 ticker token 입력을 추가했다. R1i-SEC-CIK는 사용자가 제공한 로컬 SEC `company_tickers.json` lookup과 ambiguity failure policy를 추가했다. SEC mapping file live download/cache, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference는 provider 정책과 ToS 검토가 더 필요하다. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서는 KO-only 유지(백로그 결정). 사용자 문서(README ×3)는 이미 trilingual. |
 
 ---
@@ -318,4 +328,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 등록된 source가 secret/package gate 때문에 fetch 전에 unavailable이어도 `ok=false` manifest를 남기고, 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, MR1, D1, D2, ENV1, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, MR1, D1, D2, ENV1, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.

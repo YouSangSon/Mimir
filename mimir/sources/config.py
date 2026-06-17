@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from mimir.sources.ecos import EcosSeries
 from mimir.sources.rss import RssFeed
@@ -17,6 +18,7 @@ class SourcesConfig(BaseModel):
     rss_feeds: list[RssFeed] | None = None
     rss_catalogs: list[RssCatalogSelection] | None = None
     rss_sec_company_filings: list[SecCompanyFilingFeed] | None = None
+    rss_sec_ticker_cik_map_path: Path | None = None
     plugin_settings: dict[str, dict[str, Any]] = Field(default_factory=dict)
     macro_regime_rate_series: list[str] | None = None
     news_aliases: dict[str, list[str]] | None = None
@@ -52,6 +54,14 @@ class _EcosBlock(BaseModel):
 class _RssSecBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
     company_filings: list[SecCompanyFilingFeed] | None = None
+    ticker_cik_map_path: Path | None = None
+
+    @field_validator("ticker_cik_map_path", mode="before")
+    @classmethod
+    def _reject_blank_ticker_cik_map_path(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            raise ValueError("SEC ticker CIK map path must not be blank")
+        return value
 
 
 class _RssBlock(BaseModel):
@@ -118,6 +128,9 @@ def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
         rss_catalogs=block.rss.catalogs if block.rss else None,
         rss_sec_company_filings=(
             block.rss.sec.company_filings if block.rss and block.rss.sec else None
+        ),
+        rss_sec_ticker_cik_map_path=(
+            block.rss.sec.ticker_cik_map_path if block.rss and block.rss.sec else None
         ),
         plugin_settings=block.plugins or {},
         macro_regime_rate_series=(

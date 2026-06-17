@@ -493,6 +493,40 @@ def test_build_sources_resolves_sec_company_filing_feeds_with_ticker(monkeypatch
     assert rss._headers == {"User-Agent": "Mimir Test test@example.com"}
 
 
+def test_build_sources_resolves_sec_company_filing_ticker_with_map(monkeypatch, tmp_path):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    mapping_path = tmp_path / "company_tickers.json"
+    mapping_path.write_text(
+        '{"0": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc."}}',
+        encoding="utf-8",
+    )
+    cfg = SourcesConfig(
+        rss_sec_ticker_cik_map_path=mapping_path,
+        rss_sec_company_filings=[
+            SecCompanyFilingFeed(ticker="aapl", symbol="AAPL", forms=["10-K"])
+        ],
+    )
+
+    sources = build_sources(
+        Settings.from_env({"MIMIR_SEC_USER_AGENT": "Mimir Test test@example.com"}),
+        cfg,
+    )
+    rss = _by_id(sources)["rss"]
+
+    assert isinstance(rss, RssSource)
+    assert rss._feeds == [
+        RssFeed(
+            url=(
+                "https://www.sec.gov/cgi-bin/browse-edgar?"
+                "action=getcompany&CIK=0000320193&type=10-K&owner=exclude&count=40&output=atom"
+            ),
+            publisher="SEC",
+            market="US",
+            symbol="AAPL",
+        )
+    ]
+
+
 def test_build_sources_combines_rss_catalog_and_manual_feeds(monkeypatch):
     monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
     manual = RssFeed(

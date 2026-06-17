@@ -15,7 +15,7 @@ from mimir.sources.ecos import EcosSource
 from mimir.sources.fred import FredSource
 from mimir.sources.pykrx_source import PykrxSource
 from mimir.sources.rss import RssSource
-from mimir.sources.rss_catalog import resolve_rss_feeds
+from mimir.sources.rss_catalog import load_sec_ticker_cik_map, resolve_rss_feeds
 from mimir.sources.sec_edgar import SecEdgarSource
 from mimir.sources.stooq import StooqSource
 
@@ -53,6 +53,11 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
                 cfg.rss_catalogs,
                 cfg.rss_feeds,
                 cfg.rss_sec_company_filings,
+                (
+                    load_sec_ticker_cik_map(cfg.rss_sec_ticker_cik_map_path)
+                    if cfg.rss_sec_ticker_cik_map_path is not None
+                    else None
+                ),
             ),
             user_agent=settings.sec_user_agent,
         ),

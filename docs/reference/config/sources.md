@@ -204,6 +204,7 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 | `catalogs` | 아니오 | Mimir가 코드에 담아 둔 검증된 RSS feed catalog 선택 목록 |
 | `catalogs[].id` | 예 | catalog id. 아래 표의 내장 id 중 하나 |
 | `sec.company_filings` | 아니오 | SEC EDGAR Company Search Atom feed를 CIK 또는 ticker token과 form 설정에서 조립하는 목록 |
+| `sec.ticker_cik_map_path` | 아니오 | SEC `company_tickers.json` 로컬 파일 경로. 설정하면 ticker 입력을 10자리 CIK로 바꾼 뒤 URL을 만든다 |
 | `feeds` | 아니오 | 운영자가 직접 지정하는 RSS feed 목록 |
 | `url` | 예 | RSS feed URL |
 | `publisher` | 예 | payload에 저장할 발행자 이름 |
@@ -222,13 +223,15 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 | `sec_structured_inline_xbrl` | Inline XBRL financial statement filings |
 | `sec_structured_all_xbrl` | all XBRL filings submitted to the SEC |
 
-`sec_structured_*` catalog는 SEC가 공식으로 공개한 broad SEC/XBRL feed다. 특정 watchlist symbol 전용 feed가 아니므로 `symbol`을 설정하지 않는다. 특정 종목의 SEC filing feed가 필요하면 사용자가 CIK 또는 ticker token을 명시하는 `sources.rss.sec.company_filings`를 쓴다. SEC mapping file 기반 ticker→CIK 자동 조회와 generic discovery는 아직 보류되어 있다.
+`sec_structured_*` catalog는 SEC가 공식으로 공개한 broad SEC/XBRL feed다. 특정 watchlist symbol 전용 feed가 아니므로 `symbol`을 설정하지 않는다. 특정 종목의 SEC filing feed가 필요하면 사용자가 CIK 또는 ticker token을 명시하는 `sources.rss.sec.company_filings`를 쓴다. 운영자가 SEC `company_tickers.json` 파일을 로컬에 두고 `sec.ticker_cik_map_path`를 설정하면, Mimir는 ticker를 10자리 CIK로 바꾼 뒤 URL을 만든다. SEC mapping file live download/cache와 generic discovery는 아직 보류되어 있다.
 
 `catalogs`, `sec.company_filings`, `feeds`를 함께 쓰면 catalog feed, SEC EDGAR feed, manual feed 순서로 붙는다. 같은 `(url, symbol)` 쌍이 두 번 나오면 실패한다. 중복을 조용히 제거하면 운영자가 같은 feed를 두 경로로 설정했다는 사실을 놓칠 수 있기 때문이다. 같은 URL이라도 symbol이 다르면 서로 다른 종목 관계를 뜻하므로 허용한다.
 
 #### SEC EDGAR company filing feeds
 
 `sources.rss.sec.company_filings`는 SEC EDGAR Company Search가 제공하는 Atom feed URL을 설정에서 조립한다. 이 기능은 SEC 페이지를 크롤링하지 않고, SEC ticker mapping file을 resolver 단계에서 다운로드하지도 않는다. 사용자는 `cik` 또는 `ticker` 중 정확히 하나를 명시하고, Mimir가 `browse-edgar?action=getcompany&output=atom` URL을 만든다.
+
+`sources.rss.sec.ticker_cik_map_path`를 설정하면 `ticker` 입력의 의미가 달라진다. Mimir는 지정한 로컬 JSON 파일을 SEC `company_tickers.json` 형태로 읽고, ticker를 10자리 CIK로 정규화한다. 이 파일은 SEC가 제공하지만, SEC는 파일의 정확성과 범위를 보장하지 않는다고 설명한다. 그래서 Mimir는 파일을 자동으로 다운로드하거나 stale 여부를 판단하지 않는다. 같은 ticker가 서로 다른 CIK로 두 번 나오면 모호한 매핑으로 보고 실패한다.
 
 | 필드 | 필수 | 기본값 | 의미 |
 |---|---|---|---|
@@ -239,7 +242,9 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 | `count` | 아니오 | `40` | SEC Atom feed의 count. 허용 범위는 10~100 |
 | `owner` | 아니오 | `exclude` | SEC owner filter. `exclude`, `include`, `only` 중 하나 |
 
-`cik`와 `ticker`를 둘 다 쓰거나 둘 다 생략하면 설정 오류다. 운영자가 정확한 CIK를 알고 있거나 중복 feed 검출을 더 강하게 하고 싶으면 `cik`를 직접 쓰는 편이 낫다. `ticker`는 SEC Company Search RSS가 현재 받는 ticker token을 쓰는 편의 입력이며, Mimir가 별도의 ticker→CIK lookup/cache를 수행한다는 뜻은 아니다.
+`ticker_cik_map_path`는 개별 `company_filings` 항목 안이 아니라 parent `sources.rss.sec` block에 둔다. 개별 항목에 넣으면 schema drift로 보고 실패한다.
+
+`cik`와 `ticker`를 둘 다 쓰거나 둘 다 생략하면 설정 오류다. 운영자가 정확한 CIK를 알고 있거나 중복 feed 검출을 더 강하게 하고 싶으면 `cik`를 직접 쓰는 편이 낫다. `ticker_cik_map_path`가 없으면 `ticker`는 SEC Company Search RSS가 현재 받는 ticker token을 쓰는 편의 입력이다. `ticker_cik_map_path`가 있으면 Mimir가 로컬 파일에서 ticker를 찾아 CIK로 바꾼다. 파일에 해당 ticker가 없으면 설정을 조용히 무시하지 않고 실패한다.
 
 SEC fair-access 정책은 자동화 도구가 자신을 식별하고 필요한 요청만 보내기를 요구한다. SEC feed를 쓰는 환경에서는 `MIMIR_SEC_USER_AGENT`를 `서비스명 이메일` 형식으로 설정한다.
 

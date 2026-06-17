@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+import json
+from collections.abc import Mapping, Sequence
 from datetime import date
-from typing import Literal, Self
+from pathlib import Path
+from typing import Any, Literal, Self
 from urllib.parse import urlencode
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -179,10 +181,11 @@ def resolve_rss_feeds(
     selections: Sequence[RssCatalogSelection] | None,
     manual_feeds: Sequence[RssFeed] | None,
     sec_company_filings: Sequence[SecCompanyFilingFeed] | None = None,
+    sec_ticker_cik_map: Mapping[str, str] | None = None,
 ) -> list[RssFeed] | None:
     feeds = [
         *resolve_rss_catalogs(selections),
-        *resolve_sec_company_filing_feeds(sec_company_filings),
+        *resolve_sec_company_filing_feeds(sec_company_filings, sec_ticker_cik_map),
         *list(manual_feeds or ()),
     ]
     _validate_unique_feeds(feeds)
@@ -191,6 +194,7 @@ def resolve_rss_feeds(
 
 def resolve_sec_company_filing_feeds(
     selections: Sequence[SecCompanyFilingFeed] | None,
+    sec_ticker_cik_map: Mapping[str, str] | None = None,
 ) -> list[RssFeed]:
     feeds: list[RssFeed] = []
     for selection in selections or ():
@@ -198,7 +202,7 @@ def resolve_sec_company_filing_feeds(
         for form in forms:
             feeds.append(
                 RssFeed(
-                    url=_sec_company_filing_url(selection, form),
+                    url=_sec_company_filing_url(selection, form, sec_ticker_cik_map),
                     publisher="SEC",
                     market="US",
                     symbol=selection.symbol,
@@ -208,10 +212,44 @@ def resolve_sec_company_filing_feeds(
     return feeds
 
 
-def _sec_company_filing_url(selection: SecCompanyFilingFeed, form: str | None) -> str:
-    identifier = selection.cik if selection.cik is not None else selection.ticker
-    if identifier is None:  # defensive; model validation guarantees this
-        raise ValueError("SEC filing feed must set exactly one of cik or ticker")
+def load_sec_ticker_cik_map(path: Path) -> dict[str, str]:
+    """Read SEC's company_tickers.json shape into normalized ticker -> CIK data."""
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError("SEC ticker CIK map must be a JSON object")
+
+    mapping: dict[str, str] = {}
+    for entry in raw.values():
+        ticker, cik = _parse_sec_ticker_cik_entry(entry)
+        existing = mapping.get(ticker)
+        if existing is not None and existing != cik:
+            raise ValueError(f"ambiguous SEC ticker mapping for {ticker}")
+        mapping[ticker] = cik
+    return mapping
+
+
+def _parse_sec_ticker_cik_entry(entry: object) -> tuple[str, str]:
+    if not isinstance(entry, dict):
+        raise ValueError("SEC ticker CIK map entries must be JSON objects")
+    ticker = _normalize_ticker_value(entry.get("ticker"))
+    cik = _normalize_cik_value(entry.get("cik_str"))
+    return ticker, cik
+
+
+def _normalize_ticker_value(value: Any) -> str:
+    return SecCompanyFilingFeed(ticker=value).ticker or ""
+
+
+def _normalize_cik_value(value: Any) -> str:
+    return SecCompanyFilingFeed(cik=value).cik or ""
+
+
+def _sec_company_filing_url(
+    selection: SecCompanyFilingFeed,
+    form: str | None,
+    sec_ticker_cik_map: Mapping[str, str] | None = None,
+) -> str:
+    identifier = _sec_company_filing_identifier(selection, sec_ticker_cik_map)
     params: list[tuple[str, str]] = [
         ("action", "getcompany"),
         ("CIK", identifier),
@@ -226,6 +264,24 @@ def _sec_company_filing_url(selection: SecCompanyFilingFeed, form: str | None) -
         ]
     )
     return f"{SEC_BROWSE_EDGAR_URL}?{urlencode(params)}"
+
+
+def _sec_company_filing_identifier(
+    selection: SecCompanyFilingFeed,
+    sec_ticker_cik_map: Mapping[str, str] | None = None,
+) -> str:
+    if selection.cik is not None:
+        return selection.cik
+    if selection.ticker is None:  # defensive; model validation guarantees this
+        raise ValueError("SEC filing feed must set exactly one of cik or ticker")
+    if sec_ticker_cik_map is None:
+        return selection.ticker
+    cik = sec_ticker_cik_map.get(selection.ticker)
+    if cik is None:
+        raise ValueError(
+            f"SEC ticker CIK map has no entry for ticker {selection.ticker}"
+        )
+    return cik
 
 
 def _validate_unique_feeds(feeds: Sequence[RssFeed]) -> None:

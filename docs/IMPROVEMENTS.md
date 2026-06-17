@@ -49,7 +49,7 @@
 - [x] **README health metadata drift**: README 3종의 tests badge와 상태 표가 실제 pytest 수집 개수보다 뒤처질 수 있었다. → `tests/test_readme_docs.py`가 `pytest --collect-only` 결과와 README badge/table 값을 비교하고, 개선 카탈로그의 최신 완료 ID도 회귀 테스트로 고정한다.
 
 ## 후속 후보
-- Provider별 RSS discovery는 SEC 일부만 안전하게 해소됐다. `sources.rss.sec.company_filings`는 사용자가 CIK 또는 ticker token을 명시하면 SEC Company Search Atom feed URL을 조립한다. `sources.rss.catalogs`의 `sec_structured_*` id는 SEC가 공개한 broad SEC/XBRL feed를 정적으로 고른다. 이 feed들은 symbol-specific feed가 아니다. 남은 작업은 SEC mapping file 기반 ticker→CIK 자동 조회·cache·ambiguity policy, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference처럼 provider 정책과 ToS 검토가 더 필요한 범위다.
+- Provider별 RSS discovery는 SEC 일부만 안전하게 해소됐다. `sources.rss.sec.company_filings`는 사용자가 CIK 또는 ticker를 명시하면 SEC Company Search Atom feed URL을 조립한다. `sources.rss.sec.ticker_cik_map_path`는 사용자가 제공한 SEC `company_tickers.json` 로컬 파일로 ticker를 10자리 CIK로 정규화한다. `sources.rss.catalogs`의 `sec_structured_*` id는 SEC가 공개한 broad SEC/XBRL feed를 정적으로 고른다. 이 feed들은 symbol-specific feed가 아니다. 남은 작업은 SEC mapping file live download/cache, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference처럼 provider 정책과 ToS 검토가 더 필요한 범위다.
 
 ## 안티-파인딩(확인됨, 수정 불필요)
 volume-surge는 현재 봉을 자기 평균에서 제외(정확) · forward_returns는 의도된 event-study(누수 아님) · 가격/공시/거시 ts는 자정 UTC라 파티션 안정 · idempotency_key는 소스 prefix로 교차충돌 없음 · 시크릿은 env만·.env gitignore·.env.example 플레이스홀더 · 워치리스트 심볼 URL 주입 안전 · 워크플로 커맨드 인젝션 없음 · 레이어 그래프는 순환 없음 · 파일 크기 건전.

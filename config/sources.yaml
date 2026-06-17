@@ -54,6 +54,10 @@ llm_sentiment_max_headlines: 50   # per-run cap on newly classified headlines (c
 #     # one of `cik` or `ticker`; `cik` is the most deterministic form.
 #     # Set MIMIR_SEC_USER_AGENT with a contact email before fetching SEC feeds.
 #     sec:
+#       # Optional SEC company_tickers.json path. If set, ticker-based company
+#       # filing feeds are resolved to 10-digit CIKs from this local file before
+#       # URL assembly. Relative paths are resolved from this config directory.
+#       ticker_cik_map_path: "company_tickers.json"
 #       company_filings:
 #         - { ticker: "AAPL", symbol: "AAPL", forms: ["10-K", "10-Q", "8-K"] }
 #     # Official, headline/metadata-only feeds. Default: SEC press releases.
