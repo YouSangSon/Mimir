@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/MR1/C3/OPS1/ENV1/CFG1/BF-PREFLIGHT 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/BF-PREFLIGHT 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -46,6 +46,7 @@
 | **BF-PREFLIGHT** | 백필 preflight failure manifest | 견고성/운영 | README + BF-MANIFEST 후속 | **✅ 구현 완료 (2026-06-18)** | registered unavailable source run log |
 | **C1** | 데이터 신선도·품질 닥터 (`mimir doctor`) | 운영 | "무음 실패 금지" 약속 | **✅ 구현 완료 (Increment 3)** | 코드 + 테스트(179) |
 | **DCHTML** | Doctor standalone HTML report | 운영가시성 | C1 선택 후속 수용 기준 | **✅ 구현 완료 (2026-06-18)** | HTML renderer + CLI + docs · [spec](../superpowers/specs/2026-06-18-doctor-html-report-design.md) |
+| **DOCHEALTH** | README health metadata drift guard | 운영/DX | README 품질 badge 계약 | **✅ 구현 완료 (2026-06-18)** | README 수치 동기화 + 문서 회귀 테스트 · [spec](../decisions/tech-spec/docs/DOCHEALTH_readme_doc_health_tech_spec_2026_06_18.md) |
 | **OPS1** | Scheduled dashboard publication (`reports/dashboard.html`) | 운영가시성 | README + 현행 spec | **✅ 구현 완료 (2026-06-17)** | workflow + 테스트 + docs · [spec](../superpowers/specs/2026-06-17-scheduled-dashboard-publication-design.md) |
 | **ENV1** | Runtime `.env` autoload contract | 운영/DX | README 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-dotenv-cli-autoload-design.md) |
 | **CFG1** | `sources.yaml` CLI validation contract | 운영/DX | docs/reference config 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-sources-config-cli-validation-design.md) |
@@ -200,6 +201,12 @@ C1 데이터 닥터는 text와 JSON 출력으로 터미널과 자동화에는 �
 
 구현 후 `mimir doctor --html reports/doctor.html --lang ko`는 같은 `DoctorReport`를 standalone HTML 파일로 쓴다. stdout은 기존 `--format text|json` 결과를 그대로 유지하고, WARN/CRITICAL exit code 정책도 바꾸지 않는다. HTML은 dataset, scope, severity label, detail을 escape하고, `Finding.message`는 사실 문자열로 유지해 자동화와 사람이 같은 진단 내용을 보게 한다.
 
+### DOCHEALTH. README health metadata drift guard — **구현 완료 (2026-06-18)**
+
+README 3종은 tests badge와 품질 표에 테스트 개수를 직접 표시한다. 이 값이 실제 pytest 수집 개수보다 뒤처지면 첫 화면의 품질 상태가 틀어진다.
+
+구현 후 `tests/test_readme_docs.py`는 `pytest --collect-only -q`의 수집 개수를 기준으로 README 3종의 tests badge와 품질 표를 검증한다. 같은 테스트가 개선 카탈로그의 상단 상태와 결론에 최신 완료 ID가 들어 있는지도 확인한다. 그래서 테스트가 추가되거나 완료 증분이 늘어날 때 README와 카탈로그 요약이 함께 갱신된다.
+
 ### OPS1. Scheduled dashboard publication — **구현 완료 (2026-06-17)**
 
 `mimir.dashboard`는 저장된 데이터, 최신 manifest, doctor finding을 읽어 `reports/dashboard.html`을 만들 수 있었다. 하지만 reusable scheduled workflow는 `python -m mimir.run` 뒤 바로 `git add data reports`를 실행했다. 그래서 scheduled run이 일일 리포트와 status page는 커밋해도 최신 dashboard를 생성하지 않았다.
@@ -280,6 +287,7 @@ D2 ───────── GitHub Actions Node24-compatible action majors
 	BF-PREFLIGHT ─ backfill registered-unavailable preflight manifest
 	OPS1 ─────── scheduled dashboard publication · reports/dashboard.html
 DCHTML ───── doctor standalone HTML report · mimir doctor --html
+DOCHEALTH ─ README health metadata drift guard
 MR1 ──────── macro revision storage policy · Dataset.MACRO last-write-wins
 ```
 
@@ -310,4 +318,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 등록된 source가 secret/package gate 때문에 fetch 전에 unavailable이어도 `ok=false` manifest를 남기고, 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, MR1, D1, D2, ENV1, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, MR1, D1, D2, ENV1, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.
