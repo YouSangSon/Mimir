@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/MR1/C3/OPS1 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/MR1/C3/OPS1 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -38,6 +38,7 @@
 | **R1d** | Symbol-tagged RSS feeds (`sources.rss.feeds[].symbol`) | 분석품질/확장성 | 백로그 R1 후속 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-symbol-tagged-rss-feeds-design.md) |
 | **R1e** | 정적 RSS feed catalog (`sources.rss.catalogs`) | 분석품질/확장성 | R1d 보류 항목 | **✅ 구현 완료 (2026-06-17)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-17-rss-feed-catalog-design.md) |
 | **R1f-SEC** | SEC EDGAR company filing RSS provider | 분석품질/확장성 | R1f 보류 항목의 안전한 일부 | **✅ 구현 완료 (2026-06-17)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-17-sec-edgar-rss-provider-design.md) |
+| **R1g-SEC-STRUCTURED** | SEC structured disclosure RSS catalog | 분석품질/확장성 | R1e/R1f-SEC 후속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-sec-structured-rss-catalog-design.md) |
 | **MR1** | 거시 개정 저장 정책 (`macro` last-write-wins) | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-macro-revision-policy-design.md) |
 | **H1** | 재생성 데이터 stale 제거 + pipeline scorecard 갱신 | 견고성/운영 | B1 후속 + 리뷰 발견 | **✅ 구현 완료 (2026-06-16 hardening)** | `replace_partition`, `run_evaluate`, daily report scorecard |
 | **BF-MANIFEST** | 백필 실행 manifest 기록 | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | backfill success/failure run log |
@@ -144,11 +145,11 @@ Alias matcher는 뉴스 제목과 요약에 회사명이나 티커가 있을 때
 
 R1d는 운영자가 URL을 이미 알고 있을 때 강력하다. 하지만 SEC 같은 공식 feed도 매 환경에서 URL과 publisher, market을 반복해서 복사해야 했다. 이 반복은 작지만 운영 설정을 어긋나게 만든다.
 
-`sources.rss.catalogs`는 검증된 공식 feed를 id로 고르게 한다. 현재 내장 catalog id는 `sec_press_releases` 하나다. Resolver는 이 id를 기존 `RssFeed` 객체로 확장하고, 네트워크를 호출하지 않는다.
+`sources.rss.catalogs`는 검증된 공식 feed를 id로 고르게 한다. R1e 당시의 초기 내장 catalog id는 `sec_press_releases`였다. Resolver는 catalog id를 기존 `RssFeed` 객체로 확장하고, 네트워크를 호출하지 않는다.
 
 Catalog feed는 manual `sources.rss.feeds`보다 먼저 붙는다. 같은 `(url, symbol)` 쌍이 두 번 나오면 실패한다. 같은 URL이라도 symbol이 다르면 서로 다른 종목 관계이므로 허용한다.
 
-이 구현은 live discovery가 아니다. HTML scraping, vendor URL pattern 추측, SEC structured disclosure category 자동화는 provider별 정책과 query contract가 필요하므로 제외했다. SEC Company Search Atom 조립은 아래 R1f-SEC에서 별도 처리한다.
+이 구현은 live discovery가 아니다. HTML scraping, vendor URL pattern 추측, SEC structured disclosure feed 추가는 별도 증분으로 분리했다. SEC Company Search Atom 조립은 아래 R1f-SEC에서 별도 처리한다.
 
 ### R1f-SEC. SEC EDGAR RSS provider — **구현 완료 (2026-06-17)**
 
@@ -156,7 +157,15 @@ R1f 전체 live discovery는 여전히 provider별 정책 검토가 필요하다
 
 구현 후 `sources.rss.sec.company_filings`는 CIK, optional symbol, optional form list를 받아 `browse-edgar?action=getcompany&output=atom` feed로 확장한다. Resolver는 네트워크를 호출하지 않는다. Fetch 시점에는 `RssSource`가 `MIMIR_SEC_USER_AGENT`를 `User-Agent` header로 보낸다.
 
-남은 generic discovery 부채는 SEC 외 provider, SEC structured disclosure category 자동화, watchlist symbol→CIK 자동 조회, HTML RSS link crawling이다.
+남은 generic discovery 부채는 SEC ticker→CIK 자동 조회, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference다.
+
+### R1g-SEC-STRUCTURED. SEC structured disclosure RSS catalog — **구현 완료 (2026-06-18)**
+
+SEC는 structured disclosure submission을 위한 공식 RSS feed를 따로 제공한다. 이 feed들은 US GAAP/IFRS tagged filing, mutual fund risk/return filing, Inline XBRL filing, 전체 XBRL filing처럼 넓은 SEC/XBRL 범주를 다룬다.
+
+구현 후 `sources.rss.catalogs`는 `sec_structured_usgaap`, `sec_structured_risk_return`, `sec_structured_inline_xbrl`, `sec_structured_all_xbrl`을 지원한다. Resolver는 기존 정적 catalog와 같은 방식으로 id를 `RssFeed(publisher="SEC", market="US")`로 확장한다. 네트워크를 호출하지 않고, SEC HTML을 크롤링하지 않으며, URL pattern도 추측하지 않는다.
+
+이 네 feed는 broad SEC/XBRL feed다. 특정 ticker나 watchlist symbol 전용 feed가 아니므로 `symbol`을 붙이지 않는다. ticker→CIK 자동 조회와 watchlist 기반 SEC feed 자동 생성은 여전히 deferred item이다.
 
 ---
 
@@ -217,6 +226,7 @@ R1c ──────── default news aliases · analysis.news.use_default_a
 R1d ──────── symbol-tagged RSS feeds · sources.rss.feeds[].symbol
 R1e ──────── static RSS feed catalog · sources.rss.catalogs
 R1f-SEC ─── SEC EDGAR company filing RSS provider
+R1g-SEC-STRUCTURED ─ SEC structured disclosure RSS catalog
 D2 ───────── GitHub Actions Node24-compatible action majors
 C3 ───────── pykrx retry/backoff · FetchError manifest surface
 BF-MANIFEST ─ backfill success/failure manifest
@@ -234,7 +244,7 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 |---|---|
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 핫패스를 처리. 인덱스는 데이터가 수년 누적된 *뒤*의 최적화 — 지금은 시기상조(YAGNI). 신선도 닥터(C1)가 먼저 스케일 신호를 준다. |
 | **D1 통합 CLI** | 순수 DX. 5개 `python -m mimir.X`는 동작에 문제없음. console_scripts entry-point는 좋지만 약속에 추적되지 않음 → 보류. |
-| **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립만 해결했다. SEC 외 provider, watchlist symbol→CIK 조회, HTML RSS link crawling, vendor URL pattern 추측은 provider 정책과 ToS 검토가 더 필요하다. |
+| **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. SEC ticker→CIK 조회, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference는 provider 정책과 ToS 검토가 더 필요하다. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서는 KO-only 유지(백로그 결정). 사용자 문서(README ×3)는 이미 trilingual. |
 
 ---
@@ -252,4 +262,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, MR1, D2, C3, BF-MANIFEST, OPS1까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, MR1, D2, C3, BF-MANIFEST, OPS1까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.

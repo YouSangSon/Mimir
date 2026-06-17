@@ -45,6 +45,10 @@ llm_sentiment_max_headlines: 50   # per-run cap on newly classified headlines (c
 #     # Unknown catalog IDs fail fast instead of silently falling back.
 #     catalogs:
 #       - { id: "sec_press_releases" }
+#       - { id: "sec_structured_usgaap" }
+#       - { id: "sec_structured_risk_return" }
+#       - { id: "sec_structured_inline_xbrl" }
+#       - { id: "sec_structured_all_xbrl" }
 #     # SEC EDGAR company filing Atom feeds. This expands config into official
 #     # browse-edgar output=atom URLs without crawling SEC pages.
 #     # Set MIMIR_SEC_USER_AGENT with a contact email before fetching SEC feeds.

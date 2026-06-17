@@ -37,6 +37,10 @@ sources:
   rss:
     catalogs:
       - { id: "sec_press_releases" }
+      - { id: "sec_structured_usgaap" }
+      - { id: "sec_structured_risk_return" }
+      - { id: "sec_structured_inline_xbrl" }
+      - { id: "sec_structured_all_xbrl" }
     sec:
       company_filings:
         - cik: "0000320193"
@@ -170,6 +174,10 @@ sources:
   rss:
     catalogs:
       - id: "sec_press_releases"
+      - id: "sec_structured_usgaap"
+      - id: "sec_structured_risk_return"
+      - id: "sec_structured_inline_xbrl"
+      - id: "sec_structured_all_xbrl"
     sec:
       company_filings:
         - cik: "0000320193"
@@ -194,7 +202,7 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 | 필드 | 필수 | 의미 |
 |---|---|---|
 | `catalogs` | 아니오 | Mimir가 코드에 담아 둔 검증된 RSS feed catalog 선택 목록 |
-| `catalogs[].id` | 예 | catalog id. 현재 내장 id는 `sec_press_releases` |
+| `catalogs[].id` | 예 | catalog id. 아래 표의 내장 id 중 하나 |
 | `sec.company_filings` | 아니오 | SEC EDGAR Company Search Atom feed를 CIK와 form 설정에서 조립하는 목록 |
 | `feeds` | 아니오 | 운영자가 직접 지정하는 RSS feed 목록 |
 | `url` | 예 | RSS feed URL |
@@ -204,7 +212,17 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 
 `sources.rss.catalogs`는 반복해서 쓰는 공식 feed URL을 id로 고르는 편의 기능이다. Resolver는 코드 안의 정적 catalog만 읽는다. Catalog를 해석하는 동안 네트워크를 호출하지 않으며, generic live discovery나 vendor URL 추측도 하지 않는다.
 
-현재 내장 catalog id는 `sec_press_releases`다. 이 id는 `https://www.sec.gov/news/pressreleases.rss` feed를 `publisher="SEC"`, `market="US"`로 확장한다.
+현재 내장 catalog id는 아래와 같다.
+
+| id | Feed |
+|---|---|
+| `sec_press_releases` | SEC press releases |
+| `sec_structured_usgaap` | US GAAP/IFRS tagged financial statement filings |
+| `sec_structured_risk_return` | mutual fund risk/return tagged filings |
+| `sec_structured_inline_xbrl` | Inline XBRL financial statement filings |
+| `sec_structured_all_xbrl` | all XBRL filings submitted to the SEC |
+
+`sec_structured_*` catalog는 SEC가 공식으로 공개한 broad SEC/XBRL feed다. 특정 watchlist symbol 전용 feed가 아니므로 `symbol`을 설정하지 않는다. 특정 종목의 SEC filing feed가 필요하면 사용자가 CIK를 명시하는 `sources.rss.sec.company_filings`를 쓴다. ticker→CIK 자동 조회와 generic discovery는 아직 보류되어 있다.
 
 `catalogs`, `sec.company_filings`, `feeds`를 함께 쓰면 catalog feed, SEC EDGAR feed, manual feed 순서로 붙는다. 같은 `(url, symbol)` 쌍이 두 번 나오면 실패한다. 중복을 조용히 제거하면 운영자가 같은 feed를 두 경로로 설정했다는 사실을 놓칠 수 있기 때문이다. 같은 URL이라도 symbol이 다르면 서로 다른 종목 관계를 뜻하므로 허용한다.
 

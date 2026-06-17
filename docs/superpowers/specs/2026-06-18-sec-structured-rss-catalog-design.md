@@ -1,7 +1,7 @@
 # R1g-SEC-STRUCTURED. SEC Structured Disclosure RSS Catalog — 설계
 
 > **스펙 ID**: R1g-SEC-STRUCTURED
-> **상태**: 설계 완료
+> **상태**: 구현 완료
 > **작성일**: 2026-06-18
 > **선행**: [정적 RSS feed catalog](2026-06-17-rss-feed-catalog-design.md) · [R1f-SEC EDGAR RSS provider](2026-06-17-sec-edgar-rss-provider-design.md) · [발전 카탈로그](../../architecture/improvement-catalog.md) · [개선 백로그](../../IMPROVEMENTS.md)
 
@@ -116,14 +116,14 @@ README 3개 언어는 수정하지 않는다. Structured disclosure feed는 고�
 
 ## 9. 수용 기준
 
-- [ ] `resolve_rss_catalogs()`가 네 structured disclosure id를 예상 `RssFeed`로 확장한다.
-- [ ] 반환된 structured feed는 `publisher="SEC"`, `market="US"`, `symbol=None`이다.
-- [ ] Catalog entry는 deep copy로 반환되어 mutation이 원본 catalog에 남지 않는다.
-- [ ] Manual feed와 structured catalog feed의 동일 `(url, symbol)` 중복은 실패한다.
-- [ ] Unknown id, 기존 `sec_press_releases`, SEC company filing URL 조립 동작은 회귀하지 않는다.
-- [ ] Config reference와 architecture docs는 structured feed가 broad feed이며 symbol-specific feed가 아니라고 설명한다.
-- [ ] Improvement catalog와 backlog는 SEC structured disclosure RSS catalog는 해소됐고 ticker→CIK/generic discovery는 보류라고 말한다.
-- [ ] `uv run pytest tests/sources/test_rss_catalog.py tests/sources/test_config.py -q`가 통과한다.
+- [x] `resolve_rss_catalogs()`가 네 structured disclosure id를 예상 `RssFeed`로 확장한다.
+- [x] 반환된 structured feed는 `publisher="SEC"`, `market="US"`, `symbol=None`이다.
+- [x] Catalog entry는 deep copy로 반환되어 mutation이 원본 catalog에 남지 않는다.
+- [x] Manual feed와 structured catalog feed의 동일 `(url, symbol)` 중복은 실패한다.
+- [x] Unknown id, 기존 `sec_press_releases`, SEC company filing URL 조립 동작은 회귀하지 않는다.
+- [x] Config reference와 architecture docs는 structured feed가 broad feed이며 symbol-specific feed가 아니라고 설명한다.
+- [x] Improvement catalog와 backlog는 SEC structured disclosure RSS catalog는 해소됐고 ticker→CIK/generic discovery는 보류라고 말한다.
+- [x] `uv run pytest tests/sources/test_rss_catalog.py tests/sources/test_config.py -q`가 통과한다.
 - [ ] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`, `git diff --check`가 통과한다.
 
 ---
@@ -134,4 +134,3 @@ README 3개 언어는 수정하지 않는다. Structured disclosure feed는 고�
 - SEC Developer Resources: `https://www.sec.gov/about/developer-resources` (Last Reviewed or Updated: March 10, 2025)
 - SEC Accessing EDGAR Data: `https://www.sec.gov/search-filings/edgar-search-assistance/accessing-edgar-data` (Last Reviewed or Updated: June 26, 2024)
 - Local verification on 2026-06-18 KST: all four structured disclosure URLs returned HTTP 200 and `content-type: text/xml` with declared `User-Agent`.
-

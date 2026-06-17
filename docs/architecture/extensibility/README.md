@@ -65,6 +65,10 @@ sources:
   rss:
     catalogs:
       - { id: "sec_press_releases" }
+      - { id: "sec_structured_usgaap" }
+      - { id: "sec_structured_risk_return" }
+      - { id: "sec_structured_inline_xbrl" }
+      - { id: "sec_structured_all_xbrl" }
     sec:
       company_filings:
         - { cik: "0000320193", symbol: "AAPL", forms: ["10-K", "10-Q", "8-K"] }
@@ -88,9 +92,17 @@ sources:
   rss:
     catalogs:
       - { id: "sec_press_releases" }
+      - { id: "sec_structured_usgaap" }
+      - { id: "sec_structured_risk_return" }
+      - { id: "sec_structured_inline_xbrl" }
+      - { id: "sec_structured_all_xbrl" }
 ```
 
 Builder는 catalog selection을 기존 `RssFeed` 목록으로 확장한 뒤 manual `sources.rss.feeds` 뒤에 붙이지 않고 앞에 둔다. 같은 `(url, symbol)` 쌍이 catalog와 manual feed 양쪽에 있으면 실패한다. 같은 URL이라도 symbol이 다르면 서로 다른 종목 관계이므로 허용한다.
+
+SEC structured disclosure catalog id는 정적 공식 feed다. `sec_structured_usgaap`, `sec_structured_risk_return`, `sec_structured_inline_xbrl`, `sec_structured_all_xbrl`은 SEC가 공개한 broad SEC/XBRL feed를 그대로 가리킨다. 이 feed들은 특정 ticker나 watchlist symbol 전용 feed가 아니며, catalog resolver가 ticker→CIK lookup을 수행하지 않는다.
+
+ticker→CIK 자동 조회, watchlist 기반 SEC feed 자동 생성, HTML RSS link crawling, vendor URL pattern inference는 아직 deferred item이다. 이 작업들은 provider 정책, SEC fair-access 경계, 캐시와 모호성 처리 규칙이 필요하므로 정적 catalog 확장과 분리한다.
 
 이 기능은 외부 source plugin을 대체하지 않는다. Catalog는 built-in RSS source의 입력 목록을 편하게 만드는 장치다. 새 protocol, 새 인증 방식, 내부 feed client가 필요하면 `mimir.sources` plugin 또는 새 내장 source를 추가해야 한다.
 
