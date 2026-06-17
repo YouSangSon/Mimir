@@ -51,6 +51,7 @@
 - [x] **SEC ticker CIK map 오류 표면**: `ticker_cik_map_path`가 가리키는 로컬 파일이 없거나 JSON이 깨졌을 때 low-level 예외가 그대로 노출될 수 있었다. → missing file, 읽기 실패, invalid JSON, non-object JSON을 path가 포함된 설정 오류로 정규화한다.
 - [x] **SEC ticker CIK map entry 오류 위치**: 큰 `company_tickers.json` 파일에서 개별 entry가 깨지면 어느 entry를 고쳐야 하는지 알기 어려웠다. → non-object entry, invalid ticker, missing/invalid `cik_str` 오류에 파일 경로와 entry key를 포함한다.
 - [x] **SEC ticker CIK map CLI 오류 표면**: loader가 만든 설정 오류가 `collect`/`run`/`backfill` CLI에서는 raw `ValueError` traceback으로 노출될 수 있었다. → source build 단계의 `ValueError`를 `SourcesConfigError`로 감싸고 CLI는 `[mimir] invalid sources.yaml:` 형식으로 출력한다.
+- [x] **SEC ticker CIK map missing ticker 경로 누락**: 로컬 `company_tickers.json`을 성공적으로 읽은 뒤에도, 없는 ticker lookup 오류는 어떤 파일을 참조했는지 알려주지 않았다. → loader가 반환하는 dict-compatible mapping에 path metadata를 보존하고, missing ticker 오류가 loader-backed map에서만 `... in <path>`를 포함하도록 정리한다.
 
 ## 후속 후보
 - Provider별 RSS discovery는 SEC 일부만 안전하게 해소됐다. `sources.rss.sec.company_filings`는 사용자가 CIK 또는 ticker를 명시하면 SEC Company Search Atom feed URL을 조립한다. `sources.rss.sec.ticker_cik_map_path`는 사용자가 제공한 SEC `company_tickers.json` 로컬 파일로 ticker를 10자리 CIK로 정규화한다. `sources.rss.catalogs`의 `sec_structured_*` id는 SEC가 공개한 broad SEC/XBRL feed를 정적으로 고른다. 이 feed들은 symbol-specific feed가 아니다. 남은 작업은 SEC mapping file live download/cache, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference처럼 provider 정책과 ToS 검토가 더 필요한 범위다.

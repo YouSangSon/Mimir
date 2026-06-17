@@ -235,6 +235,31 @@ def test_resolve_sec_company_filing_feed_missing_ticker_mapping_raises():
         )
 
 
+def test_resolve_sec_company_filing_feed_missing_loaded_ticker_mapping_includes_path(
+    tmp_path,
+):
+    path = tmp_path / "company_tickers.json"
+    path.write_text(
+        """
+        {
+          "0": {"cik_str": 320193, "ticker": "aapl", "title": "Apple Inc."}
+        }
+        """,
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=r"SEC ticker CIK map has no entry for ticker MSFT in .*company_tickers\.json",
+    ):
+        resolve_rss_feeds(
+            None,
+            None,
+            [SecCompanyFilingFeed(ticker="MSFT", symbol="MSFT")],
+            load_sec_ticker_cik_map(path),
+        )
+
+
 def test_load_sec_ticker_cik_map_reads_official_json_shape(tmp_path):
     path = tmp_path / "company_tickers.json"
     path.write_text(

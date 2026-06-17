@@ -38,6 +38,12 @@ class RssCatalogEntry(BaseModel):
 SEC_BROWSE_EDGAR_URL = "https://www.sec.gov/cgi-bin/browse-edgar"
 
 
+class _SecTickerCikMap(dict[str, str]):
+    def __init__(self, *args: object, path: Path | None = None, **kwargs: str) -> None:
+        super().__init__(*args, **kwargs)
+        self.path = path
+
+
 class SecCompanyFilingFeed(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -238,7 +244,7 @@ def load_sec_ticker_cik_map(path: Path) -> dict[str, str]:
     if not isinstance(raw, dict):
         raise ValueError(f"SEC ticker CIK map must be a JSON object: {path}")
 
-    mapping: dict[str, str] = {}
+    mapping = _SecTickerCikMap(path=path)
     for entry_key, entry in raw.items():
         ticker, cik = _parse_sec_ticker_cik_entry(
             entry,
@@ -317,6 +323,11 @@ def _sec_company_filing_identifier(
         return selection.ticker
     cik = sec_ticker_cik_map.get(selection.ticker)
     if cik is None:
+        mapping_path = getattr(sec_ticker_cik_map, "path", None)
+        if isinstance(mapping_path, Path):
+            raise ValueError(
+                f"SEC ticker CIK map has no entry for ticker {selection.ticker} in {mapping_path}"
+            )
         raise ValueError(
             f"SEC ticker CIK map has no entry for ticker {selection.ticker}"
         )
