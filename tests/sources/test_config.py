@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from mimir.sources.config import SourcesConfig, parse_sources_config
 from mimir.sources.ecos import EcosSeries
 from mimir.sources.rss import RssFeed
-from mimir.sources.rss_catalog import RssCatalogSelection
+from mimir.sources.rss_catalog import RssCatalogSelection, SecCompanyFilingFeed
 
 
 def test_empty_dict_yields_all_none():
@@ -112,6 +112,80 @@ def test_rss_catalog_typo_field_raises_validation_error():
     with pytest.raises(ValidationError):
         parse_sources_config(
             {"sources": {"rss": {"catalogs": [{"idd": "sec_press_releases"}]}}}
+        )
+
+
+def test_rss_sec_company_filings_parse_from_config():
+    cfg = parse_sources_config(
+        {
+            "sources": {
+                "rss": {
+                    "sec": {
+                        "company_filings": [
+                            {
+                                "cik": "320193",
+                                "symbol": " AAPL ",
+                                "forms": ["10-K", "10-K/A"],
+                                "count": 20,
+                                "owner": "include",
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    )
+
+    assert cfg.rss_sec_company_filings == [
+        SecCompanyFilingFeed(
+            cik="0000320193",
+            symbol="AAPL",
+            forms=["10-K", "10-K/A"],
+            count=20,
+            owner="include",
+        )
+    ]
+
+
+def test_rss_sec_company_filings_typo_raises_validation_error():
+    with pytest.raises(ValidationError):
+        parse_sources_config(
+            {"sources": {"rss": {"sec": {"company_filingz": [{"cik": "320193"}]}}}}
+        )
+
+
+def test_rss_sec_company_filings_bad_owner_raises_validation_error():
+    with pytest.raises(ValidationError):
+        parse_sources_config(
+            {
+                "sources": {
+                    "rss": {
+                        "sec": {
+                            "company_filings": [
+                                {"cik": "320193", "owner": "everything"}
+                            ]
+                        }
+                    }
+                }
+            }
+        )
+
+
+@pytest.mark.parametrize("bad_count", [9, 101])
+def test_rss_sec_company_filings_bad_count_raises_validation_error(bad_count: int):
+    with pytest.raises(ValidationError):
+        parse_sources_config(
+            {
+                "sources": {
+                    "rss": {
+                        "sec": {
+                            "company_filings": [
+                                {"cik": "320193", "count": bad_count}
+                            ]
+                        }
+                    }
+                }
+            }
         )
 
 

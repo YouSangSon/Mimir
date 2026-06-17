@@ -20,7 +20,7 @@ from mimir.sources.fred import DEFAULT_SERIES as FRED_DEFAULT_SERIES
 from mimir.sources.fred import FredSource
 from mimir.sources.rss import DEFAULT_FEEDS as RSS_DEFAULT_FEEDS
 from mimir.sources.rss import RssFeed, RssSource
-from mimir.sources.rss_catalog import RssCatalogSelection
+from mimir.sources.rss_catalog import RssCatalogSelection, SecCompanyFilingFeed
 from mimir.sources.sec_edgar import SecEdgarSource
 
 
@@ -425,6 +425,35 @@ def test_build_sources_resolves_rss_catalog_feeds(monkeypatch):
     ]
 
 
+def test_build_sources_resolves_sec_company_filing_feeds(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    cfg = SourcesConfig(
+        rss_sec_company_filings=[
+            SecCompanyFilingFeed(cik="320193", symbol="AAPL", forms=["10-K/A"])
+        ]
+    )
+
+    sources = build_sources(
+        Settings.from_env({"MIMIR_SEC_USER_AGENT": "Mimir Test test@example.com"}),
+        cfg,
+    )
+    rss = _by_id(sources)["rss"]
+
+    assert isinstance(rss, RssSource)
+    assert rss._feeds == [
+        RssFeed(
+            url=(
+                "https://www.sec.gov/cgi-bin/browse-edgar?"
+                "action=getcompany&CIK=0000320193&type=10-K%2FA&owner=exclude&count=40&output=atom"
+            ),
+            publisher="SEC",
+            market="US",
+            symbol="AAPL",
+        )
+    ]
+    assert rss._headers == {"User-Agent": "Mimir Test test@example.com"}
+
+
 def test_build_sources_combines_rss_catalog_and_manual_feeds(monkeypatch):
     monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
     manual = RssFeed(
@@ -449,6 +478,33 @@ def test_build_sources_combines_rss_catalog_and_manual_feeds(monkeypatch):
             market="US",
         ),
         manual,
+    ]
+
+
+def test_build_sources_combines_catalog_sec_and_manual_feeds(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    manual = RssFeed(
+        url="https://example.com/aapl.rss",
+        publisher="Example",
+        market="US",
+        symbol="AAPL",
+    )
+    cfg = SourcesConfig(
+        rss_catalogs=[RssCatalogSelection(id="sec_press_releases")],
+        rss_sec_company_filings=[SecCompanyFilingFeed(cik="320193", symbol="AAPL")],
+        rss_feeds=[manual],
+    )
+
+    sources = build_sources(Settings.from_env({}), cfg)
+    rss = _by_id(sources)["rss"]
+
+    assert [feed.url for feed in rss._feeds] == [
+        "https://www.sec.gov/news/pressreleases.rss",
+        (
+            "https://www.sec.gov/cgi-bin/browse-edgar?"
+            "action=getcompany&CIK=0000320193&owner=exclude&count=40&output=atom"
+        ),
+        "https://example.com/aapl.rss",
     ]
 
 

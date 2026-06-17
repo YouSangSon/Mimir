@@ -101,6 +101,28 @@ def test_rss_symbol_feed_key_keeps_same_url_for_multiple_symbols():
     ]
 
 
+@responses.activate
+def test_rss_fetch_sends_configured_user_agent():
+    def callback(request):
+        assert request.headers["User-Agent"] == "Mimir Test test@example.com"
+        return (200, {}, RSS)
+
+    responses.add_callback(
+        responses.GET,
+        "https://example.test/feed",
+        callback=callback,
+    )
+    src = RssSource(
+        feeds=FEEDS,
+        session=requests.Session(),
+        user_agent="Mimir Test test@example.com",
+    )
+
+    recs = list(src.fetch(_ctx()))
+
+    assert len(recs) == 1
+
+
 def test_rss_meta():
     assert RssSource.meta.dataset is Dataset.NEWS
     assert RssSource.meta.cadence is Cadence.HOURLY
