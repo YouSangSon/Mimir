@@ -214,9 +214,22 @@ def resolve_sec_company_filing_feeds(
 
 def load_sec_ticker_cik_map(path: Path) -> dict[str, str]:
     """Read SEC's company_tickers.json shape into normalized ticker -> CIK data."""
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        raw_text = path.read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise ValueError(f"SEC ticker CIK map file not found: {path}") from exc
+    except OSError as exc:
+        raise ValueError(f"SEC ticker CIK map file could not be read: {path}") from exc
+
+    try:
+        raw = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"SEC ticker CIK map file is not valid JSON: {path}"
+        ) from exc
+
     if not isinstance(raw, dict):
-        raise ValueError("SEC ticker CIK map must be a JSON object")
+        raise ValueError(f"SEC ticker CIK map must be a JSON object: {path}")
 
     mapping: dict[str, str] = {}
     for entry in raw.values():

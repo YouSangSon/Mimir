@@ -253,6 +253,49 @@ def test_load_sec_ticker_cik_map_reads_official_json_shape(tmp_path):
     }
 
 
+def test_load_sec_ticker_cik_map_missing_file_raises_clear_error(tmp_path):
+    path = tmp_path / "missing_company_tickers.json"
+
+    with pytest.raises(
+        ValueError,
+        match=r"SEC ticker CIK map file not found: .*missing_company_tickers\.json",
+    ):
+        load_sec_ticker_cik_map(path)
+
+
+def test_load_sec_ticker_cik_map_unreadable_file_raises_clear_error(tmp_path):
+    path = tmp_path / "company_tickers_directory.json"
+    path.mkdir()
+
+    with pytest.raises(
+        ValueError,
+        match=r"SEC ticker CIK map file could not be read: .*company_tickers_directory\.json",
+    ):
+        load_sec_ticker_cik_map(path)
+
+
+def test_load_sec_ticker_cik_map_invalid_json_raises_clear_error(tmp_path):
+    path = tmp_path / "company_tickers.json"
+    path.write_text("{", encoding="utf-8")
+
+    with pytest.raises(
+        ValueError,
+        match=r"SEC ticker CIK map file is not valid JSON: .*company_tickers\.json",
+    ):
+        load_sec_ticker_cik_map(path)
+
+
+def test_load_sec_ticker_cik_map_rejects_non_object_json(tmp_path):
+    path = tmp_path / "company_tickers.json"
+    path.write_text("[]", encoding="utf-8")
+
+    with pytest.raises(
+        ValueError,
+        match=r"SEC ticker CIK map must be a JSON object: .*company_tickers\.json",
+    ):
+        load_sec_ticker_cik_map(path)
+
+
 def test_load_sec_ticker_cik_map_rejects_ambiguous_duplicate_ticker(tmp_path):
     path = tmp_path / "company_tickers.json"
     path.write_text(

@@ -10,7 +10,12 @@ IMPROVEMENT_CATALOG = Path("docs/architecture/improvement-catalog.md")
 BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
 TABLE_RE = re.compile(r"\|\s*\*\*(?:Tests|테스트|测试)\*\*\s*\|\s*(\d+) passing")
 COLLECTED_RE = re.compile(r"(?:(\d+) tests collected|collected (\d+) items)")
-LATEST_COMPLETED_IDS = ("R1h-SEC-TICKER", "R1i-SEC-CIK", "DCHTML", "DOCHEALTH")
+LATEST_COMPLETED_IDS = (
+    "R1i-SEC-CIK",
+    "R1j-SEC-CIK-ERRORS",
+    "DCHTML",
+    "DOCHEALTH",
+)
 
 
 def _collected_test_count() -> int:
