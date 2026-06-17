@@ -48,6 +48,7 @@
 - [x] **doctor HTML report**: C1 데이터 닥터 spec은 선택 후속으로 `--html`과 3언어 라벨을 남겼지만 CLI는 text/JSON만 지원했다. → `mimir doctor --html <path> --lang en|ko|zh`가 standalone HTML을 쓰고, 기존 stdout 형식과 exit code는 유지한다.
 - [x] **README health metadata drift**: README 3종의 tests badge와 상태 표가 실제 pytest 수집 개수보다 뒤처질 수 있었다. → `tests/test_readme_docs.py`가 `pytest --collect-only` 결과와 README badge/table 값을 비교하고, 개선 카탈로그의 최신 완료 ID도 회귀 테스트로 고정한다.
 - [x] **SEC ticker CIK map 오류 표면**: `ticker_cik_map_path`가 가리키는 로컬 파일이 없거나 JSON이 깨졌을 때 low-level 예외가 그대로 노출될 수 있었다. → missing file, 읽기 실패, invalid JSON, non-object JSON을 path가 포함된 설정 오류로 정규화한다.
+- [x] **SEC ticker CIK map entry 오류 위치**: 큰 `company_tickers.json` 파일에서 개별 entry가 깨지면 어느 entry를 고쳐야 하는지 알기 어려웠다. → non-object entry, invalid ticker, missing/invalid `cik_str` 오류에 파일 경로와 entry key를 포함한다.
 
 ## 후속 후보
 - Provider별 RSS discovery는 SEC 일부만 안전하게 해소됐다. `sources.rss.sec.company_filings`는 사용자가 CIK 또는 ticker를 명시하면 SEC Company Search Atom feed URL을 조립한다. `sources.rss.sec.ticker_cik_map_path`는 사용자가 제공한 SEC `company_tickers.json` 로컬 파일로 ticker를 10자리 CIK로 정규화한다. `sources.rss.catalogs`의 `sec_structured_*` id는 SEC가 공개한 broad SEC/XBRL feed를 정적으로 고른다. 이 feed들은 symbol-specific feed가 아니다. 남은 작업은 SEC mapping file live download/cache, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference처럼 provider 정책과 ToS 검토가 더 필요한 범위다.

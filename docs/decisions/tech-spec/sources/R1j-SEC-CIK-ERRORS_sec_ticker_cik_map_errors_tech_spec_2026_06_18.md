@@ -19,7 +19,7 @@ R1i의 SEC ticker CIK local mapping은 운영자가 제공한 `company_tickers.j
 | SEC mapping file 자동 다운로드 | SEC fair-access와 운영 cache 정책이 필요합니다. |
 | stale mapping file 판단 | 파일 갱신 주기는 운영 정책입니다. |
 | ticker missing fallback | R1i가 조용한 fallback을 금지했습니다. |
-| entry-level validation 재설계 | 기존 `SecCompanyFilingFeed` validator 재사용으로 충분합니다. |
+| entry-level validation 재설계 | R1j에서는 파일 읽기와 JSON shape까지만 다룹니다. R1k가 개별 entry의 path/key 오류 context를 별도 후속으로 처리합니다. |
 
 ## 설계
 
@@ -37,7 +37,7 @@ flowchart TD
     G -->|yes| I[parse entries]
 ```
 
-Mapping entry validation remains unchanged. Invalid ticker or CIK values still fail through the existing pydantic validation path, preserving one normalization rule for both config input and mapping file input.
+Mapping entry validation은 R1j 범위에서는 그대로 둡니다. R1k 후속은 같은 validator를 계속 재사용하면서 오류 메시지에 파일 path와 entry key를 덧붙입니다.
 
 ## 실패 / 예외 처리
 

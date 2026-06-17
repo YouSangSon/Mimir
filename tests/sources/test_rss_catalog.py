@@ -296,6 +296,58 @@ def test_load_sec_ticker_cik_map_rejects_non_object_json(tmp_path):
         load_sec_ticker_cik_map(path)
 
 
+def test_load_sec_ticker_cik_map_rejects_non_object_entry_with_context(tmp_path):
+    path = tmp_path / "company_tickers.json"
+    path.write_text('{"0": []}', encoding="utf-8")
+
+    with pytest.raises(
+        ValueError,
+        match=r"SEC ticker CIK map entry '0' must be a JSON object: .*company_tickers\.json",
+    ):
+        load_sec_ticker_cik_map(path)
+
+
+def test_load_sec_ticker_cik_map_rejects_invalid_entry_ticker_with_context(
+    tmp_path,
+):
+    path = tmp_path / "company_tickers.json"
+    path.write_text(
+        '{"0": {"cik_str": 320193, "ticker": "bad ticker"}}',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=r"invalid SEC ticker CIK map entry '0' in .*company_tickers\.json",
+    ):
+        load_sec_ticker_cik_map(path)
+
+
+def test_load_sec_ticker_cik_map_rejects_missing_entry_cik_with_context(tmp_path):
+    path = tmp_path / "company_tickers.json"
+    path.write_text('{"0": {"ticker": "AAPL"}}', encoding="utf-8")
+
+    with pytest.raises(
+        ValueError,
+        match=r"invalid SEC ticker CIK map entry '0' in .*company_tickers\.json",
+    ):
+        load_sec_ticker_cik_map(path)
+
+
+def test_load_sec_ticker_cik_map_rejects_invalid_entry_cik_with_context(tmp_path):
+    path = tmp_path / "company_tickers.json"
+    path.write_text(
+        '{"0": {"cik_str": "not-a-cik", "ticker": "AAPL"}}',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=r"invalid SEC ticker CIK map entry '0' in .*company_tickers\.json",
+    ):
+        load_sec_ticker_cik_map(path)
+
+
 def test_load_sec_ticker_cik_map_rejects_ambiguous_duplicate_ticker(tmp_path):
     path = tmp_path / "company_tickers.json"
     path.write_text(
@@ -308,7 +360,10 @@ def test_load_sec_ticker_cik_map_rejects_ambiguous_duplicate_ticker(tmp_path):
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="ambiguous SEC ticker mapping for DUP"):
+    with pytest.raises(
+        ValueError,
+        match=r"ambiguous SEC ticker mapping for DUP in .*company_tickers\.json at entry '1'",
+    ):
         load_sec_ticker_cik_map(path)
 
 

@@ -231,7 +231,7 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 
 `sources.rss.sec.company_filings`는 SEC EDGAR Company Search가 제공하는 Atom feed URL을 설정에서 조립한다. 이 기능은 SEC 페이지를 크롤링하지 않고, SEC ticker mapping file을 resolver 단계에서 다운로드하지도 않는다. 사용자는 `cik` 또는 `ticker` 중 정확히 하나를 명시하고, Mimir가 `browse-edgar?action=getcompany&output=atom` URL을 만든다.
 
-`sources.rss.sec.ticker_cik_map_path`를 설정하면 `ticker` 입력의 의미가 달라진다. Mimir는 지정한 로컬 JSON 파일을 SEC `company_tickers.json` 형태로 읽고, ticker를 10자리 CIK로 정규화한다. 이 파일은 SEC가 제공하지만, SEC는 파일의 정확성과 범위를 보장하지 않는다고 설명한다. 그래서 Mimir는 파일을 자동으로 다운로드하거나 stale 여부를 판단하지 않는다. 파일이 없거나 읽을 수 없거나 유효한 JSON object가 아니면 경로가 포함된 설정 오류로 실패한다. 같은 ticker가 서로 다른 CIK로 두 번 나오면 모호한 매핑으로 보고 실패한다.
+`sources.rss.sec.ticker_cik_map_path`를 설정하면 `ticker` 입력의 의미가 달라진다. Mimir는 지정한 로컬 JSON 파일을 SEC `company_tickers.json` 형태로 읽고, ticker를 10자리 CIK로 정규화한다. 이 파일은 SEC가 제공하지만, SEC는 파일의 정확성과 범위를 보장하지 않는다고 설명한다. 그래서 Mimir는 파일을 자동으로 다운로드하거나 stale 여부를 판단하지 않는다. 파일이 없거나 읽을 수 없거나 유효한 JSON object가 아니면 경로가 포함된 설정 오류로 실패한다. 개별 entry가 object가 아니거나 `ticker`/`cik_str` 값이 잘못되면 파일 경로와 entry key가 포함된 설정 오류로 실패한다. 같은 ticker가 서로 다른 CIK로 두 번 나오면 모호한 매핑으로 보고 실패한다.
 
 | 필드 | 필수 | 기본값 | 의미 |
 |---|---|---|---|

@@ -7,7 +7,14 @@ from pathlib import Path
 from typing import Any, Literal, Self
 from urllib.parse import urlencode
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from mimir.sources.rss import RssFeed
 
@@ -232,20 +239,39 @@ def load_sec_ticker_cik_map(path: Path) -> dict[str, str]:
         raise ValueError(f"SEC ticker CIK map must be a JSON object: {path}")
 
     mapping: dict[str, str] = {}
-    for entry in raw.values():
-        ticker, cik = _parse_sec_ticker_cik_entry(entry)
+    for entry_key, entry in raw.items():
+        ticker, cik = _parse_sec_ticker_cik_entry(
+            entry,
+            path=path,
+            entry_key=entry_key,
+        )
         existing = mapping.get(ticker)
         if existing is not None and existing != cik:
-            raise ValueError(f"ambiguous SEC ticker mapping for {ticker}")
+            raise ValueError(
+                f"ambiguous SEC ticker mapping for {ticker} in {path} "
+                f"at entry {entry_key!r}"
+            )
         mapping[ticker] = cik
     return mapping
 
 
-def _parse_sec_ticker_cik_entry(entry: object) -> tuple[str, str]:
+def _parse_sec_ticker_cik_entry(
+    entry: object,
+    *,
+    path: Path,
+    entry_key: object,
+) -> tuple[str, str]:
     if not isinstance(entry, dict):
-        raise ValueError("SEC ticker CIK map entries must be JSON objects")
-    ticker = _normalize_ticker_value(entry.get("ticker"))
-    cik = _normalize_cik_value(entry.get("cik_str"))
+        raise ValueError(
+            f"SEC ticker CIK map entry {entry_key!r} must be a JSON object: {path}"
+        )
+    try:
+        ticker = _normalize_ticker_value(entry.get("ticker"))
+        cik = _normalize_cik_value(entry.get("cik_str"))
+    except ValidationError as exc:
+        raise ValueError(
+            f"invalid SEC ticker CIK map entry {entry_key!r} in {path}: {exc}"
+        ) from exc
     return ticker, cik
 
 
