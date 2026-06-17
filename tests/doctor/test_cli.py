@@ -160,7 +160,7 @@ def test_cli_reports_invalid_sources_yaml_without_writing_html(
     write_fresh_tree(data_root, NOW)
     config_dir = _write_config(tmp_path, us=[])
     (config_dir / "sources.yaml").write_text(
-        "analysys:\n  news:\n    use_default_aliases: false\n",
+        "- not-a-mapping\n",
         encoding="utf-8",
     )
     out = tmp_path / "reports" / "doctor.html"
@@ -178,7 +178,9 @@ def test_cli_reports_invalid_sources_yaml_without_writing_html(
     )
 
     assert code == 1
-    assert capsys.readouterr().err.startswith("[mimir] invalid sources.yaml:")
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith("[mimir] invalid sources.yaml:")
     assert not out.exists()
 
 

@@ -94,6 +94,7 @@ flowchart TD
 | 테스트 | 고정하는 계약 |
 | ------ | ------------- |
 | `test_cli_reports_invalid_sources_yaml_without_writing_html` | doctor가 malformed config를 friendly message로 보고하고 HTML을 쓰지 않음 |
+| `test_load_validated_sources_config_rejects_non_mapping_top_level_yaml` | non-mapping `sources.yaml` 최상위를 path resolution crash 없이 pydantic `ValidationError`로 거부 |
 | 기존 doctor HTML 테스트 | 정상 config의 stdout, HTML, lang, exit code 유지 |
 | `test_readme_test_badges_match_collected_pytest_count` | README 테스트 수치 drift 방지 |
 | `test_improvement_catalog_summary_mentions_latest_completed_ids` | CFG2 completion tracking |
@@ -105,10 +106,11 @@ flowchart TD
 | `UV_FROZEN=1 uv run pytest tests/doctor/test_cli.py -q` | 10 passed |
 | `UV_FROZEN=1 uv run ruff check mimir/doctor/doctor_cli.py tests/doctor/test_cli.py` | pass |
 | `UV_FROZEN=1 uv run mypy mimir` | pass, 82 files |
+| `UV_FROZEN=1 uv run pytest tests/test_config.py tests/doctor/test_cli.py tests/test_readme_docs.py -q` | 19 passed |
 | `UV_FROZEN=1 uv run pytest tests/doctor/test_cli.py tests/test_readme_docs.py -q` | 12 passed |
 | `UV_FROZEN=1 uv run ruff check .` | pass |
-| `UV_FROZEN=1 uv run pytest -q` | 536 passed |
-| `UV_FROZEN=1 uv run coverage run -m pytest` | 536 passed |
+| `UV_FROZEN=1 uv run pytest -q` | 537 passed |
+| `UV_FROZEN=1 uv run coverage run -m pytest` | 537 passed |
 | `UV_FROZEN=1 uv run coverage report --fail-under=80` | TOTAL 98% |
 | `git diff --check` | pass |
 

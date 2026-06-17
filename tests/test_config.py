@@ -68,5 +68,14 @@ def test_load_validated_sources_config_bad_sec_map_path_raises_validation_error(
         load_validated_sources_config(tmp_path)
 
 
+def test_load_validated_sources_config_rejects_non_mapping_top_level_yaml(
+    tmp_path: Path,
+):
+    (tmp_path / "sources.yaml").write_text("- not-a-mapping\n", encoding="utf-8")
+
+    with pytest.raises(ValidationError):
+        load_validated_sources_config(tmp_path)
+
+
 def test_load_yaml_missing_returns_empty(tmp_path: Path):
     assert load_yaml(tmp_path / "nope.yaml") == {}

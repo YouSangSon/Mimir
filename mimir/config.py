@@ -33,8 +33,12 @@ def load_watchlist(config_dir: Path = DEFAULT_CONFIG_DIR) -> dict[str, list[str]
     return {"us": list(wl.get("us", [])), "kr": list(wl.get("kr", []))}
 
 
-def load_sources_config(config_dir: Path = DEFAULT_CONFIG_DIR) -> dict[str, Any]:
-    return load_yaml(config_dir / "sources.yaml")
+def load_sources_config(config_dir: Path = DEFAULT_CONFIG_DIR) -> Any:
+    path = config_dir / "sources.yaml"
+    if not path.exists():
+        return {}
+    loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return {} if loaded is None else loaded
 
 
 def load_validated_sources_config(
@@ -44,7 +48,9 @@ def load_validated_sources_config(
     return raw, parse_sources_config(raw)
 
 
-def _resolve_sources_config_paths(raw: dict[str, Any], config_dir: Path) -> dict[str, Any]:
+def _resolve_sources_config_paths(raw: Any, config_dir: Path) -> Any:
+    if not isinstance(raw, dict):
+        return raw
     resolved = deepcopy(raw)
     sources_block = resolved.get("sources")
     if not isinstance(sources_block, dict):
