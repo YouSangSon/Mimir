@@ -45,6 +45,7 @@
 - [x] **GH Actions Node20 deprecation**: `actions/checkout@v4`·`setup-python@v5`가 Node20 세대 action이라 2026-06-16 Node24 기본 전환에 걸릴 수 있었다. → `checkout@v6`·`setup-python@v6`로 올리고, `tests/test_workflows.py`가 workflow action major를 검증한다.
 - [x] **pykrx 일시 실패 재시도**: `pykrx`는 `BaseSource`를 직접 쓰지 않는 library source라 공통 `http_get` 정책을 상속하지 못했다. → OHLCV 호출 경계에 throttle + 짧은 지수 backoff retry를 추가하고, 소진 시 `FetchError`로 ticker와 마지막 오류를 manifest에 남긴다. GRAY·선택 소스 정책은 유지한다.
 - [x] **backfill preflight failure manifest**: registered source가 secret/package gate 때문에 fetch 전에 제외되면 manifest 없이 `SystemExit`만 남았다. → built-in `SourceSpec`에 static `SourceMeta`를 연결하고, backfill이 registered-but-unavailable source를 `ok=false` manifest로 기록한다. Unknown source id는 cadence를 알 수 없어 argument error로 유지한다.
+- [x] **doctor HTML report**: C1 데이터 닥터 spec은 선택 후속으로 `--html`과 3언어 라벨을 남겼지만 CLI는 text/JSON만 지원했다. → `mimir doctor --html <path> --lang en|ko|zh`가 standalone HTML을 쓰고, 기존 stdout 형식과 exit code는 유지한다.
 
 ## 후속 후보
 - Provider별 RSS discovery는 SEC 일부만 안전하게 해소됐다. `sources.rss.sec.company_filings`는 사용자가 CIK 또는 ticker token을 명시하면 SEC Company Search Atom feed URL을 조립한다. `sources.rss.catalogs`의 `sec_structured_*` id는 SEC가 공개한 broad SEC/XBRL feed를 정적으로 고른다. 이 feed들은 symbol-specific feed가 아니다. 남은 작업은 SEC mapping file 기반 ticker→CIK 자동 조회·cache·ambiguity policy, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference처럼 provider 정책과 ToS 검토가 더 필요한 범위다.

@@ -197,7 +197,7 @@ mimir backfill  --source <id> --since YYYY-MM-DD [--config-dir config]
 mimir analyze   [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
 mimir deliver   [--cadence daily] [--date YYYY-MM-DD] [--config-dir config] [--data-root data] [--reports-root reports]
 mimir history   [--symbol S] [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
-mimir doctor    [--config-dir config] [--data-root data] [--format text|json] [--strict]
+mimir doctor    [--config-dir config] [--data-root data] [--format text|json] [--html reports/doctor.html] [--lang en|ko|zh] [--strict]
 mimir evaluate  [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
 mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 ```

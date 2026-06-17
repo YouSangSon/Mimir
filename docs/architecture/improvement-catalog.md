@@ -45,6 +45,7 @@
 | **BF-MANIFEST** | 백필 실행 manifest 기록 | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | backfill success/failure run log |
 | **BF-PREFLIGHT** | 백필 preflight failure manifest | 견고성/운영 | README + BF-MANIFEST 후속 | **✅ 구현 완료 (2026-06-18)** | registered unavailable source run log |
 | **C1** | 데이터 신선도·품질 닥터 (`mimir doctor`) | 운영 | "무음 실패 금지" 약속 | **✅ 구현 완료 (Increment 3)** | 코드 + 테스트(179) |
+| **DCHTML** | Doctor standalone HTML report | 운영가시성 | C1 선택 후속 수용 기준 | **✅ 구현 완료 (2026-06-18)** | HTML renderer + CLI + docs · [spec](../superpowers/specs/2026-06-18-doctor-html-report-design.md) |
 | **OPS1** | Scheduled dashboard publication (`reports/dashboard.html`) | 운영가시성 | README + 현행 spec | **✅ 구현 완료 (2026-06-17)** | workflow + 테스트 + docs · [spec](../superpowers/specs/2026-06-17-scheduled-dashboard-publication-design.md) |
 | **ENV1** | Runtime `.env` autoload contract | 운영/DX | README 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-dotenv-cli-autoload-design.md) |
 | **CFG1** | `sources.yaml` CLI validation contract | 운영/DX | docs/reference config 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-sources-config-cli-validation-design.md) |
@@ -193,6 +194,12 @@ SEC Company Search RSS는 현재 `browse-edgar?action=getcompany&output=atom` UR
 
 매니페스트는 *실행*을 기록하지만, "어제 가격 데이터가 비었다" 같은 *데이터 신선도*는 누구도 감시하지 않는다. `mimir doctor`는 워치리스트 대비 누락·정체(stale) 파티션과 스키마 이상을 플래그한다. "무음 실패 금지" 약속을 데이터 평면으로 확장. → [데이터 닥터 설계문서](../superpowers/specs/2026-06-13-data-doctor-design.md).
 
+### DCHTML. Doctor standalone HTML report — **구현 완료 (2026-06-18)**
+
+C1 데이터 닥터는 text와 JSON 출력으로 터미널과 자동화에는 충분했지만, 운영자가 링크나 artifact로 공유할 단일 HTML 산출물이 없었다. C1 설계문서의 선택 후속에도 `--html`과 en/ko/zh 라벨 렌더링이 남아 있었다.
+
+구현 후 `mimir doctor --html reports/doctor.html --lang ko`는 같은 `DoctorReport`를 standalone HTML 파일로 쓴다. stdout은 기존 `--format text|json` 결과를 그대로 유지하고, WARN/CRITICAL exit code 정책도 바꾸지 않는다. HTML은 dataset, scope, severity label, detail을 escape하고, `Finding.message`는 사실 문자열로 유지해 자동화와 사람이 같은 진단 내용을 보게 한다.
+
 ### OPS1. Scheduled dashboard publication — **구현 완료 (2026-06-17)**
 
 `mimir.dashboard`는 저장된 데이터, 최신 manifest, doctor finding을 읽어 `reports/dashboard.html`을 만들 수 있었다. 하지만 reusable scheduled workflow는 `python -m mimir.run` 뒤 바로 `git add data reports`를 실행했다. 그래서 scheduled run이 일일 리포트와 status page는 커밋해도 최신 dashboard를 생성하지 않았다.
@@ -272,6 +279,7 @@ D2 ───────── GitHub Actions Node24-compatible action majors
 	BF-MANIFEST ─ backfill success/failure manifest
 	BF-PREFLIGHT ─ backfill registered-unavailable preflight manifest
 	OPS1 ─────── scheduled dashboard publication · reports/dashboard.html
+DCHTML ───── doctor standalone HTML report · mimir doctor --html
 MR1 ──────── macro revision storage policy · Dataset.MACRO last-write-wins
 ```
 

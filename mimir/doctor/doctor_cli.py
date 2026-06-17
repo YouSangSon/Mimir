@@ -7,6 +7,8 @@ from pathlib import Path
 from mimir.config import load_watchlist
 from mimir.doctor.engine import run_doctor
 from mimir.doctor.report import DoctorReport, Severity
+from mimir.report.doctor_html import render_doctor_html
+from mimir.report.i18n import DEFAULT_LANG, LANGS
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.paths import DEFAULT_ROOT
 
@@ -35,6 +37,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config-dir", default="config")
     parser.add_argument("--data-root", default=str(DEFAULT_ROOT))
     parser.add_argument("--format", choices=["json", "text"], default="text")
+    parser.add_argument("--html", type=Path)
+    parser.add_argument("--lang", choices=LANGS, default=DEFAULT_LANG)
     parser.add_argument(
         "--strict", action="store_true",
         help="escalate WARN to a non-zero exit (default: only CRITICAL is non-zero)",
@@ -49,6 +53,9 @@ def main(argv: list[str] | None = None) -> int:
         print(report.model_dump_json())
     else:
         print(_emit_text(report))
+
+    if args.html is not None:
+        render_doctor_html(report, args.html, lang=args.lang)
 
     code = report.exit_code
     if args.strict and report.worst is Severity.WARN:
