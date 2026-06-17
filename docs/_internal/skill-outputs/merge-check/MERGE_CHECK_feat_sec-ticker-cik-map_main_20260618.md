@@ -1,10 +1,10 @@
 # Merge Check Report
 
-**Date:** 2026-06-18 04:08:38 KST
+**Date:** 2026-06-18 04:20:05 KST
 **Current Branch:** `feat/sec-ticker-cik-map`
 **Target Branch:** `main`
 **Merge Base:** `7fc4e06` (`docs(doctor): add DCHTML merge check`)
-**Checked Branch Tip:** `3d027b9` (`fix(sources): add SEC ticker map entry context`)
+**Checked Branch Tip:** `4a57eb3` (`fix(cli): report SEC ticker map build errors`)
 **Target HEAD:** `7fc4e06` (`docs(doctor): add DCHTML merge check`)
 
 ---
@@ -13,7 +13,7 @@
 
 | 구분 | 파일 수 | 내가 할 일 |
 | --- | ---: | --- |
-| A. 자동 병합 안전 | 31 | 없음. `main` 쪽 변경이 없어 현재 브랜치 변경만 반영된다. |
+| A. 자동 병합 안전 | 40 | 없음. `main` 쪽 변경이 없어 현재 브랜치 변경만 반영된다. |
 | **B. 텍스트 충돌** | **0** | **직접 해결할 파일 없음** |
 | **C. 의미적 충돌** | **0** | **추가 판단 항목 없음** |
 | D. 참고 사항 | 1 | `uv.lock`은 기존 untracked 파일이라 merge 대상에서 제외했다. |
@@ -37,10 +37,12 @@
 | `docs/_internal/skill-outputs/commit/R1i-SEC-CIK_COMMIT_20260618.md` | 현재 | Added |
 | `docs/_internal/skill-outputs/commit/R1j-SEC-CIK-ERRORS_COMMIT_20260618.md` | 현재 | Added |
 | `docs/_internal/skill-outputs/commit/R1k-SEC-CIK-ENTRY-ERRORS_COMMIT_20260618.md` | 현재 | Added |
+| `docs/_internal/skill-outputs/commit/R1l-SEC-CIK-CLI-ERRORS_COMMIT_20260618.md` | 현재 | Added |
 | `docs/_internal/skill-outputs/jira-ticket/DOCHEALTH-readme-doc-health.md` | 현재 | Added |
 | `docs/_internal/skill-outputs/jira-ticket/R1i-SEC-CIK-sec-ticker-cik-map.md` | 현재 | Added |
 | `docs/_internal/skill-outputs/jira-ticket/R1j-SEC-CIK-ERRORS-sec-ticker-cik-map-errors.md` | 현재 | Added |
 | `docs/_internal/skill-outputs/jira-ticket/R1k-SEC-CIK-ENTRY-ERRORS-sec-ticker-cik-entry-errors.md` | 현재 | Added |
+| `docs/_internal/skill-outputs/jira-ticket/R1l-SEC-CIK-CLI-ERRORS-sec-ticker-cik-cli-errors.md` | 현재 | Added |
 | `docs/_internal/skill-outputs/merge-check/MERGE_CHECK_feat_sec-ticker-cik-map_main_20260618.md` | 현재 | Added |
 | `docs/_internal/skill-outputs/merge-check/MERGE_CHECK_fix_docs-health-badges_main_20260618.md` | 현재 | Added |
 | `docs/architecture/extensibility/README.md` | 현재 | Modified |
@@ -49,16 +51,23 @@
 | `docs/decisions/tech-spec/sources/R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md` | 현재 | Added |
 | `docs/decisions/tech-spec/sources/R1j-SEC-CIK-ERRORS_sec_ticker_cik_map_errors_tech_spec_2026_06_18.md` | 현재 | Added |
 | `docs/decisions/tech-spec/sources/R1k-SEC-CIK-ENTRY-ERRORS_sec_ticker_cik_map_entry_errors_tech_spec_2026_06_18.md` | 현재 | Added |
+| `docs/decisions/tech-spec/sources/R1l-SEC-CIK-CLI-ERRORS_sec_ticker_cik_map_cli_errors_tech_spec_2026_06_18.md` | 현재 | Added |
 | `docs/reference/config/sources.md` | 현재 | Modified |
+| `mimir/backfill.py` | 현재 | Modified |
+| `mimir/collect.py` | 현재 | Modified |
 | `mimir/config.py` | 현재 | Modified |
 | `mimir/core/builder.py` | 현재 | Modified |
+| `mimir/run.py` | 현재 | Modified |
 | `mimir/sources/config.py` | 현재 | Modified |
 | `mimir/sources/rss_catalog.py` | 현재 | Modified |
 | `tests/core/test_builder.py` | 현재 | Modified |
 | `tests/sources/test_config.py` | 현재 | Modified |
 | `tests/sources/test_rss_catalog.py` | 현재 | Modified |
+| `tests/test_backfill.py` | 현재 | Modified |
+| `tests/test_collect.py` | 현재 | Modified |
 | `tests/test_config.py` | 현재 | Modified |
 | `tests/test_readme_docs.py` | 현재 | Added |
+| `tests/test_run.py` | 현재 | Modified |
 
 ---
 
@@ -66,7 +75,7 @@
 
 없음.
 
-`git merge-tree --write-tree --no-messages HEAD main`이 exit code 0을 반환했고 merge tree `b055622a75f71fe61ffd25b8b27211ec6c94a33b`를 만들었습니다. 이는 git이 텍스트 충돌 없이 merge tree를 만들 수 있다는 뜻입니다.
+`git merge-tree --write-tree --no-messages HEAD main`이 exit code 0을 반환했고 merge tree `ee1d6f137aa1b7dda0641d5a285c5f6a38ac5854`를 만들었습니다. 이는 git이 텍스트 충돌 없이 merge tree를 만들 수 있다는 뜻입니다.
 
 ---
 
@@ -88,14 +97,14 @@
 
 | 명령 | 결과 |
 | ---- | ---- |
-| `uv run pytest tests/sources/test_rss_catalog.py tests/test_readme_docs.py -q` | 49 passed |
+| `uv run pytest tests/test_collect.py::test_collect_cli_reports_sec_ticker_map_build_error tests/test_run.py::test_main_reports_sec_ticker_map_build_error tests/test_run.py::test_main_does_not_mask_downstream_validation_error tests/test_run.py::test_main_does_not_mask_non_config_value_error tests/test_backfill.py::test_main_reports_sec_ticker_map_build_error tests/test_readme_docs.py -q` | 7 passed |
 | `uv run ruff check .` | pass |
 | `uv run mypy mimir` | pass, 82 files |
-| `uv run pytest -q` | 528 passed |
-| `uv run coverage run -m pytest` | 528 passed |
+| `uv run pytest -q` | 532 passed |
+| `uv run coverage run -m pytest` | 532 passed |
 | `uv run coverage report --fail-under=80` | TOTAL 98% |
 | `git diff --check` | pass |
-| reviewer subagent | R1k scoped findings 없음; residual invalid `cik_str` test added afterward |
+| reviewer subagent | R1l Medium finding fixed by narrowing the exception type and adding non-config `ValueError` regression coverage |
 
 ---
 
@@ -103,6 +112,8 @@
 
 ### 현재 브랜치 (검사 시점)
 
+- `4a57eb3 fix(cli): report SEC ticker map build errors`
+- `5732bbc docs(merge): update R1k merge check`
 - `3d027b9 fix(sources): add SEC ticker map entry context`
 - `9f61df2 docs(merge): update R1j merge check`
 - `784c433 fix(sources): clarify SEC ticker map file errors`
