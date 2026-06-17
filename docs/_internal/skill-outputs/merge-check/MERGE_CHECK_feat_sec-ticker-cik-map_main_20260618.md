@@ -1,13 +1,13 @@
 # Merge Check Report
 
-**Date:** 2026-06-18 04:45:06 KST
+**Date:** 2026-06-18 05:00:26 KST
 **Current Branch:** `feat/sec-ticker-cik-map`
 **Target Branch:** `main`
 **Merge Base:** `7fc4e06` (`docs(doctor): add DCHTML merge check`)
-**Checked Branch Tip:** `aa186e3` (`fix(doctor): validate sources config before checks`)
+**Checked Branch Tip:** `2a5576a` (`fix(config): reject non-mapping sources yaml cleanly`)
 **Target HEAD:** `7fc4e06` (`docs(doctor): add DCHTML merge check`)
 
-> 이 보고서는 구현/검증 tip `aa186e3`를 기준으로 작성했습니다. 보고서 자체를 커밋하는 후속 docs commit은 self-referential churn을 피하기 위해 `Checked Branch Tip` 범위에 넣지 않습니다.
+> 이 보고서는 구현/검증 tip `2a5576a`를 기준으로 작성했습니다. 보고서 자체를 커밋하는 후속 docs commit은 self-referential churn을 피하기 위해 `Checked Branch Tip` 범위에 넣지 않습니다.
 
 ---
 
@@ -83,7 +83,7 @@
 
 없음.
 
-`git merge-tree --write-tree --no-messages HEAD main`이 exit code 0을 반환했고 merge tree `6f40a9505acebe7ecc0728c889355b0491558cd4`를 만들었습니다. 이는 git이 텍스트 충돌 없이 merge tree를 만들 수 있다는 뜻입니다.
+`git merge-tree --write-tree --no-messages HEAD main`이 exit code 0을 반환했고 merge tree `263d17a8f9f0bea46d1dbb26445f817fdec48a7e`를 만들었습니다. 이는 git이 텍스트 충돌 없이 merge tree를 만들 수 있다는 뜻입니다.
 
 ---
 
@@ -105,14 +105,15 @@
 
 | 명령 | 결과 |
 | ---- | ---- |
-| `UV_FROZEN=1 uv run pytest tests/doctor/test_cli.py tests/test_readme_docs.py -q` | 12 passed |
+| `UV_FROZEN=1 uv run pytest tests/test_config.py tests/doctor/test_cli.py tests/test_readme_docs.py -q` | 19 passed |
 | `UV_FROZEN=1 uv run ruff check .` | pass |
 | `UV_FROZEN=1 uv run mypy mimir` | pass, 82 files |
-| `UV_FROZEN=1 uv run pytest -q` | 536 passed |
-| `UV_FROZEN=1 uv run coverage run -m pytest` | 536 passed |
+| `UV_FROZEN=1 uv run pytest -q` | 537 passed |
+| `UV_FROZEN=1 uv run coverage run -m pytest` | 537 passed |
 | `UV_FROZEN=1 uv run coverage report --fail-under=80` | TOTAL 98% |
 | `git diff --check` | pass |
 | CFG2 task reviewer | approved, no Critical/Important/Minor findings |
+| P1 fix re-review | approved, no Critical/Important/Minor findings |
 
 ---
 
@@ -120,6 +121,8 @@
 
 ### 현재 브랜치 (검사 시점)
 
+- `2a5576a fix(config): reject non-mapping sources yaml cleanly`
+- `74d3622 docs(merge): refresh SEC ticker branch merge check`
 - `aa186e3 fix(doctor): validate sources config before checks`
 - `baea993 docs(merge): update SEC ticker map merge check`
 - `ae4654f fix(cli): handle missing SEC ticker map entries`
