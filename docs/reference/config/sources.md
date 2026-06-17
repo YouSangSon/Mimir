@@ -214,7 +214,7 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 
 | 필드 | 필수 | 기본값 | 의미 |
 |---|---|---|---|
-| `cik` | 예 | 없음 | SEC CIK. 숫자 1~10자리를 받으며 URL에는 10자리로 zero-pad된다 |
+| `cik` | 예 | 없음 | SEC CIK. 숫자 1~10자리 문자열 또는 YAML 숫자를 받으며 URL에는 10자리로 zero-pad된다 |
 | `symbol` | 아니오 | 없음 | 이 feed를 연결할 watchlist symbol |
 | `forms` | 아니오 | 없음 | `10-K`, `10-Q`, `8-K`, `10-K/A` 같은 form type 목록 |
 | `count` | 아니오 | `40` | SEC Atom feed의 count. 허용 범위는 10~100 |

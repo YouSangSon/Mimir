@@ -63,7 +63,7 @@ sources:
 
 | 필드 | 필수 | 기본값 | 의미 |
 |---|---|---|---|
-| `cik` | 예 | 없음 | SEC Central Index Key. 숫자 1~10자리 문자열을 받으며 URL에는 10자리 zero-pad를 쓴다. |
+| `cik` | 예 | 없음 | SEC Central Index Key. 숫자 1~10자리 문자열 또는 YAML 숫자를 받으며 URL에는 10자리 zero-pad를 쓴다. |
 | `symbol` | 아니오 | 없음 | feed가 특정 watchlist symbol에 대응할 때 `RawRecord.symbol`로 저장할 값이다. |
 | `forms` | 아니오 | 없음 | SEC form type 목록이다. 앞뒤 공백을 제거하고, URL에는 query encoder로 인코딩한다. 없으면 회사 전체 filing feed 하나를 만든다. |
 | `count` | 아니오 | `40` | SEC Atom feed의 `count` query parameter다. 허용 범위는 10~100이다. |
@@ -154,7 +154,7 @@ README 3개 언어는 이번 증분에서 수정하지 않는다. 사용자 quic
 ## 10. 수용 기준
 
 - [x] `parse_sources_config()`가 `sources.rss.sec.company_filings`를 typed model로 파싱한다.
-- [x] SEC company filing entry는 CIK를 10자리로 zero-pad한다.
+- [x] SEC company filing entry는 문자열/숫자 CIK를 10자리로 zero-pad한다.
 - [x] 생성된 SEC feed는 `publisher="SEC"`와 `market="US"`를 사용한다.
 - [x] form filter가 없으면 회사 전체 Atom URL 하나를 만든다.
 - [x] `forms`가 있으면 form별 Atom URL을 deterministic order로 만든다.
