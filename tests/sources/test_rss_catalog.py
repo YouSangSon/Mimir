@@ -9,6 +9,25 @@ from mimir.sources.rss_catalog import (
     resolve_rss_feeds,
 )
 
+STRUCTURED_FEEDS = [
+    (
+        "sec_structured_usgaap",
+        "https://www.sec.gov/Archives/edgar/usgaap.rss.xml",
+    ),
+    (
+        "sec_structured_risk_return",
+        "https://www.sec.gov/Archives/edgar/xbrl-rr.rss.xml",
+    ),
+    (
+        "sec_structured_inline_xbrl",
+        "https://www.sec.gov/Archives/edgar/xbrl-inline.rss.xml",
+    ),
+    (
+        "sec_structured_all_xbrl",
+        "https://www.sec.gov/Archives/edgar/xbrlrss.all.xml",
+    ),
+]
+
 
 def test_resolve_known_rss_catalog_id():
     feeds = resolve_rss_catalogs([RssCatalogSelection(id="sec_press_releases")])
@@ -31,6 +50,35 @@ def test_resolve_known_rss_catalog_returns_copy():
     assert resolved_again == [
         RssFeed(
             url="https://www.sec.gov/news/pressreleases.rss",
+            publisher="SEC",
+            market="US",
+        )
+    ]
+
+
+@pytest.mark.parametrize(("catalog_id", "url"), STRUCTURED_FEEDS)
+def test_resolve_sec_structured_rss_catalog_ids(catalog_id: str, url: str):
+    feeds = resolve_rss_catalogs([RssCatalogSelection(id=catalog_id)])
+
+    assert feeds == [
+        RssFeed(
+            url=url,
+            publisher="SEC",
+            market="US",
+        )
+    ]
+
+
+@pytest.mark.parametrize(("catalog_id", "url"), STRUCTURED_FEEDS)
+def test_resolve_sec_structured_rss_catalog_returns_copy(catalog_id: str, url: str):
+    feeds = resolve_rss_catalogs([RssCatalogSelection(id=catalog_id)])
+    feeds[0].publisher = "Mutated"
+
+    resolved_again = resolve_rss_catalogs([RssCatalogSelection(id=catalog_id)])
+
+    assert resolved_again == [
+        RssFeed(
+            url=url,
             publisher="SEC",
             market="US",
         )
@@ -85,6 +133,17 @@ def test_resolve_rss_feeds_rejects_duplicate_manual_and_catalog_feed():
 
     with pytest.raises(ValueError, match="duplicate RSS feed"):
         resolve_rss_feeds([RssCatalogSelection(id="sec_press_releases")], [manual])
+
+
+def test_resolve_rss_feeds_rejects_duplicate_manual_and_structured_catalog_feed():
+    manual = RssFeed(
+        url="https://www.sec.gov/Archives/edgar/xbrlrss.all.xml",
+        publisher="SEC",
+        market="US",
+    )
+
+    with pytest.raises(ValueError, match="duplicate RSS feed"):
+        resolve_rss_feeds([RssCatalogSelection(id="sec_structured_all_xbrl")], [manual])
 
 
 def test_resolve_rss_feeds_allows_same_url_for_different_symbols():
