@@ -454,6 +454,35 @@ def test_build_sources_resolves_sec_company_filing_feeds(monkeypatch):
     assert rss._headers == {"User-Agent": "Mimir Test test@example.com"}
 
 
+def test_build_sources_resolves_sec_company_filing_feeds_with_ticker(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    cfg = SourcesConfig(
+        rss_sec_company_filings=[
+            SecCompanyFilingFeed(ticker="aapl", symbol="AAPL", forms=["10-K"])
+        ]
+    )
+
+    sources = build_sources(
+        Settings.from_env({"MIMIR_SEC_USER_AGENT": "Mimir Test test@example.com"}),
+        cfg,
+    )
+    rss = _by_id(sources)["rss"]
+
+    assert isinstance(rss, RssSource)
+    assert rss._feeds == [
+        RssFeed(
+            url=(
+                "https://www.sec.gov/cgi-bin/browse-edgar?"
+                "action=getcompany&CIK=AAPL&type=10-K&owner=exclude&count=40&output=atom"
+            ),
+            publisher="SEC",
+            market="US",
+            symbol="AAPL",
+        )
+    ]
+    assert rss._headers == {"User-Agent": "Mimir Test test@example.com"}
+
+
 def test_build_sources_combines_rss_catalog_and_manual_feeds(monkeypatch):
     monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
     manual = RssFeed(

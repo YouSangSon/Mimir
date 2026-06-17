@@ -1,7 +1,7 @@
 # `config/sources.yaml` 설정 레퍼런스
 
 > **상태**: 현재 구현 기준
-> **최종 업데이트**: 2026-06-17
+> **최종 업데이트**: 2026-06-18
 > **대상 독자**: 로컬 실행자, GitHub Actions 운영자, 새 데이터 커버리지를 추가하는 개발자
 
 ---
@@ -43,7 +43,7 @@ sources:
       - { id: "sec_structured_all_xbrl" }
     sec:
       company_filings:
-        - cik: "0000320193"
+        - ticker: "AAPL"
           symbol: "AAPL"
           forms: ["10-K", "10-Q", "8-K"]
           count: 40
@@ -180,7 +180,7 @@ sources:
       - id: "sec_structured_all_xbrl"
     sec:
       company_filings:
-        - cik: "0000320193"
+        - ticker: "AAPL"
           symbol: "AAPL"
           forms: ["10-K", "10-Q", "8-K"]
           count: 40
@@ -203,7 +203,7 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 |---|---|---|
 | `catalogs` | 아니오 | Mimir가 코드에 담아 둔 검증된 RSS feed catalog 선택 목록 |
 | `catalogs[].id` | 예 | catalog id. 아래 표의 내장 id 중 하나 |
-| `sec.company_filings` | 아니오 | SEC EDGAR Company Search Atom feed를 CIK와 form 설정에서 조립하는 목록 |
+| `sec.company_filings` | 아니오 | SEC EDGAR Company Search Atom feed를 CIK 또는 ticker token과 form 설정에서 조립하는 목록 |
 | `feeds` | 아니오 | 운영자가 직접 지정하는 RSS feed 목록 |
 | `url` | 예 | RSS feed URL |
 | `publisher` | 예 | payload에 저장할 발행자 이름 |
@@ -222,21 +222,24 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 | `sec_structured_inline_xbrl` | Inline XBRL financial statement filings |
 | `sec_structured_all_xbrl` | all XBRL filings submitted to the SEC |
 
-`sec_structured_*` catalog는 SEC가 공식으로 공개한 broad SEC/XBRL feed다. 특정 watchlist symbol 전용 feed가 아니므로 `symbol`을 설정하지 않는다. 특정 종목의 SEC filing feed가 필요하면 사용자가 CIK를 명시하는 `sources.rss.sec.company_filings`를 쓴다. ticker→CIK 자동 조회와 generic discovery는 아직 보류되어 있다.
+`sec_structured_*` catalog는 SEC가 공식으로 공개한 broad SEC/XBRL feed다. 특정 watchlist symbol 전용 feed가 아니므로 `symbol`을 설정하지 않는다. 특정 종목의 SEC filing feed가 필요하면 사용자가 CIK 또는 ticker token을 명시하는 `sources.rss.sec.company_filings`를 쓴다. SEC mapping file 기반 ticker→CIK 자동 조회와 generic discovery는 아직 보류되어 있다.
 
 `catalogs`, `sec.company_filings`, `feeds`를 함께 쓰면 catalog feed, SEC EDGAR feed, manual feed 순서로 붙는다. 같은 `(url, symbol)` 쌍이 두 번 나오면 실패한다. 중복을 조용히 제거하면 운영자가 같은 feed를 두 경로로 설정했다는 사실을 놓칠 수 있기 때문이다. 같은 URL이라도 symbol이 다르면 서로 다른 종목 관계를 뜻하므로 허용한다.
 
 #### SEC EDGAR company filing feeds
 
-`sources.rss.sec.company_filings`는 SEC EDGAR Company Search가 제공하는 Atom feed URL을 설정에서 조립한다. 이 기능은 SEC 페이지를 크롤링하지 않는다. 사용자가 CIK를 명시하면 Mimir가 `browse-edgar?action=getcompany&output=atom` URL을 만든다.
+`sources.rss.sec.company_filings`는 SEC EDGAR Company Search가 제공하는 Atom feed URL을 설정에서 조립한다. 이 기능은 SEC 페이지를 크롤링하지 않고, SEC ticker mapping file을 resolver 단계에서 다운로드하지도 않는다. 사용자는 `cik` 또는 `ticker` 중 정확히 하나를 명시하고, Mimir가 `browse-edgar?action=getcompany&output=atom` URL을 만든다.
 
 | 필드 | 필수 | 기본값 | 의미 |
 |---|---|---|---|
-| `cik` | 예 | 없음 | SEC CIK. 숫자 1~10자리 문자열 또는 YAML 숫자를 받으며 URL에는 10자리로 zero-pad된다 |
+| `cik` | 조건부 | 없음 | `ticker`가 없을 때 필수. SEC CIK. 숫자 1~10자리 문자열 또는 YAML 숫자를 받으며 URL에는 10자리로 zero-pad된다 |
+| `ticker` | 조건부 | 없음 | `cik`가 없을 때 필수. SEC Company Search가 받는 ticker token. 공백 제거 후 대문자로 정규화하며 letters/digits/dot/hyphen만 허용한다 |
 | `symbol` | 아니오 | 없음 | 이 feed를 연결할 watchlist symbol |
 | `forms` | 아니오 | 없음 | `10-K`, `10-Q`, `8-K`, `10-K/A` 같은 form type 목록 |
 | `count` | 아니오 | `40` | SEC Atom feed의 count. 허용 범위는 10~100 |
 | `owner` | 아니오 | `exclude` | SEC owner filter. `exclude`, `include`, `only` 중 하나 |
+
+`cik`와 `ticker`를 둘 다 쓰거나 둘 다 생략하면 설정 오류다. 운영자가 정확한 CIK를 알고 있거나 중복 feed 검출을 더 강하게 하고 싶으면 `cik`를 직접 쓰는 편이 낫다. `ticker`는 SEC Company Search RSS가 현재 받는 ticker token을 쓰는 편의 입력이며, Mimir가 별도의 ticker→CIK lookup/cache를 수행한다는 뜻은 아니다.
 
 SEC fair-access 정책은 자동화 도구가 자신을 식별하고 필요한 요청만 보내기를 요구한다. SEC feed를 쓰는 환경에서는 `MIMIR_SEC_USER_AGENT`를 `서비스명 이메일` 형식으로 설정한다.
 

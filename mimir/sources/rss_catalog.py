@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import date
-from typing import Literal
+from typing import Literal, Self
 from urllib.parse import urlencode
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from mimir.sources.rss import RssFeed
 
@@ -32,7 +32,8 @@ SEC_BROWSE_EDGAR_URL = "https://www.sec.gov/cgi-bin/browse-edgar"
 class SecCompanyFilingFeed(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    cik: str
+    cik: str | None = None
+    ticker: str | None = None
     symbol: str | None = None
     forms: list[str] | None = None
     count: int = Field(default=40, ge=10, le=100)
@@ -40,11 +41,28 @@ class SecCompanyFilingFeed(BaseModel):
 
     @field_validator("cik", mode="before")
     @classmethod
-    def _normalize_cik(cls, value: object) -> str:
+    def _normalize_cik(cls, value: object) -> str | None:
+        if value is None:
+            return None
         cik = str(value).strip()
         if not cik or not cik.isdigit() or len(cik) > 10:
             raise ValueError("SEC CIK must be a 1-10 digit string")
         return cik.zfill(10)
+
+    @field_validator("ticker", mode="before")
+    @classmethod
+    def _normalize_ticker(cls, value: object) -> str | None:
+        if value is None:
+            return None
+        ticker = str(value).strip().upper()
+        if not ticker:
+            raise ValueError("SEC filing feed ticker must not be blank")
+        allowed = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-")
+        if any(ch.isspace() or ch not in allowed for ch in ticker):
+            raise ValueError(
+                "SEC filing feed ticker must contain only letters, digits, dots, or hyphens"
+            )
+        return ticker
 
     @field_validator("symbol")
     @classmethod
@@ -68,6 +86,12 @@ class SecCompanyFilingFeed(BaseModel):
                 raise ValueError("SEC form type must not be blank")
             forms.append(normalized)
         return forms
+
+    @model_validator(mode="after")
+    def _validate_identifier(self) -> Self:
+        if (self.cik is None) == (self.ticker is None):
+            raise ValueError("SEC filing feed must set exactly one of cik or ticker")
+        return self
 
 
 RSS_CATALOG: dict[str, RssCatalogEntry] = {
@@ -185,9 +209,12 @@ def resolve_sec_company_filing_feeds(
 
 
 def _sec_company_filing_url(selection: SecCompanyFilingFeed, form: str | None) -> str:
+    identifier = selection.cik if selection.cik is not None else selection.ticker
+    if identifier is None:  # defensive; model validation guarantees this
+        raise ValueError("SEC filing feed must set exactly one of cik or ticker")
     params: list[tuple[str, str]] = [
         ("action", "getcompany"),
-        ("CIK", selection.cik),
+        ("CIK", identifier),
     ]
     if form is not None:
         params.append(("type", form))

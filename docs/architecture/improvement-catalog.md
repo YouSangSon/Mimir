@@ -39,6 +39,7 @@
 | **R1e** | 정적 RSS feed catalog (`sources.rss.catalogs`) | 분석품질/확장성 | R1d 보류 항목 | **✅ 구현 완료 (2026-06-17)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-17-rss-feed-catalog-design.md) |
 | **R1f-SEC** | SEC EDGAR company filing RSS provider | 분석품질/확장성 | R1f 보류 항목의 안전한 일부 | **✅ 구현 완료 (2026-06-17)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-17-sec-edgar-rss-provider-design.md) |
 | **R1g-SEC-STRUCTURED** | SEC structured disclosure RSS catalog | 분석품질/확장성 | R1e/R1f-SEC 후속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-sec-structured-rss-catalog-design.md) |
+| **R1h-SEC-TICKER** | SEC company filing RSS ticker input | 분석품질/확장성 | R1f-SEC 후속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-sec-rss-ticker-input-design.md) |
 | **MR1** | 거시 개정 저장 정책 (`macro` last-write-wins) | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-macro-revision-policy-design.md) |
 | **H1** | 재생성 데이터 stale 제거 + pipeline scorecard 갱신 | 견고성/운영 | B1 후속 + 리뷰 발견 | **✅ 구현 완료 (2026-06-16 hardening)** | `replace_partition`, `run_evaluate`, daily report scorecard |
 | **BF-MANIFEST** | 백필 실행 manifest 기록 | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | backfill success/failure run log |
@@ -157,7 +158,7 @@ R1f 전체 live discovery는 여전히 provider별 정책 검토가 필요하다
 
 구현 후 `sources.rss.sec.company_filings`는 CIK, optional symbol, optional form list를 받아 `browse-edgar?action=getcompany&output=atom` feed로 확장한다. Resolver는 네트워크를 호출하지 않는다. Fetch 시점에는 `RssSource`가 `MIMIR_SEC_USER_AGENT`를 `User-Agent` header로 보낸다.
 
-남은 generic discovery 부채는 SEC ticker→CIK 자동 조회, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference다.
+R1h 전까지 남은 generic discovery 부채는 SEC ticker 입력 편의, SEC ticker→CIK 자동 조회, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference였다.
 
 ### R1g-SEC-STRUCTURED. SEC structured disclosure RSS catalog — **구현 완료 (2026-06-18)**
 
@@ -166,6 +167,14 @@ SEC는 structured disclosure submission을 위한 공식 RSS feed를 따로 제�
 구현 후 `sources.rss.catalogs`는 `sec_structured_usgaap`, `sec_structured_risk_return`, `sec_structured_inline_xbrl`, `sec_structured_all_xbrl`을 지원한다. Resolver는 기존 정적 catalog와 같은 방식으로 id를 `RssFeed(publisher="SEC", market="US")`로 확장한다. 네트워크를 호출하지 않고, SEC HTML을 크롤링하지 않으며, URL pattern도 추측하지 않는다.
 
 이 네 feed는 broad SEC/XBRL feed다. 특정 ticker나 watchlist symbol 전용 feed가 아니므로 `symbol`을 붙이지 않는다. ticker→CIK 자동 조회와 watchlist 기반 SEC feed 자동 생성은 여전히 deferred item이다.
+
+### R1h-SEC-TICKER. SEC company filing RSS ticker input — **구현 완료 (2026-06-18)**
+
+SEC Company Search RSS는 현재 `browse-edgar?action=getcompany&output=atom` URL의 `CIK=` query parameter에 ticker token을 넣어도 Atom feed를 반환한다. 이번 증분은 그 편의 입력을 `sources.rss.sec.company_filings[].ticker`로 노출한다.
+
+구현 후 각 SEC company filing 항목은 `cik` 또는 `ticker` 중 정확히 하나를 받아야 한다. `cik`는 기존처럼 10자리로 zero-pad하고, `ticker`는 공백 제거 후 대문자로 정규화하며 letters/digits/dot/hyphen token만 허용한다. Resolver는 여전히 네트워크를 호출하지 않는다. SEC mapping file을 다운로드하거나 cache하지 않고, watchlist 전체에서 feed를 자동 생성하지 않는다.
+
+남은 generic discovery 부채는 SEC mapping file 기반 ticker→CIK 자동 조회·cache·ambiguity policy, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference다.
 
 ---
 
@@ -227,6 +236,7 @@ R1d ──────── symbol-tagged RSS feeds · sources.rss.feeds[].symb
 R1e ──────── static RSS feed catalog · sources.rss.catalogs
 R1f-SEC ─── SEC EDGAR company filing RSS provider
 R1g-SEC-STRUCTURED ─ SEC structured disclosure RSS catalog
+R1h-SEC-TICKER ─ SEC company filing RSS ticker input
 D2 ───────── GitHub Actions Node24-compatible action majors
 C3 ───────── pykrx retry/backoff · FetchError manifest surface
 BF-MANIFEST ─ backfill success/failure manifest
@@ -244,7 +254,7 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 |---|---|
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 핫패스를 처리. 인덱스는 데이터가 수년 누적된 *뒤*의 최적화 — 지금은 시기상조(YAGNI). 신선도 닥터(C1)가 먼저 스케일 신호를 준다. |
 | **D1 통합 CLI** | 순수 DX. 5개 `python -m mimir.X`는 동작에 문제없음. console_scripts entry-point는 좋지만 약속에 추적되지 않음 → 보류. |
-| **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. SEC ticker→CIK 조회, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference는 provider 정책과 ToS 검토가 더 필요하다. |
+| **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. R1h-SEC-TICKER는 SEC Company Search RSS의 ticker token 입력을 추가했다. SEC mapping file 기반 ticker→CIK 조회·cache·ambiguity policy, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference는 provider 정책과 ToS 검토가 더 필요하다. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서는 KO-only 유지(백로그 결정). 사용자 문서(README ×3)는 이미 trilingual. |
 
 ---

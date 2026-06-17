@@ -183,6 +183,26 @@ def test_resolve_sec_company_filing_feed_without_form_filter():
     ]
 
 
+def test_resolve_sec_company_filing_feed_with_ticker():
+    feeds = resolve_rss_feeds(
+        None,
+        None,
+        [SecCompanyFilingFeed(ticker=" aapl ", symbol="AAPL")],
+    )
+
+    assert feeds == [
+        RssFeed(
+            url=(
+                "https://www.sec.gov/cgi-bin/browse-edgar?"
+                "action=getcompany&CIK=AAPL&owner=exclude&count=40&output=atom"
+            ),
+            publisher="SEC",
+            market="US",
+            symbol="AAPL",
+        )
+    ]
+
+
 def test_resolve_sec_company_filing_feeds_with_encoded_form_filters():
     feeds = resolve_rss_feeds(
         None,
@@ -220,6 +240,43 @@ def test_resolve_sec_company_filing_feeds_with_encoded_form_filters():
     ]
 
 
+def test_resolve_sec_company_filing_feeds_with_ticker_and_form_filters():
+    feeds = resolve_rss_feeds(
+        None,
+        None,
+        [
+            SecCompanyFilingFeed(
+                ticker="brk-b",
+                symbol="BRK.B",
+                forms=["10-K", "10-K/A"],
+                count=20,
+                owner="include",
+            )
+        ],
+    )
+
+    assert feeds == [
+        RssFeed(
+            url=(
+                "https://www.sec.gov/cgi-bin/browse-edgar?"
+                "action=getcompany&CIK=BRK-B&type=10-K&owner=include&count=20&output=atom"
+            ),
+            publisher="SEC",
+            market="US",
+            symbol="BRK.B",
+        ),
+        RssFeed(
+            url=(
+                "https://www.sec.gov/cgi-bin/browse-edgar?"
+                "action=getcompany&CIK=BRK-B&type=10-K%2FA&owner=include&count=20&output=atom"
+            ),
+            publisher="SEC",
+            market="US",
+            symbol="BRK.B",
+        ),
+    ]
+
+
 def test_resolve_rss_feeds_rejects_duplicate_sec_and_manual_feed():
     manual = RssFeed(
         url=(
@@ -235,10 +292,41 @@ def test_resolve_rss_feeds_rejects_duplicate_sec_and_manual_feed():
         resolve_rss_feeds(None, [manual], [SecCompanyFilingFeed(cik="320193", symbol="AAPL")])
 
 
+def test_resolve_rss_feeds_rejects_duplicate_ticker_sec_and_manual_feed():
+    manual = RssFeed(
+        url=(
+            "https://www.sec.gov/cgi-bin/browse-edgar?"
+            "action=getcompany&CIK=AAPL&owner=exclude&count=40&output=atom"
+        ),
+        publisher="SEC",
+        market="US",
+        symbol="AAPL",
+    )
+
+    with pytest.raises(ValueError, match="duplicate RSS feed"):
+        resolve_rss_feeds(None, [manual], [SecCompanyFilingFeed(ticker="AAPL", symbol="AAPL")])
+
+
 @pytest.mark.parametrize("bad_cik", ["", "ABC", "12345678901"])
 def test_sec_company_filing_feed_rejects_bad_cik(bad_cik: str):
     with pytest.raises(ValidationError):
         SecCompanyFilingFeed(cik=bad_cik)
+
+
+def test_sec_company_filing_feed_rejects_missing_identifier():
+    with pytest.raises(ValidationError):
+        SecCompanyFilingFeed()
+
+
+def test_sec_company_filing_feed_rejects_both_cik_and_ticker():
+    with pytest.raises(ValidationError):
+        SecCompanyFilingFeed(cik="320193", ticker="AAPL")
+
+
+@pytest.mark.parametrize("bad_ticker", ["", "  ", "A APL", "AAPL/US"])
+def test_sec_company_filing_feed_rejects_bad_ticker(bad_ticker: str):
+    with pytest.raises(ValidationError):
+        SecCompanyFilingFeed(ticker=bad_ticker)
 
 
 def test_sec_company_filing_feed_rejects_blank_form():

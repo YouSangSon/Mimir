@@ -147,6 +147,30 @@ def test_rss_sec_company_filings_parse_from_config():
     ]
 
 
+def test_rss_sec_company_filings_ticker_parses_from_config():
+    cfg = parse_sources_config(
+        {
+            "sources": {
+                "rss": {
+                    "sec": {
+                        "company_filings": [
+                            {
+                                "ticker": " aapl ",
+                                "symbol": " AAPL ",
+                                "forms": ["10-K"],
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    )
+
+    assert cfg.rss_sec_company_filings == [
+        SecCompanyFilingFeed(ticker="AAPL", symbol="AAPL", forms=["10-K"])
+    ]
+
+
 def test_rss_sec_company_filings_accept_unquoted_numeric_cik():
     cfg = parse_sources_config(
         {"sources": {"rss": {"sec": {"company_filings": [{"cik": 320193}]}}}}

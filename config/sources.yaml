@@ -50,11 +50,12 @@ llm_sentiment_max_headlines: 50   # per-run cap on newly classified headlines (c
 #       - { id: "sec_structured_inline_xbrl" }
 #       - { id: "sec_structured_all_xbrl" }
 #     # SEC EDGAR company filing Atom feeds. This expands config into official
-#     # browse-edgar output=atom URLs without crawling SEC pages.
+#     # browse-edgar output=atom URLs without crawling SEC pages. Use exactly
+#     # one of `cik` or `ticker`; `cik` is the most deterministic form.
 #     # Set MIMIR_SEC_USER_AGENT with a contact email before fetching SEC feeds.
 #     sec:
 #       company_filings:
-#         - { cik: "0000320193", symbol: "AAPL", forms: ["10-K", "10-Q", "8-K"] }
+#         - { ticker: "AAPL", symbol: "AAPL", forms: ["10-K", "10-Q", "8-K"] }
 #     # Official, headline/metadata-only feeds. Default: SEC press releases.
 #     # Add `symbol` for per-symbol feeds; news_volume and opt-in llm_sentiment
 #     # will count that feed's headlines for the symbol even when the title has no ticker.
