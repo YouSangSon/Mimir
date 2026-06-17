@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import date
+from typing import Literal
+from urllib.parse import urlencode
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from mimir.sources.rss import RssFeed
 
@@ -22,6 +24,50 @@ class RssCatalogEntry(BaseModel):
     description: str
     source_url: str
     verified_on: date
+
+
+SEC_BROWSE_EDGAR_URL = "https://www.sec.gov/cgi-bin/browse-edgar"
+
+
+class SecCompanyFilingFeed(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    cik: str
+    symbol: str | None = None
+    forms: list[str] | None = None
+    count: int = Field(default=40, ge=10, le=100)
+    owner: Literal["exclude", "include", "only"] = "exclude"
+
+    @field_validator("cik")
+    @classmethod
+    def _normalize_cik(cls, value: str) -> str:
+        cik = value.strip()
+        if not cik or not cik.isdigit() or len(cik) > 10:
+            raise ValueError("SEC CIK must be a 1-10 digit string")
+        return cik.zfill(10)
+
+    @field_validator("symbol")
+    @classmethod
+    def _normalize_symbol(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        symbol = value.strip()
+        if not symbol:
+            raise ValueError("SEC filing feed symbol must not be blank")
+        return symbol
+
+    @field_validator("forms")
+    @classmethod
+    def _normalize_forms(cls, value: list[str] | None) -> list[str] | None:
+        if value is None:
+            return None
+        forms: list[str] = []
+        for form in value:
+            normalized = form.strip()
+            if not normalized:
+                raise ValueError("SEC form type must not be blank")
+            forms.append(normalized)
+        return forms
 
 
 RSS_CATALOG: dict[str, RssCatalogEntry] = {
@@ -55,10 +101,51 @@ def resolve_rss_catalogs(
 def resolve_rss_feeds(
     selections: Sequence[RssCatalogSelection] | None,
     manual_feeds: Sequence[RssFeed] | None,
+    sec_company_filings: Sequence[SecCompanyFilingFeed] | None = None,
 ) -> list[RssFeed] | None:
-    feeds = [*resolve_rss_catalogs(selections), *list(manual_feeds or ())]
+    feeds = [
+        *resolve_rss_catalogs(selections),
+        *resolve_sec_company_filing_feeds(sec_company_filings),
+        *list(manual_feeds or ()),
+    ]
     _validate_unique_feeds(feeds)
     return feeds or None
+
+
+def resolve_sec_company_filing_feeds(
+    selections: Sequence[SecCompanyFilingFeed] | None,
+) -> list[RssFeed]:
+    feeds: list[RssFeed] = []
+    for selection in selections or ():
+        forms: Sequence[str | None] = selection.forms or (None,)
+        for form in forms:
+            feeds.append(
+                RssFeed(
+                    url=_sec_company_filing_url(selection, form),
+                    publisher="SEC",
+                    market="US",
+                    symbol=selection.symbol,
+                )
+            )
+    _validate_unique_feeds(feeds)
+    return feeds
+
+
+def _sec_company_filing_url(selection: SecCompanyFilingFeed, form: str | None) -> str:
+    params: list[tuple[str, str]] = [
+        ("action", "getcompany"),
+        ("CIK", selection.cik),
+    ]
+    if form is not None:
+        params.append(("type", form))
+    params.extend(
+        [
+            ("owner", selection.owner),
+            ("count", str(selection.count)),
+            ("output", "atom"),
+        ]
+    )
+    return f"{SEC_BROWSE_EDGAR_URL}?{urlencode(params)}"
 
 
 def _validate_unique_feeds(feeds: Sequence[RssFeed]) -> None:

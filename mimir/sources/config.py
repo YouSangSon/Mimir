@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from mimir.sources.ecos import EcosSeries
 from mimir.sources.rss import RssFeed
-from mimir.sources.rss_catalog import RssCatalogSelection
+from mimir.sources.rss_catalog import RssCatalogSelection, SecCompanyFilingFeed
 
 PluginConfig = TypeVar("PluginConfig", bound=BaseModel)
 
@@ -16,6 +16,7 @@ class SourcesConfig(BaseModel):
     ecos_series: list[EcosSeries] | None = None
     rss_feeds: list[RssFeed] | None = None
     rss_catalogs: list[RssCatalogSelection] | None = None
+    rss_sec_company_filings: list[SecCompanyFilingFeed] | None = None
     plugin_settings: dict[str, dict[str, Any]] = Field(default_factory=dict)
     macro_regime_rate_series: list[str] | None = None
     news_aliases: dict[str, list[str]] | None = None
@@ -48,10 +49,16 @@ class _EcosBlock(BaseModel):
     series: list[EcosSeries] | None = None
 
 
+class _RssSecBlock(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    company_filings: list[SecCompanyFilingFeed] | None = None
+
+
 class _RssBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
     feeds: list[RssFeed] | None = None
     catalogs: list[RssCatalogSelection] | None = None
+    sec: _RssSecBlock | None = None
 
 
 class _SourcesBlock(BaseModel):
@@ -109,6 +116,9 @@ def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
         ecos_series=block.ecos.series if block.ecos else None,
         rss_feeds=block.rss.feeds if block.rss else None,
         rss_catalogs=block.rss.catalogs if block.rss else None,
+        rss_sec_company_filings=(
+            block.rss.sec.company_filings if block.rss and block.rss.sec else None
+        ),
         plugin_settings=block.plugins or {},
         macro_regime_rate_series=(
             top_level.analysis.macro_regime.rate_series
