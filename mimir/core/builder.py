@@ -47,7 +47,12 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
     SourceSpec(
         "rss",
         lambda settings, cfg: RssSource(
-            feeds=resolve_rss_feeds(cfg.rss_catalogs, cfg.rss_feeds)
+            feeds=resolve_rss_feeds(
+                cfg.rss_catalogs,
+                cfg.rss_feeds,
+                cfg.rss_sec_company_filings,
+            ),
+            user_agent=settings.sec_user_agent,
         ),
     ),
     SourceSpec(

@@ -67,14 +67,16 @@ class RssSource(BaseSource):
         parse_fn: Callable[[Any], Any] = feedparser.parse,
         session: requests.Session | None = None,
         throttle: Throttle | None = None,
+        user_agent: str | None = None,
     ) -> None:
         super().__init__(session=session, throttle=throttle)
         self._feeds = feeds or list(DEFAULT_FEEDS)
         self._parse_fn = parse_fn
+        self._headers = {"User-Agent": user_agent} if user_agent else None
 
     def fetch(self, ctx: FetchContext) -> Iterable[RawRecord]:
         for feed in self._feeds:
-            resp = self.get(feed.url)
+            resp = self.get(feed.url, headers=self._headers)
             parsed = self._parse_fn(resp.text)
             for entry in parsed.entries:
                 link = entry.get("link")
