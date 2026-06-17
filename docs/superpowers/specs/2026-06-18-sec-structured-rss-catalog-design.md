@@ -124,7 +124,7 @@ README 3개 언어는 수정하지 않는다. Structured disclosure feed는 고�
 - [x] Config reference와 architecture docs는 structured feed가 broad feed이며 symbol-specific feed가 아니라고 설명한다.
 - [x] Improvement catalog와 backlog는 SEC structured disclosure RSS catalog는 해소됐고 ticker→CIK/generic discovery는 보류라고 말한다.
 - [x] `uv run pytest tests/sources/test_rss_catalog.py tests/sources/test_config.py -q`가 통과한다.
-- [ ] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`, `git diff --check`가 통과한다.
+- [x] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`, `git diff --check`가 통과한다.
 
 ---
 
