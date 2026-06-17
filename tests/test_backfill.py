@@ -403,6 +403,34 @@ def test_main_reports_sec_ticker_map_build_error(tmp_path: Path, capsys):
     assert "SEC ticker CIK map file is not valid JSON" in err
 
 
+def test_main_reports_missing_sec_ticker_mapping(tmp_path: Path, capsys):
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "sources.yaml").write_text(
+        """
+        sources:
+          rss:
+            sec:
+              ticker_cik_map_path: company_tickers.json
+              company_filings:
+                - ticker: MSFT
+        """,
+        encoding="utf-8",
+    )
+    (config_dir / "company_tickers.json").write_text(
+        '{"0": {"cik_str": 320193, "ticker": "AAPL"}}',
+        encoding="utf-8",
+    )
+    (config_dir / "watchlist.yaml").write_text("us: []\nkr: []\n", encoding="utf-8")
+
+    rc = main(["--source", "rss", "--since", "2024-01-01", "--config-dir", str(config_dir)])
+
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert err.startswith("[mimir] invalid sources.yaml:")
+    assert "SEC ticker CIK map has no entry for ticker MSFT" in err
+
+
 @responses.activate
 def test_run_backfill_default_env_loads_dotenv(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)

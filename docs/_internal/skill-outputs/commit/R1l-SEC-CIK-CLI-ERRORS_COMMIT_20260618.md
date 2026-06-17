@@ -15,8 +15,8 @@
 | `mimir/collect.py` | source build `ValueError`를 `SourcesConfigError`로 감싸고 CLI에서 friendly report |
 | `mimir/run.py` | `run_collect()`에서 올라온 `SourcesConfigError`를 CLI에서 friendly report |
 | `mimir/backfill.py` | source registry build `ValueError`를 `SourcesConfigError`로 감싸고 CLI에서 friendly report |
-| `tests/test_collect.py`, `tests/test_run.py`, `tests/test_backfill.py` | SEC mapping file build error CLI 회귀 테스트와 non-config `ValueError` 오분류 방지 테스트 추가 |
-| README 3종 | pytest 수집 개수 532로 갱신 |
+| `tests/test_collect.py`, `tests/test_run.py`, `tests/test_backfill.py` | SEC mapping file build error, missing ticker mapping CLI 회귀 테스트와 non-config `ValueError` 오분류 방지 테스트 추가 |
+| README 3종 | pytest 수집 개수 535로 갱신 |
 | `docs/reference/config/sources.md` | CLI 오류 표면 문서화 |
 | `docs/IMPROVEMENTS.md`, `docs/architecture/improvement-catalog.md` | R1l 완료 범위 갱신 |
 | R1l ticket/spec/commit artifacts | 추적 가능한 산출물 추가 |
@@ -43,4 +43,4 @@ git commit -m "fix(cli): report SEC ticker map build errors
 
 - **Type:** `fix` - CLI가 build-time config 오류를 stack trace 없이 보고하게 합니다.
 - **Scope:** `cli` - 핵심 변경이 CLI boundary와 config error type에 집중됩니다.
-- **Verification:** targeted tests 7 passed, `ruff`, `mypy`, full pytest 532 passed, coverage TOTAL 98%, `git diff --check` 통과, reviewer Medium finding fixed
+- **Verification:** targeted tests 10 passed, `ruff`, `mypy`, full pytest 535 passed, coverage TOTAL 98%, `git diff --check` 통과, whole-branch reviewer P1 finding fixed

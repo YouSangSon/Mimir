@@ -7,7 +7,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import cast
 
-from mimir.config import SecTickerCikMapConfigError
+from mimir.config import SecTickerCikMapConfigError, SourcesConfigError
 from mimir.core.source import Source, SourceMeta
 from mimir.settings import Settings
 from mimir.sources.config import SourcesConfig
@@ -15,7 +15,7 @@ from mimir.sources.dart import DartSource
 from mimir.sources.ecos import EcosSource
 from mimir.sources.fred import FredSource
 from mimir.sources.pykrx_source import PykrxSource
-from mimir.sources.rss import RssSource
+from mimir.sources.rss import RssFeed, RssSource
 from mimir.sources.rss_catalog import load_sec_ticker_cik_map, resolve_rss_feeds
 from mimir.sources.sec_edgar import SecEdgarSource
 from mimir.sources.stooq import StooqSource
@@ -31,6 +31,20 @@ def _load_configured_sec_ticker_cik_map(config: SourcesConfig) -> dict[str, str]
         return load_sec_ticker_cik_map(config.rss_sec_ticker_cik_map_path)
     except ValueError as exc:
         raise SecTickerCikMapConfigError(str(exc)) from exc
+
+
+def _resolve_configured_rss_feeds(config: SourcesConfig) -> list[RssFeed] | None:
+    try:
+        return resolve_rss_feeds(
+            config.rss_catalogs,
+            config.rss_feeds,
+            config.rss_sec_company_filings,
+            _load_configured_sec_ticker_cik_map(config),
+        )
+    except SourcesConfigError:
+        raise
+    except ValueError as exc:
+        raise SourcesConfigError(str(exc)) from exc
 
 
 @dataclass(frozen=True)
@@ -59,12 +73,7 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
     SourceSpec(
         "rss",
         lambda settings, cfg: RssSource(
-            feeds=resolve_rss_feeds(
-                cfg.rss_catalogs,
-                cfg.rss_feeds,
-                cfg.rss_sec_company_filings,
-                _load_configured_sec_ticker_cik_map(cfg),
-            ),
+            feeds=_resolve_configured_rss_feeds(cfg),
             user_agent=settings.sec_user_agent,
         ),
         meta=RssSource.meta,

@@ -55,8 +55,11 @@ Source build 단계의 `ValueError`를 `SourcesConfigError`로 감쌉니다. CLI
 ## Acceptance Test
 
 - [x] `collect` CLI가 invalid SEC mapping file을 `[mimir] invalid sources.yaml:`로 출력한다.
+- [x] `collect` CLI가 missing ticker mapping을 `[mimir] invalid sources.yaml:`로 출력한다.
 - [x] `run` CLI가 invalid SEC mapping file을 `[mimir] invalid sources.yaml:`로 출력한다.
+- [x] `run` CLI가 missing ticker mapping을 `[mimir] invalid sources.yaml:`로 출력한다.
 - [x] `backfill` CLI가 invalid SEC mapping file을 `[mimir] invalid sources.yaml:`로 출력한다.
+- [x] `backfill` CLI가 missing ticker mapping을 `[mimir] invalid sources.yaml:`로 출력한다.
 - [x] downstream `ValidationError`를 설정 오류로 오분류하지 않는 기존 테스트를 유지한다.
 - [x] README 3종의 테스트 수치가 현재 pytest 수집 개수와 일치한다.
 - [x] 개선 카탈로그가 R1l 완료 범위를 추적한다.

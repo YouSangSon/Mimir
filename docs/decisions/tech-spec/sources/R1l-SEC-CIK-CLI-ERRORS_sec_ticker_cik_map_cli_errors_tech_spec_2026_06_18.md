@@ -101,8 +101,11 @@ flowchart TD
 | 테스트 | 고정하는 계약 |
 | ------ | ------------- |
 | `test_collect_cli_reports_sec_ticker_map_build_error` | collect CLI friendly source build 오류 |
+| `test_collect_cli_reports_missing_sec_ticker_mapping` | collect CLI missing ticker mapping 오류 |
 | `test_main_reports_sec_ticker_map_build_error` in `tests/test_run.py` | run CLI friendly source build 오류 |
+| `test_main_reports_missing_sec_ticker_mapping` in `tests/test_run.py` | run CLI missing ticker mapping 오류 |
 | `test_main_reports_sec_ticker_map_build_error` in `tests/test_backfill.py` | backfill CLI friendly source build 오류 |
+| `test_main_reports_missing_sec_ticker_mapping` in `tests/test_backfill.py` | backfill CLI missing ticker mapping 오류 |
 | `test_main_does_not_mask_downstream_validation_error` | downstream 오류 오분류 방지 |
 | `test_main_does_not_mask_non_config_value_error` | 일반 runtime `ValueError` 오분류 방지 |
 | `test_readme_test_badges_match_collected_pytest_count` | README 테스트 수치 drift 방지 |
@@ -112,11 +115,11 @@ flowchart TD
 
 | 명령 | 결과 |
 | ---- | ---- |
-| `uv run pytest tests/test_collect.py::test_collect_cli_reports_sec_ticker_map_build_error tests/test_run.py::test_main_reports_sec_ticker_map_build_error tests/test_run.py::test_main_does_not_mask_downstream_validation_error tests/test_run.py::test_main_does_not_mask_non_config_value_error tests/test_backfill.py::test_main_reports_sec_ticker_map_build_error tests/test_readme_docs.py -q` | 7 passed |
+| `uv run pytest tests/test_collect.py::test_collect_cli_reports_sec_ticker_map_build_error tests/test_collect.py::test_collect_cli_reports_missing_sec_ticker_mapping tests/test_run.py::test_main_reports_sec_ticker_map_build_error tests/test_run.py::test_main_reports_missing_sec_ticker_mapping tests/test_run.py::test_main_does_not_mask_downstream_validation_error tests/test_run.py::test_main_does_not_mask_non_config_value_error tests/test_backfill.py::test_main_reports_sec_ticker_map_build_error tests/test_backfill.py::test_main_reports_missing_sec_ticker_mapping tests/test_readme_docs.py -q` | 10 passed |
 | `uv run ruff check .` | pass |
 | `uv run mypy mimir` | pass, 82 files |
-| `uv run pytest -q` | 532 passed |
-| `uv run coverage run -m pytest` | 532 passed |
+| `uv run pytest -q` | 535 passed |
+| `uv run coverage run -m pytest` | 535 passed |
 | `uv run coverage report --fail-under=80` | TOTAL 98% |
 | `git diff --check` | pass |
 
