@@ -226,13 +226,14 @@ def test_resolve_sec_company_filing_feed_maps_ticker_to_cik():
 
 
 def test_resolve_sec_company_filing_feed_missing_ticker_mapping_raises():
-    with pytest.raises(ValueError, match="SEC ticker CIK map has no entry for ticker MSFT"):
+    with pytest.raises(ValueError) as exc_info:
         resolve_rss_feeds(
             None,
             None,
             [SecCompanyFilingFeed(ticker="MSFT", symbol="MSFT")],
             {"AAPL": "0000320193"},
         )
+    assert str(exc_info.value) == "SEC ticker CIK map has no entry for ticker MSFT"
 
 
 def test_resolve_sec_company_filing_feed_missing_loaded_ticker_mapping_includes_path(
@@ -248,16 +249,17 @@ def test_resolve_sec_company_filing_feed_missing_loaded_ticker_mapping_includes_
         encoding="utf-8",
     )
 
-    with pytest.raises(
-        ValueError,
-        match=r"SEC ticker CIK map has no entry for ticker MSFT in .*company_tickers\.json",
-    ):
+    with pytest.raises(ValueError) as exc_info:
         resolve_rss_feeds(
             None,
             None,
             [SecCompanyFilingFeed(ticker="MSFT", symbol="MSFT")],
             load_sec_ticker_cik_map(path),
         )
+    assert (
+        str(exc_info.value)
+        == f"SEC ticker CIK map has no entry for ticker MSFT in {path}"
+    )
 
 
 def test_load_sec_ticker_cik_map_reads_official_json_shape(tmp_path):

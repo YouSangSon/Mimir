@@ -1,7 +1,7 @@
 # 커밋 분석
 
 **Date:** 2026-06-18 KST
-**Branch:** `feat/sec-ticker-cik-map`
+**Branch:** `feat/sec-cik-missing-map-path`
 
 ## Provenance
 
@@ -12,7 +12,7 @@
 | File | Changes |
 | ---- | ------- |
 | `mimir/sources/rss_catalog.py` | dict-compatible SEC ticker map wrapper 추가, loader path metadata 보존, missing ticker 오류에 path 조건부 포함 |
-| `tests/sources/test_rss_catalog.py` | plain mapping pathless 회귀 유지, loader-backed missing ticker path 포함 회귀 추가 |
+| `tests/sources/test_rss_catalog.py` | plain mapping pathless 회귀 유지, loader-backed missing ticker path 포함 회귀 추가, 두 오류 메시지를 exact string으로 고정 |
 | `tests/test_readme_docs.py` | improvement catalog 최신 완료 ID에 R1m 추가 |
 | README 3종 | pytest 수집 개수 538로 갱신 |
 | `docs/reference/config/sources.md` | missing ticker lookup path-aware 오류 메시지 문서화 |
@@ -26,6 +26,11 @@ fix(sources): include SEC ticker map path in missing entries
 - Preserve loader path metadata on the SEC ticker map without changing resolver signatures.
 - Include the mapping file path when a loader-backed SEC ticker lookup is missing.
 - Add a regression test, refresh README test counts, and document the R1m error-surface fix.
+
+test(sources): tighten SEC ticker missing path assertions
+
+- Assert the plain mapping missing ticker message exactly.
+- Assert the loader-backed missing ticker message includes the exact configured path string.
 
 ## 분석
 
