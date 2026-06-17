@@ -81,7 +81,60 @@ RSS_CATALOG: dict[str, RssCatalogEntry] = {
         description="SEC press releases RSS feed.",
         source_url="https://www.sec.gov/about/rss-feeds",
         verified_on=date(2026, 6, 16),
-    )
+    ),
+    "sec_structured_usgaap": RssCatalogEntry(
+        id="sec_structured_usgaap",
+        feed=RssFeed(
+            url="https://www.sec.gov/Archives/edgar/usgaap.rss.xml",
+            publisher="SEC",
+            market="US",
+        ),
+        description=(
+            "SEC structured disclosure RSS feed for filings containing "
+            "financial statements tagged with US GAAP or IFRS taxonomies."
+        ),
+        source_url="https://www.sec.gov/data-research/structured-data/structured-disclosure-rss-feeds",
+        verified_on=date(2026, 6, 18),
+    ),
+    "sec_structured_risk_return": RssCatalogEntry(
+        id="sec_structured_risk_return",
+        feed=RssFeed(
+            url="https://www.sec.gov/Archives/edgar/xbrl-rr.rss.xml",
+            publisher="SEC",
+            market="US",
+        ),
+        description=(
+            "SEC structured disclosure RSS feed for mutual fund filings "
+            "tagged with the US Mutual Fund Risk/Return taxonomy."
+        ),
+        source_url="https://www.sec.gov/data-research/structured-data/structured-disclosure-rss-feeds",
+        verified_on=date(2026, 6, 18),
+    ),
+    "sec_structured_inline_xbrl": RssCatalogEntry(
+        id="sec_structured_inline_xbrl",
+        feed=RssFeed(
+            url="https://www.sec.gov/Archives/edgar/xbrl-inline.rss.xml",
+            publisher="SEC",
+            market="US",
+        ),
+        description=(
+            "SEC structured disclosure RSS feed for Inline XBRL filings "
+            "containing financial statements tagged with US GAAP or IFRS taxonomies."
+        ),
+        source_url="https://www.sec.gov/data-research/structured-data/structured-disclosure-rss-feeds",
+        verified_on=date(2026, 6, 18),
+    ),
+    "sec_structured_all_xbrl": RssCatalogEntry(
+        id="sec_structured_all_xbrl",
+        feed=RssFeed(
+            url="https://www.sec.gov/Archives/edgar/xbrlrss.all.xml",
+            publisher="SEC",
+            market="US",
+        ),
+        description="SEC structured disclosure RSS feed for all XBRL filings submitted to the SEC.",
+        source_url="https://www.sec.gov/data-research/structured-data/structured-disclosure-rss-feeds",
+        verified_on=date(2026, 6, 18),
+    ),
 }
 
 
