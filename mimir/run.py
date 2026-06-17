@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from collections.abc import Mapping
 from datetime import UTC, date, datetime
@@ -27,7 +26,7 @@ from mimir.storage.paths import DEFAULT_ROOT
 def run_pipeline(
     *,
     cadence: str,
-    env: Mapping[str, str],
+    env: Mapping[str, str] | None = None,
     watchlist: dict[str, list[str]],
     data_root: Path = DEFAULT_ROOT,
     reports_root: Path = DEFAULT_REPORTS_ROOT,
@@ -95,7 +94,6 @@ def main(argv: list[str] | None = None) -> int:
         return report_invalid_sources(exc)
     result = run_pipeline(
         cadence=args.cadence,
-        env=os.environ,
         watchlist=load_watchlist(config_dir),
         data_root=Path(args.data_root),
         reports_root=Path(args.reports_root),

@@ -298,3 +298,51 @@ def test_main_reports_invalid_sources_yaml(tmp_path: Path, capsys):
 
     assert rc != 0
     assert "[mimir] invalid sources.yaml:" in capsys.readouterr().err
+
+
+@responses.activate
+def test_run_backfill_default_env_loads_dotenv(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text("STOOQ_API_KEY=fromdotenv\n", encoding="utf-8")
+    monkeypatch.delenv("STOOQ_API_KEY", raising=False)
+    responses.add(responses.GET, "https://stooq.com/q/d/l/", body=CSV, status=200)
+
+    appended = run_backfill(
+        source_id="stooq",
+        since=date(2018, 1, 1),
+        watchlist={"us": ["AAPL"], "kr": []},
+        data_root=tmp_path / "data",
+        now=datetime(2026, 5, 31, tzinfo=UTC),
+    )
+
+    assert appended == 2
+    assert (tmp_path / "data/prices/2018/01/02.jsonl").exists()
+
+
+def test_main_uses_default_env_path(tmp_path: Path, monkeypatch):
+    from mimir import backfill as backfill_mod
+
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "watchlist.yaml").write_text("us: []\nkr: []\n", encoding="utf-8")
+    captured: dict[str, object] = {}
+
+    def _fake_run_backfill(**kwargs: object) -> int:
+        captured.update(kwargs)
+        return 0
+
+    monkeypatch.setattr(backfill_mod, "run_backfill", _fake_run_backfill)
+
+    rc = main(
+        [
+            "--source",
+            "fred",
+            "--since",
+            "2024-01-01",
+            "--config-dir",
+            str(config_dir),
+        ]
+    )
+
+    assert rc == 0
+    assert "env" not in captured

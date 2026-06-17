@@ -13,7 +13,7 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-484%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-492%20passing%20%C2%B7%2098%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -195,11 +195,11 @@ mimir run       --cadence {hourly|daily|weekly|monthly} [--config-dir config] [-
 mimir collect   --cadence {hourly|daily|weekly|monthly} [--config-dir config]
 mimir backfill  --source <id> --since YYYY-MM-DD [--config-dir config]
 mimir analyze   [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
-mimir deliver   [--cadence daily] [--date YYYY-MM-DD] [--reports-root reports]
-mimir history   [--symbol S] [--date YYYY-MM-DD] [--data-root data]
+mimir deliver   [--cadence daily] [--date YYYY-MM-DD] [--config-dir config] [--data-root data] [--reports-root reports]
+mimir history   [--symbol S] [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
 mimir doctor    [--config-dir config] [--data-root data] [--format text|json] [--strict]
 mimir evaluate  [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
-mimir dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
+mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 ```
 
 ```bash
@@ -228,8 +228,8 @@ Each command also keeps its module form, for example `.venv/bin/python -m mimir.
 
 | Item | Value |
 | :--- | :--- |
-| **Tests** | 484 passing (adapters verified with recorded fixtures, no network) |
-| **Coverage** | `mimir/` 97% (gate 80%) |
+| **Tests** | 492 passing (adapters verified with recorded fixtures, no network) |
+| **Coverage** | `mimir/` 98% (gate 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |
 

@@ -56,6 +56,30 @@ def test_run_pipeline_runs_evaluation_before_delivery(tmp_path: Path, monkeypatc
     assert result["evaluation"] == 2
 
 
+def test_main_uses_default_env_path(tmp_path: Path, monkeypatch):
+    (tmp_path / "sources.yaml").write_text("gray_enabled: true\n", encoding="utf-8")
+    (tmp_path / "watchlist.yaml").write_text("us: []\nkr: []\n", encoding="utf-8")
+    captured: dict[str, object] = {}
+
+    def _fake_run_pipeline(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {
+            "collect_failures": False,
+            "insights": 0,
+            "historical": 0,
+            "evaluation": 0,
+            "report": tmp_path / "reports/2026/05/31.html",
+            "telegram_sent": False,
+        }
+
+    monkeypatch.setattr(run_module, "run_pipeline", _fake_run_pipeline)
+
+    rc = run_module.main(["--cadence", "daily", "--config-dir", str(tmp_path)])
+
+    assert rc == 0
+    assert "env" not in captured
+
+
 def test_main_does_not_mask_downstream_validation_error(tmp_path: Path, monkeypatch):
     # A ValidationError raised DOWNSTREAM (e.g. building an Insight inside the
     # pipeline) must NOT be mislabeled "invalid sources.yaml". Config is valid here,

@@ -1,9 +1,10 @@
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import responses
 
-from mimir.collect import run_collect
+from mimir.collect import main, run_collect
 
 CSV = "Date,Open,High,Low,Close,Volume\n2026-05-29,1.0,2.0,0.5,1.5,100\n"
 TICKERS = '{"0": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc."}}'
@@ -37,3 +38,59 @@ def test_run_collect_writes_data_and_status(tmp_path: Path):
     assert summary.had_failures is False
     assert (tmp_path / "data/prices/2026/05/29.jsonl").exists()
     assert (tmp_path / "reports/status.html").exists()
+
+
+@responses.activate
+def test_run_collect_explicit_env_does_not_load_dotenv(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text("STOOQ_API_KEY=fromdotenv\n", encoding="utf-8")
+    responses.add(responses.GET, "https://stooq.com/q/d/l/", body=CSV, status=200)
+
+    summary = run_collect(
+        cadence="daily",
+        env={},
+        watchlist={"us": ["AAPL"], "kr": []},
+        data_root=tmp_path / "data",
+        status_path=tmp_path / "reports/status.html",
+        sources_config={"disabled_ids": ["sec_edgar", "rss"]},
+        now=datetime(2026, 5, 31, tzinfo=UTC),
+    )
+
+    assert summary.had_failures is False
+    assert len(responses.calls) == 0
+    assert not (tmp_path / "data/prices/2026/05/29.jsonl").exists()
+
+
+@responses.activate
+def test_collect_cli_auto_loads_dotenv(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text("STOOQ_API_KEY=fromdotenv\n", encoding="utf-8")
+    (tmp_path / "sources.yaml").write_text(
+        "disabled_ids: [sec_edgar, rss]\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "watchlist.yaml").write_text("us: [AAPL]\nkr: []\n", encoding="utf-8")
+    monkeypatch.delenv("STOOQ_API_KEY", raising=False)
+    responses.add(responses.GET, "https://stooq.com/q/d/l/", body=CSV, status=200)
+
+    assert main(["--cadence", "daily", "--config-dir", str(tmp_path)]) == 0
+
+    assert (tmp_path / "data/prices/2026/05/29.jsonl").exists()
+
+
+@responses.activate
+def test_collect_cli_real_env_overrides_dotenv(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text("STOOQ_API_KEY=fromdotenv\n", encoding="utf-8")
+    (tmp_path / "sources.yaml").write_text(
+        "disabled_ids: [sec_edgar, rss]\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "watchlist.yaml").write_text("us: [AAPL]\nkr: []\n", encoding="utf-8")
+    monkeypatch.setenv("STOOQ_API_KEY", "fromrealenv")
+    responses.add(responses.GET, "https://stooq.com/q/d/l/", body=CSV, status=200)
+
+    assert main(["--cadence", "daily", "--config-dir", str(tmp_path)]) == 0
+
+    query = parse_qs(urlparse(responses.calls[0].request.url).query)
+    assert query["apikey"] == ["fromrealenv"]

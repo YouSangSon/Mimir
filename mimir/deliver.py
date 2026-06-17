@@ -33,7 +33,7 @@ class DeliveryResult(dict[str, Any]):
 def run_deliver(
     *,
     cadence: str,
-    env: Mapping[str, str],
+    env: Mapping[str, str] | None = None,
     data_root: Path = DEFAULT_ROOT,
     reports_root: Path = DEFAULT_REPORTS_ROOT,
     as_of: date | None = None,
@@ -77,15 +77,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config-dir", default="config")
     args = parser.parse_args(argv)
 
-    import os
-
     from mimir.config import load_sources_config
 
     lang = load_sources_config(Path(args.config_dir)).get("lang", DEFAULT_LANG)
     as_of = date.fromisoformat(args.date) if args.date else None
     result = run_deliver(
         cadence=args.cadence,
-        env=os.environ,
         data_root=Path(args.data_root),
         reports_root=Path(args.reports_root),
         as_of=as_of,

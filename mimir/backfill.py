@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import os
 import sys
 from collections.abc import Mapping
 from datetime import UTC, date, datetime
@@ -31,7 +30,7 @@ def run_backfill(
     *,
     source_id: str,
     since: date,
-    env: Mapping[str, str],
+    env: Mapping[str, str] | None = None,
     watchlist: dict[str, list[str]],
     data_root: Path = DEFAULT_DATA_ROOT,
     sources_config: dict[str, Any] | None = None,
@@ -113,7 +112,6 @@ def main(argv: list[str] | None = None) -> int:
     appended = run_backfill(
         source_id=args.source,
         since=date.fromisoformat(args.since),
-        env=os.environ,
         watchlist=load_watchlist(config_dir),
         sources_config=sources_config,
     )

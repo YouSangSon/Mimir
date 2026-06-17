@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from collections.abc import Mapping
 from datetime import UTC, datetime
@@ -30,7 +29,7 @@ DEFAULT_STATUS_PATH = Path("reports/status.html")
 def run_collect(
     *,
     cadence: str,
-    env: Mapping[str, str],
+    env: Mapping[str, str] | None = None,
     watchlist: dict[str, list[str]],
     data_root: Path = DEFAULT_DATA_ROOT,
     status_path: Path = DEFAULT_STATUS_PATH,
@@ -81,7 +80,6 @@ def main(argv: list[str] | None = None) -> int:
         return report_invalid_sources(exc)
     summary = run_collect(
         cadence=args.cadence,
-        env=os.environ,
         watchlist=load_watchlist(config_dir),
         sources_config=sources_config,
     )

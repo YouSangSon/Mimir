@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/MR1/C3/OPS1 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/MR1/C3/OPS1/ENV1 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -45,6 +45,7 @@
 | **BF-MANIFEST** | 백필 실행 manifest 기록 | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | backfill success/failure run log |
 | **C1** | 데이터 신선도·품질 닥터 (`mimir doctor`) | 운영 | "무음 실패 금지" 약속 | **✅ 구현 완료 (Increment 3)** | 코드 + 테스트(179) |
 | **OPS1** | Scheduled dashboard publication (`reports/dashboard.html`) | 운영가시성 | README + 현행 spec | **✅ 구현 완료 (2026-06-17)** | workflow + 테스트 + docs · [spec](../superpowers/specs/2026-06-17-scheduled-dashboard-publication-design.md) |
+| **ENV1** | Runtime `.env` autoload contract | 운영/DX | README 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-dotenv-cli-autoload-design.md) |
 | **C2** | 파티션 인덱스 (git-as-DB rglob 스케일) | 성능 | 신규 | ⏸ 보류 | 본 문서 §6 |
 | **C3** | pykrx retry/backoff 정책 | 견고성 | 백로그 LOW | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-pykrx-retry-policy-design.md) |
 | **D1** | 통합 `mimir` CLI (console_scripts) | DX | README 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-cli-entrypoints-design.md) |
@@ -216,6 +217,12 @@ README는 `mimir.collect`, `mimir.analyze`, `mimir.doctor` 같은 설치형 실�
 
 구현 후 `[project.scripts]`는 통합 명령 `mimir`와 dotted aliases(`mimir.collect`, `mimir.analyze`, `mimir.doctor` 등)를 제공한다. `mimir <subcommand>`는 기존 module-level `main(argv)`에 그대로 위임하므로 argparse help, 검증, exit code를 재정의하지 않는다. 기존 `python -m mimir.X` 경로와 workflow 명령도 유지한다.
 
+### ENV1. Runtime `.env` autoload contract — **구현 완료 (2026-06-18)**
+
+README는 `.env`가 runtime에 자동 로드되고, CI Secrets나 shell 환경변수가 `.env`보다 우선한다고 설명한다. `Settings.from_env()`는 `env=None`일 때 이 계약을 지켰지만, `collect`, `run`, `deliver`, `backfill` CLI 경로는 `os.environ`을 직접 넘겨 `.env` 로드를 우회했다. 그래서 Quick Start대로 `.env`에 키를 적은 로컬 사용자가 설치형 CLI를 실행하면 키가 없는 것처럼 source가 skip될 수 있었다.
+
+구현 후 runtime 함수의 `env` 인자는 선택값이다. CLI는 기본 `env=None` 경로를 사용해 기존 `find_dotenv(usecwd=True)`와 `load_dotenv(..., override=False)` 동작을 탄다. 테스트와 library caller는 `env={...}`를 명시해 `.env`를 읽지 않는 deterministic 경로를 계속 쓸 수 있다. Secret 값은 manifest, report, 문서 출력에 추가로 노출하지 않는다.
+
 ---
 
 ## 5. 증분 실행 순서 (Sequencing)
@@ -244,6 +251,7 @@ R1f-SEC ─── SEC EDGAR company filing RSS provider
 R1g-SEC-STRUCTURED ─ SEC structured disclosure RSS catalog
 R1h-SEC-TICKER ─ SEC company filing RSS ticker input
 D1 ───────── unified CLI entry points · mimir + mimir.<command>
+ENV1 ─────── runtime .env autoload · CLI default env=None
 D2 ───────── GitHub Actions Node24-compatible action majors
 C3 ───────── pykrx retry/backoff · FetchError manifest surface
 BF-MANIFEST ─ backfill success/failure manifest
@@ -278,4 +286,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, MR1, D1, D2, C3, BF-MANIFEST, OPS1까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, MR1, D1, D2, ENV1, C3, BF-MANIFEST, OPS1까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.

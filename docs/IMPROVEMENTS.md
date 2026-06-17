@@ -38,6 +38,7 @@
 - [x] **워크플로 4중복**: `_pipeline.yml`(workflow_call) + 4개 thin caller로 ~190줄 중복 제거.
 - [x] **단일 파이프라인 진입점**: `mimir/run.py run_pipeline`(collect→analyze→history→evaluate→deliver 단일 프로세스).
 - [x] **README CLI 계약과 package scripts 불일치**: README가 `mimir.collect` 계열 실행 파일을 문서화했지만 `pyproject.toml`에는 console script가 없었다. → 통합 `mimir <subcommand>`와 dotted aliases(`mimir.collect`, `mimir.analyze`, `mimir.doctor` 등)를 `[project.scripts]`로 등록하고 기존 `python -m mimir.X` 경로는 유지.
+- [x] **README `.env` 자동 로드 계약과 CLI 경로 불일치**: README는 `.env`가 runtime에 자동 로드된다고 설명했지만 `collect`/`run`/`deliver`/`backfill` CLI가 `os.environ`을 직접 넘겨 `.env` 로드를 우회했다. → runtime `env` 인자를 선택값으로 바꾸고 CLI는 기본 `env=None` 경로를 사용한다. 명시 `env={...}` 테스트와 실제 환경변수 우선 정책은 유지한다.
 - [x] **news_volume 단어경계 + alias 매칭 + captured window + 종목별 RSS feed**: 짧은 티커 오매칭을 제거하고, 기본 watchlist용 보수적 회사명 alias와 `analysis.news.aliases` 사용자 alias를 지원한다. 공식 피드 ticker 부재는 기본/사용자 alias로 일부 완화된다. 사용자가 종목별 RSS feed를 알고 있으면 `sources.rss.feeds[].symbol`로 연결할 수 있다. 뉴스 신호의 today/baseline은 `captured_at` 기준으로 읽어 늦게 수집된 발행 기사를 실행일 분석에 포함한다.
 - [x] **설정 기반 시리즈/피드 + macro series 단일 진실원**: FRED/ECOS series·RSS feeds를 `sources.yaml`의 `sources:` 블록으로 노출하고, macro rate-series와 doctor cadence를 `mimir/core/macro_series.py`로 통합. `analysis.macro_regime.rate_series`로 수집 대상과 분석 해석 대상을 분리한다.
 - [x] **GH Actions Node20 deprecation**: `actions/checkout@v4`·`setup-python@v5`가 Node20 세대 action이라 2026-06-16 Node24 기본 전환에 걸릴 수 있었다. → `checkout@v6`·`setup-python@v6`로 올리고, `tests/test_workflows.py`가 workflow action major를 검증한다.

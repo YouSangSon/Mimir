@@ -1,6 +1,7 @@
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+from mimir import deliver as deliver_module
 from mimir.analysis.schema import Insight, to_record
 from mimir.analysis.signals.base import SignalDirection
 from mimir.core.source import Market
@@ -120,3 +121,66 @@ def test_run_deliver_empty_is_graceful(tmp_path: Path):
     )
     assert result["insights"] == 0
     assert (tmp_path / "reports/2026/05/31.html").exists()
+
+
+def test_run_deliver_default_env_loads_dotenv_for_telegram(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text(
+        "TELEGRAM_BOT_TOKEN=token-from-dotenv\n"
+        "TELEGRAM_CHAT_ID=chat-from-dotenv\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
+    monkeypatch.delenv("TELEGRAM_CHAT_ID", raising=False)
+    captured: dict[str, str | None] = {}
+
+    def _fake_send_ping(
+        *, bot_token: str | None, chat_id: str | None, text: str
+    ) -> bool:
+        captured.update({"bot_token": bot_token, "chat_id": chat_id, "text": text})
+        return True
+
+    monkeypatch.setattr(deliver_module, "send_ping", _fake_send_ping)
+
+    result = run_deliver(
+        cadence="daily",
+        data_root=tmp_path / "data",
+        reports_root=tmp_path / "reports",
+        as_of=date(2026, 5, 31),
+    )
+
+    assert result["sent"] is True
+    assert captured["bot_token"] == "token-from-dotenv"
+    assert captured["chat_id"] == "chat-from-dotenv"
+
+
+def test_main_uses_default_env_path(tmp_path: Path, monkeypatch):
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    captured: dict[str, object] = {}
+
+    def _fake_run_deliver(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {
+            "insights": 0,
+            "report": tmp_path / "reports/2026/05/31.html",
+            "sent": False,
+        }
+
+    monkeypatch.setattr(deliver_module, "run_deliver", _fake_run_deliver)
+
+    rc = deliver_module.main(
+        [
+            "--cadence",
+            "daily",
+            "--config-dir",
+            str(config_dir),
+            "--data-root",
+            str(tmp_path / "data"),
+            "--reports-root",
+            str(tmp_path / "reports"),
+        ]
+    )
+
+    assert rc == 0
+    assert "env" not in captured
