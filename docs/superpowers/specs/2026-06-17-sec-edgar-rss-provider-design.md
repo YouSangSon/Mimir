@@ -1,7 +1,7 @@
 # R1f-SEC. SEC EDGAR RSS Provider — 설계
 
 > **스펙 ID**: R1f-SEC
-> **상태**: 구현 예정
+> **상태**: 구현 완료
 > **작성일**: 2026-06-17
 > **선행**: [정적 RSS feed catalog](2026-06-17-rss-feed-catalog-design.md) · [발전 카탈로그](../../architecture/improvement-catalog.md) · [개선 백로그](../../IMPROVEMENTS.md)
 
@@ -153,19 +153,19 @@ README 3개 언어는 이번 증분에서 수정하지 않는다. 사용자 quic
 
 ## 10. 수용 기준
 
-- [ ] `parse_sources_config()`가 `sources.rss.sec.company_filings`를 typed model로 파싱한다.
-- [ ] SEC company filing entry는 CIK를 10자리로 zero-pad한다.
-- [ ] 생성된 SEC feed는 `publisher="SEC"`와 `market="US"`를 사용한다.
-- [ ] form filter가 없으면 회사 전체 Atom URL 하나를 만든다.
-- [ ] `forms`가 있으면 form별 Atom URL을 deterministic order로 만든다.
-- [ ] amended form `10-K/A`는 `type=10-K%2FA`로 URL 인코딩된다.
-- [ ] `symbol`은 기존 `RssFeed.symbol` 정규화 규칙을 재사용한다.
-- [ ] duplicate `(url, symbol)`은 기존과 같은 `duplicate RSS feed` 오류를 낸다.
-- [ ] 파싱과 resolver는 네트워크를 호출하지 않는다.
-- [ ] `RssSource.fetch()`가 builder에서 받은 `MIMIR_SEC_USER_AGENT` 값을 `User-Agent` header로 보낸다.
-- [ ] Config reference, extensibility docs, improvement catalog, backlog가 새 경계와 보류 범위를 설명한다.
-- [ ] `uv run pytest tests/sources/test_rss_catalog.py tests/sources/test_config.py tests/sources/test_rss.py tests/core/test_builder.py -q`가 통과한다.
-- [ ] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`가 통과한다.
+- [x] `parse_sources_config()`가 `sources.rss.sec.company_filings`를 typed model로 파싱한다.
+- [x] SEC company filing entry는 CIK를 10자리로 zero-pad한다.
+- [x] 생성된 SEC feed는 `publisher="SEC"`와 `market="US"`를 사용한다.
+- [x] form filter가 없으면 회사 전체 Atom URL 하나를 만든다.
+- [x] `forms`가 있으면 form별 Atom URL을 deterministic order로 만든다.
+- [x] amended form `10-K/A`는 `type=10-K%2FA`로 URL 인코딩된다.
+- [x] `symbol`은 기존 `RssFeed.symbol` 정규화 규칙을 재사용한다.
+- [x] duplicate `(url, symbol)`은 기존과 같은 `duplicate RSS feed` 오류를 낸다.
+- [x] 파싱과 resolver는 네트워크를 호출하지 않는다.
+- [x] `RssSource.fetch()`가 builder에서 받은 `MIMIR_SEC_USER_AGENT` 값을 `User-Agent` header로 보낸다.
+- [x] Config reference, extensibility docs, improvement catalog, backlog가 새 경계와 보류 범위를 설명한다.
+- [x] `uv run pytest tests/sources/test_rss_catalog.py tests/sources/test_config.py tests/sources/test_rss.py tests/core/test_builder.py -q`가 통과한다.
+- [x] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`가 통과한다.
 
 ---
 
