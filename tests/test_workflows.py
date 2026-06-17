@@ -15,6 +15,7 @@ EXPECTED_WORKFLOW_ACTION_MAJORS = {
 }
 
 ACTION_USES_RE = re.compile(r"uses:\s*(actions/(?:checkout|setup-python))@(v\d+)(?:\b|$)")
+PIPELINE_WORKFLOW = Path(".github/workflows/_pipeline.yml")
 
 
 def test_github_actions_use_node24_compatible_major_versions() -> None:
@@ -34,3 +35,21 @@ def test_github_actions_use_node24_compatible_major_versions() -> None:
 
         assert seen == set(expected_actions), f"{path} is missing expected actions"
     assert mismatches == []
+
+
+def test_reusable_pipeline_publishes_dashboard_before_commit() -> None:
+    text = PIPELINE_WORKFLOW.read_text(encoding="utf-8")
+
+    run_pipeline = text.index("- name: Run pipeline")
+    run_dashboard = text.index("- name: Run dashboard")
+    dashboard_command = text.index("run: python -m mimir.dashboard --data-root data --reports-root reports")
+    commit_data = text.index("- name: Commit data + reports")
+
+    assert run_pipeline < run_dashboard < dashboard_command < commit_data
+
+
+def test_reusable_pipeline_does_not_add_doctor_hard_gate() -> None:
+    text = PIPELINE_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "python -m mimir.doctor" not in text
+    assert "--strict" not in text
