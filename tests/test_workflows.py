@@ -42,7 +42,9 @@ def test_reusable_pipeline_publishes_dashboard_before_commit() -> None:
 
     run_pipeline = text.index("- name: Run pipeline")
     run_dashboard = text.index("- name: Run dashboard")
-    dashboard_command = text.index("run: python -m mimir.dashboard --data-root data --reports-root reports")
+    dashboard_command = text.index(
+        "run: python -m mimir.dashboard --data-root data --reports-root reports"
+    )
     commit_data = text.index("- name: Commit data + reports")
 
     assert run_pipeline < run_dashboard < dashboard_command < commit_data

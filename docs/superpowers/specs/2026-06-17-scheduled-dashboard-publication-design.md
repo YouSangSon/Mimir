@@ -257,7 +257,7 @@ Caller workflow는 모두 reusable `_pipeline.yml`을 호출한다. 따라서 da
 - [x] Doctor WARN/CRITICAL은 dashboard에 표시되지만 workflow 실패 조건으로 쓰지 않는다는 정책이 문서에 남는다.
 - [x] 기존 `mimir.run` collect failure gate는 변경하지 않는다.
 - [x] `uv run pytest tests/test_workflows.py -q`가 통과한다.
-- [ ] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`가 통과한다.
+- [x] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`가 통과한다.
 
 ---
 
@@ -268,7 +268,7 @@ Caller workflow는 모두 reusable `_pipeline.yml`을 호출한다. 따라서 da
 3. `_pipeline.yml`에 `Run dashboard` step과 최신 주석을 넣는다.
 4. README 3개 언어와 architecture/improvement docs를 갱신한다.
 5. Targeted test를 통과시킨다.
-6. 전체 quality gate를 실행한다.
+6. 전체 quality gate를 실행하고 통과 결과를 확인한다.
 7. 구현 뒤 이 spec의 상태와 수용 기준을 갱신한다.
 
 각 작업은 기존 workflow parser 테스트 스타일을 따른다. YAML parser 의존성은 추가하지 않는다.
