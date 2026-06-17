@@ -2,28 +2,28 @@
 
 > **스펙 ID**: OPS1
 > **작성일**: 2026-06-17
-> **상태**: 설계 승인됨. 구현 전.
+> **상태**: 구현 완료.
 > **선행**: [데이터 닥터 설계](2026-06-13-data-doctor-design.md) · [대시보드 CLI](../../architecture/improvement-catalog.md) · [GitHub Actions Node24 설계](2026-06-16-github-actions-node24-design.md)
 
 ---
 
 ## 1. 한눈에 보기
 
-Scheduled pipeline은 `reports/status.html`, 날짜별 일일 리포트, `reports/index.html`을 커밋하지만 `reports/dashboard.html`은 갱신하지 않는다.
+OPS1 이전 scheduled pipeline은 `reports/status.html`, 날짜별 일일 리포트, `reports/index.html`을 커밋했지만 `reports/dashboard.html`은 갱신하지 않았다.
 
-`mimir.dashboard`는 이미 저장된 데이터, 최신 manifest, doctor 결과를 읽어 한 장짜리 운영 대시보드를 만들 수 있다. 이번 증분은 새 대시보드를 만들지 않는다. 기존 CLI를 reusable workflow에 연결해 scheduled run마다 `reports/dashboard.html`도 함께 커밋하게 만든다.
+`mimir.dashboard`는 이미 저장된 데이터, 최신 manifest, doctor 결과를 읽어 한 장짜리 운영 대시보드를 만들 수 있었다. OPS1은 새 대시보드를 만들지 않고 기존 CLI를 reusable workflow에 연결해 scheduled run마다 `reports/dashboard.html`도 함께 커밋하게 했다.
 
-중요한 결정은 **doctor hard gate(doctor 결과로 workflow를 실패시키는 정책)를 넣지 않는 것**이다. Doctor 결과는 dashboard에 표시한다. Workflow 실패 조건으로 쓰는 정책은 secrets 없는 운영, 누락 데이터 오탐, 데이터 커밋 순서가 정리된 뒤 별도 증분에서 다룬다.
+중요한 결정은 **doctor hard gate(doctor 결과로 workflow를 실패시키는 정책)를 넣지 않는 것**이었다. Doctor 결과는 dashboard에 표시하고, workflow 실패 조건으로 쓰는 정책은 secrets 없는 운영, 누락 데이터 오탐, 데이터 커밋 순서가 정리된 뒤 별도 증분으로 남겼다.
 
-이 결정은 doctor finding에만 적용된다. 기존 `mimir.run`의 collect failure gate, 즉 source 수집 실패가 있으면 pipeline step이 실패하는 동작은 이번 증분에서 바꾸지 않는다.
+이 결정은 doctor finding에만 적용된다. 기존 `mimir.run`의 collect failure gate, 즉 source 수집 실패가 있으면 pipeline step이 실패하는 동작은 OPS1에서 바꾸지 않았다.
 
 ---
 
-## 2. 현재 문제와 근거
+## 2. OPS1 이전 문제와 근거
 
-### 2.1 Workflow가 dashboard를 publish하지 않는다
+### 2.1 OPS1 이전 workflow는 dashboard를 publish하지 않았다
 
-현재 reusable workflow는 pipeline 실행 뒤 `data`와 `reports`를 커밋한다.
+OPS1 이전 reusable workflow는 pipeline 실행 뒤 `data`와 `reports`를 커밋했다.
 
 ```yaml
 # .github/workflows/_pipeline.yml
@@ -34,7 +34,7 @@ Scheduled pipeline은 `reports/status.html`, 날짜별 일일 리포트, `report
     git add data reports
 ```
 
-`git add reports`는 dashboard 파일이 있으면 커밋할 수 있다. 그러나 workflow가 `python -m mimir.dashboard`를 실행하지 않으므로 scheduled run에서 `reports/dashboard.html`이 새로 만들어지지 않는다.
+`git add reports`는 dashboard 파일이 있으면 커밋할 수 있었다. 그러나 workflow가 `python -m mimir.dashboard`를 실행하지 않았기 때문에 scheduled run에서 `reports/dashboard.html`이 새로 만들어지지 않았다.
 
 ### 2.2 `mimir.run`과 workflow 주석의 흐름이 어긋나 있다
 
@@ -46,18 +46,18 @@ Scheduled pipeline은 `reports/status.html`, 날짜별 일일 리포트, `report
 4. `evaluate`
 5. `deliver`
 
-하지만 `_pipeline.yml`의 상단 주석은 아직 `collect -> analyze -> history -> deliver`라고 설명한다. 이번 증분은 dashboard publish를 추가하면서 이 운영 문서 드리프트도 같이 정리한다.
+하지만 OPS1 이전 `_pipeline.yml`의 상단 주석은 `collect -> analyze -> history -> deliver`라고 설명했다. OPS1은 dashboard publish를 추가하면서 이 운영 문서 드리프트도 같이 정리했다.
 
 ### 2.3 Dashboard는 이미 doctor 결과를 표시한다
 
-`mimir.dashboard.run_dashboard`는 다음 일을 이미 한다.
+OPS1 이전에도 `mimir.dashboard.run_dashboard`는 다음 일을 이미 했다.
 
 1. 최신 `insights`, `historical`, `evaluation` 데이터를 읽는다.
 2. `run_doctor(...)`를 실행한다.
 3. 최신 manifest를 읽는다.
 4. `reports/dashboard.html`을 쓴다.
 
-따라서 새 HTML renderer나 별도 doctor HTML 조각을 만들 필요가 없다. Workflow가 기존 CLI를 호출하면 된다.
+따라서 새 HTML renderer나 별도 doctor HTML 조각을 만들 필요가 없었다. Workflow가 기존 CLI를 호출하면 되는 상태였다.
 
 ---
 
@@ -248,15 +248,15 @@ Caller workflow는 모두 reusable `_pipeline.yml`을 호출한다. 따라서 da
 
 ## 7. 수용 기준
 
-- [ ] `_pipeline.yml`이 `Run pipeline` 뒤, `Commit data + reports` 앞에서 `python -m mimir.dashboard --data-root data --reports-root reports`를 실행한다.
-- [ ] `_pipeline.yml` 주석이 실제 흐름을 `collect -> analyze -> history -> evaluate -> deliver -> dashboard`로 설명한다.
-- [ ] `tests/test_workflows.py`가 dashboard step의 존재, command, 순서를 검증한다.
-- [ ] `tests/test_workflows.py`가 `_pipeline.yml`에 `mimir.doctor`와 `--strict` hard gate가 없음을 검증한다.
-- [ ] README 3개 언어가 모든 scheduled cadence가 reusable workflow를 통해 `reports/dashboard.html`도 갱신한다고 설명한다.
-- [ ] Architecture/improvement docs가 OPS1 완료 상태와 doctor hard gate 보류 정책을 설명한다.
-- [ ] Doctor WARN/CRITICAL은 dashboard에 표시되지만 workflow 실패 조건으로 쓰지 않는다는 정책이 문서에 남는다.
-- [ ] 기존 `mimir.run` collect failure gate는 변경하지 않는다.
-- [ ] `uv run pytest tests/test_workflows.py -q`가 통과한다.
+- [x] `_pipeline.yml`이 `Run pipeline` 뒤, `Commit data + reports` 앞에서 `python -m mimir.dashboard --data-root data --reports-root reports`를 실행한다.
+- [x] `_pipeline.yml` 주석이 실제 흐름을 `collect -> analyze -> history -> evaluate -> deliver -> dashboard`로 설명한다.
+- [x] `tests/test_workflows.py`가 dashboard step의 존재, command, 순서를 검증한다.
+- [x] `tests/test_workflows.py`가 `_pipeline.yml`에 `mimir.doctor`와 `--strict` hard gate가 없음을 검증한다.
+- [x] README 3개 언어가 모든 scheduled cadence가 reusable workflow를 통해 `reports/dashboard.html`도 갱신한다고 설명한다.
+- [x] Architecture/improvement docs가 OPS1 완료 상태와 doctor hard gate 보류 정책을 설명한다.
+- [x] Doctor WARN/CRITICAL은 dashboard에 표시되지만 workflow 실패 조건으로 쓰지 않는다는 정책이 문서에 남는다.
+- [x] 기존 `mimir.run` collect failure gate는 변경하지 않는다.
+- [x] `uv run pytest tests/test_workflows.py -q`가 통과한다.
 - [ ] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`가 통과한다.
 
 ---
