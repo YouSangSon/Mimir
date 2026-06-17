@@ -10,7 +10,12 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from mimir.config import load_validated_sources_config, load_watchlist, report_invalid_sources
+from mimir.config import (
+    SourcesConfigError,
+    load_validated_sources_config,
+    load_watchlist,
+    report_invalid_sources,
+)
 from mimir.core.builder import SourceSpec, build_sources, load_source_specs
 from mimir.core.errors import NormalizationError
 from mimir.core.normalize import normalize
@@ -84,7 +89,8 @@ def run_backfill(
     config = parse_sources_config(sources_config or {})
     manifest = Manifest(root=data_root)
     specs = load_source_specs()
-    sources = {s.meta.id: s for s in build_sources(settings, config, specs=specs)}
+    built_sources = build_sources(settings, config, specs=specs)
+    sources = {s.meta.id: s for s in built_sources}
     if source_id not in sources:
         if (spec := _source_spec_for_id(specs, source_id)) and spec.meta is not None:
             manifest_error = _preflight_unavailable_error(spec, settings, source_id)
@@ -166,12 +172,15 @@ def main(argv: list[str] | None = None) -> int:
         sources_config, _ = load_validated_sources_config(config_dir)
     except ValidationError as exc:
         return report_invalid_sources(exc)
-    appended = run_backfill(
-        source_id=args.source,
-        since=date.fromisoformat(args.since),
-        watchlist=load_watchlist(config_dir),
-        sources_config=sources_config,
-    )
+    try:
+        appended = run_backfill(
+            source_id=args.source,
+            since=date.fromisoformat(args.since),
+            watchlist=load_watchlist(config_dir),
+            sources_config=sources_config,
+        )
+    except SourcesConfigError as exc:
+        return report_invalid_sources(exc)
     print(f"[mimir] backfill {args.source}: appended {appended} records")
     return 0
 

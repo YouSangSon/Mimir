@@ -97,3 +97,39 @@ def test_main_does_not_mask_downstream_validation_error(tmp_path: Path, monkeypa
     monkeypatch.setattr(run_module, "run_pipeline", _boom)
     with pytest.raises(ValidationError):
         run_module.main(["--cadence", "daily", "--config-dir", str(tmp_path)])
+
+
+def test_main_reports_sec_ticker_map_build_error(tmp_path: Path, capsys):
+    (tmp_path / "sources.yaml").write_text(
+        """
+        sources:
+          rss:
+            sec:
+              ticker_cik_map_path: company_tickers.json
+              company_filings:
+                - ticker: AAPL
+        """,
+        encoding="utf-8",
+    )
+    (tmp_path / "company_tickers.json").write_text("{", encoding="utf-8")
+    (tmp_path / "watchlist.yaml").write_text("us: []\nkr: []\n", encoding="utf-8")
+
+    rc = run_module.main(["--cadence", "daily", "--config-dir", str(tmp_path)])
+
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert err.startswith("[mimir] invalid sources.yaml:")
+    assert "SEC ticker CIK map file is not valid JSON" in err
+
+
+def test_main_does_not_mask_non_config_value_error(tmp_path: Path, monkeypatch):
+    (tmp_path / "sources.yaml").write_text("gray_enabled: true\n", encoding="utf-8")
+    (tmp_path / "watchlist.yaml").write_text("us: []\nkr: []\n", encoding="utf-8")
+
+    def _boom(**_: object) -> dict[str, object]:
+        raise ValueError("plugin invariant exploded")
+
+    monkeypatch.setattr(run_module, "run_pipeline", _boom)
+
+    with pytest.raises(ValueError, match="plugin invariant exploded"):
+        run_module.main(["--cadence", "daily", "--config-dir", str(tmp_path)])

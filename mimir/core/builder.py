@@ -7,6 +7,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import cast
 
+from mimir.config import SecTickerCikMapConfigError
 from mimir.core.source import Source, SourceMeta
 from mimir.settings import Settings
 from mimir.sources.config import SourcesConfig
@@ -21,6 +22,15 @@ from mimir.sources.stooq import StooqSource
 
 logger = logging.getLogger(__name__)
 SOURCE_ENTRY_POINT_GROUP = "mimir.sources"
+
+
+def _load_configured_sec_ticker_cik_map(config: SourcesConfig) -> dict[str, str] | None:
+    if config.rss_sec_ticker_cik_map_path is None:
+        return None
+    try:
+        return load_sec_ticker_cik_map(config.rss_sec_ticker_cik_map_path)
+    except ValueError as exc:
+        raise SecTickerCikMapConfigError(str(exc)) from exc
 
 
 @dataclass(frozen=True)
@@ -53,11 +63,7 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
                 cfg.rss_catalogs,
                 cfg.rss_feeds,
                 cfg.rss_sec_company_filings,
-                (
-                    load_sec_ticker_cik_map(cfg.rss_sec_ticker_cik_map_path)
-                    if cfg.rss_sec_ticker_cik_map_path is not None
-                    else None
-                ),
+                _load_configured_sec_ticker_cik_map(cfg),
             ),
             user_agent=settings.sec_user_agent,
         ),

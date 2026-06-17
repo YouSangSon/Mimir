@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/BF-PREFLIGHT 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/BF-PREFLIGHT 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -43,6 +43,7 @@
 | **R1i-SEC-CIK** | SEC ticker CIK local mapping lookup | 분석품질/확장성 | R1h 보류 항목의 안전한 일부 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/sources/R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md) |
 | **R1j-SEC-CIK-ERRORS** | SEC ticker CIK map file error surface | 견고성/DX | R1i 운영 오류 표면 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/sources/R1j-SEC-CIK-ERRORS_sec_ticker_cik_map_errors_tech_spec_2026_06_18.md) |
 | **R1k-SEC-CIK-ENTRY-ERRORS** | SEC ticker CIK map entry error context | 견고성/DX | R1j 후속 운영 오류 표면 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/sources/R1k-SEC-CIK-ENTRY-ERRORS_sec_ticker_cik_map_entry_errors_tech_spec_2026_06_18.md) |
+| **R1l-SEC-CIK-CLI-ERRORS** | SEC ticker CIK map CLI error surface | 운영/DX | R1j/R1k CLI 오류 표면 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/sources/R1l-SEC-CIK-CLI-ERRORS_sec_ticker_cik_map_cli_errors_tech_spec_2026_06_18.md) |
 | **MR1** | 거시 개정 저장 정책 (`macro` last-write-wins) | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-macro-revision-policy-design.md) |
 | **H1** | 재생성 데이터 stale 제거 + pipeline scorecard 갱신 | 견고성/운영 | B1 후속 + 리뷰 발견 | **✅ 구현 완료 (2026-06-16 hardening)** | `replace_partition`, `run_evaluate`, daily report scorecard |
 | **BF-MANIFEST** | 백필 실행 manifest 기록 | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | backfill success/failure run log |
@@ -204,6 +205,12 @@ R1j는 파일 단위 오류를 정리했지만, 큰 SEC mapping file 안에서 �
 
 구현 후 `load_sec_ticker_cik_map()`은 SEC mapping entry의 JSON object shape와 `ticker`/`cik_str` 값을 검증할 때 파일 path와 entry key를 오류 메시지에 포함한다. 기존 validator를 재사용하므로 ticker token과 CIK 정규화 규칙은 config 입력과 mapping file 입력에서 계속 동일하다.
 
+### R1l-SEC-CIK-CLI-ERRORS. SEC ticker CIK map CLI error surface — **구현 완료 (2026-06-18)**
+
+R1j/R1k는 loader 오류 메시지를 정리했지만, `collect`/`run`/`backfill` CLI는 source build 단계의 `ValueError`를 잡지 않았다. 그래서 운영자는 좋은 설정 오류 메시지 대신 Python traceback을 볼 수 있었다.
+
+구현 후 source build 단계의 `ValueError`는 `SourcesConfigError`로 감싸진다. CLI `main()`은 이 타입만 `[mimir] invalid sources.yaml:`로 출력한다. Fetch나 analysis 도중 생기는 downstream 오류는 계속 그대로 전파되므로, 실제 런타임 버그를 설정 오류로 오분류하지 않는다.
+
 ---
 
 ## 4. 견고성 (Robustness)
@@ -304,6 +311,7 @@ R1h-SEC-TICKER ─ SEC company filing RSS ticker input
 R1i-SEC-CIK ─ SEC ticker CIK local mapping lookup
 R1j-SEC-CIK-ERRORS ─ SEC ticker CIK map file error surface
 R1k-SEC-CIK-ENTRY-ERRORS ─ SEC ticker CIK map entry error context
+R1l-SEC-CIK-CLI-ERRORS ─ SEC ticker CIK map CLI error surface
 D1 ───────── unified CLI entry points · mimir + mimir.<command>
 ENV1 ─────── runtime .env autoload · CLI default env=None
 CFG1 ─────── sources.yaml CLI validation · shared load_validated_sources_config
@@ -326,7 +334,7 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 | 항목 | 보류 근거 |
 |---|---|
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 핫패스를 처리. 인덱스는 데이터가 수년 누적된 *뒤*의 최적화 — 지금은 시기상조(YAGNI). 신선도 닥터(C1)가 먼저 스케일 신호를 준다. |
-| **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. R1h-SEC-TICKER는 SEC Company Search RSS의 ticker token 입력을 추가했다. R1i-SEC-CIK는 사용자가 제공한 로컬 SEC `company_tickers.json` lookup과 ambiguity failure policy를 추가했다. R1j-SEC-CIK-ERRORS와 R1k-SEC-CIK-ENTRY-ERRORS는 잘못된 로컬 파일과 개별 entry의 오류 표면을 정리했다. SEC mapping file live download/cache, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference는 provider 정책과 ToS 검토가 더 필요하다. |
+| **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. R1h-SEC-TICKER는 SEC Company Search RSS의 ticker token 입력을 추가했다. R1i-SEC-CIK는 사용자가 제공한 로컬 SEC `company_tickers.json` lookup과 ambiguity failure policy를 추가했다. R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS는 잘못된 로컬 파일, 개별 entry, CLI 출력의 오류 표면을 정리했다. SEC mapping file live download/cache, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference는 provider 정책과 ToS 검토가 더 필요하다. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서는 KO-only 유지(백로그 결정). 사용자 문서(README ×3)는 이미 trilingual. |
 
 ---
@@ -344,4 +352,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 등록된 source가 secret/package gate 때문에 fetch 전에 unavailable이어도 `ok=false` manifest를 남기고, 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, MR1, D1, D2, ENV1, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, MR1, D1, D2, ENV1, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.

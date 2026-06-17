@@ -14,6 +14,14 @@ from mimir.sources.config import SourcesConfig, parse_sources_config
 DEFAULT_CONFIG_DIR = Path("config")
 
 
+class SourcesConfigError(ValueError):
+    """A valid-looking ``sources.yaml`` failed while constructing sources."""
+
+
+class SecTickerCikMapConfigError(SourcesConfigError):
+    """The configured SEC ticker CIK mapping file could not be used."""
+
+
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
@@ -58,7 +66,7 @@ def _resolve_sources_config_paths(raw: dict[str, Any], config_dir: Path) -> dict
     return resolved
 
 
-def report_invalid_sources(exc: ValidationError) -> int:
+def report_invalid_sources(exc: ValidationError | SourcesConfigError) -> int:
     """Turn a malformed ``sources.yaml`` ``ValidationError`` into a friendly
     ``[mimir] invalid sources.yaml: <detail>`` message and exit code 1 (spec §5),
     instead of a raw pydantic traceback. Call from a CLI ``main``'s except clause."""

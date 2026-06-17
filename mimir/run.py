@@ -11,7 +11,12 @@ from pydantic import ValidationError
 
 from mimir.analyze import run_analyze
 from mimir.collect import run_collect
-from mimir.config import load_validated_sources_config, load_watchlist, report_invalid_sources
+from mimir.config import (
+    SourcesConfigError,
+    load_validated_sources_config,
+    load_watchlist,
+    report_invalid_sources,
+)
 from mimir.core.source import Cadence
 from mimir.deliver import run_deliver
 from mimir.evaluate import run_evaluate
@@ -91,13 +96,16 @@ def main(argv: list[str] | None = None) -> int:
         sources_config, _ = load_validated_sources_config(config_dir)
     except ValidationError as exc:
         return report_invalid_sources(exc)
-    result = run_pipeline(
-        cadence=args.cadence,
-        watchlist=load_watchlist(config_dir),
-        data_root=Path(args.data_root),
-        reports_root=Path(args.reports_root),
-        sources_config=sources_config,
-    )
+    try:
+        result = run_pipeline(
+            cadence=args.cadence,
+            watchlist=load_watchlist(config_dir),
+            data_root=Path(args.data_root),
+            reports_root=Path(args.reports_root),
+            sources_config=sources_config,
+        )
+    except SourcesConfigError as exc:
+        return report_invalid_sources(exc)
     print(
         f"[mimir] {args.cadence}: insights={result['insights']} "
         f"historical={result['historical']} evaluation={result['evaluation']} "

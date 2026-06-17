@@ -94,3 +94,26 @@ def test_collect_cli_real_env_overrides_dotenv(tmp_path: Path, monkeypatch):
 
     query = parse_qs(urlparse(responses.calls[0].request.url).query)
     assert query["apikey"] == ["fromrealenv"]
+
+
+def test_collect_cli_reports_sec_ticker_map_build_error(tmp_path: Path, capsys):
+    (tmp_path / "sources.yaml").write_text(
+        """
+        sources:
+          rss:
+            sec:
+              ticker_cik_map_path: company_tickers.json
+              company_filings:
+                - ticker: AAPL
+        """,
+        encoding="utf-8",
+    )
+    (tmp_path / "company_tickers.json").write_text("{", encoding="utf-8")
+    (tmp_path / "watchlist.yaml").write_text("us: []\nkr: []\n", encoding="utf-8")
+
+    rc = main(["--cadence", "daily", "--config-dir", str(tmp_path)])
+
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert err.startswith("[mimir] invalid sources.yaml:")
+    assert "SEC ticker CIK map file is not valid JSON" in err

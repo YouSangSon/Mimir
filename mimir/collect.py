@@ -9,7 +9,12 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from mimir.config import load_validated_sources_config, load_watchlist, report_invalid_sources
+from mimir.config import (
+    SourcesConfigError,
+    load_validated_sources_config,
+    load_watchlist,
+    report_invalid_sources,
+    )
 from mimir.core.builder import build_sources
 from mimir.core.orchestrator import Orchestrator, RunSummary
 from mimir.core.registry import Registry
@@ -26,6 +31,16 @@ DEFAULT_DATA_ROOT = Path("data")
 DEFAULT_STATUS_PATH = Path("reports/status.html")
 
 
+def _build_source_registry(settings: Settings, cfg: dict[str, Any]) -> Registry:
+    parsed_config = parse_sources_config(cfg)
+    sources = build_sources(settings, parsed_config)
+    return Registry(
+        sources,
+        gray_enabled=cfg.get("gray_enabled", True),
+        disabled_ids=set(cfg.get("disabled_ids", [])),
+    )
+
+
 def run_collect(
     *,
     cadence: str,
@@ -40,11 +55,7 @@ def run_collect(
     settings = Settings.from_env(env)
     cfg = sources_config or {}
     lang = cfg.get("lang", DEFAULT_LANG)
-    registry = Registry(
-        build_sources(settings, parse_sources_config(cfg)),
-        gray_enabled=cfg.get("gray_enabled", True),
-        disabled_ids=set(cfg.get("disabled_ids", [])),
-    )
+    registry = _build_source_registry(settings, cfg)
     store = JsonlStore(root=data_root)
     manifest = Manifest(root=data_root)
     orchestrator = Orchestrator(registry, store, manifest)
@@ -77,11 +88,14 @@ def main(argv: list[str] | None = None) -> int:
         sources_config, _ = load_validated_sources_config(config_dir)
     except ValidationError as exc:
         return report_invalid_sources(exc)
-    summary = run_collect(
-        cadence=args.cadence,
-        watchlist=load_watchlist(config_dir),
-        sources_config=sources_config,
-    )
+    try:
+        summary = run_collect(
+            cadence=args.cadence,
+            watchlist=load_watchlist(config_dir),
+            sources_config=sources_config,
+        )
+    except SourcesConfigError as exc:
+        return report_invalid_sources(exc)
     print(f"[mimir] {args.cadence}: {[r.model_dump() for r in summary.results]}")
     return 1 if summary.had_failures else 0
 
