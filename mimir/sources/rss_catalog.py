@@ -38,10 +38,10 @@ class SecCompanyFilingFeed(BaseModel):
     count: int = Field(default=40, ge=10, le=100)
     owner: Literal["exclude", "include", "only"] = "exclude"
 
-    @field_validator("cik")
+    @field_validator("cik", mode="before")
     @classmethod
-    def _normalize_cik(cls, value: str) -> str:
-        cik = value.strip()
+    def _normalize_cik(cls, value: object) -> str:
+        cik = str(value).strip()
         if not cik or not cik.isdigit() or len(cik) > 10:
             raise ValueError("SEC CIK must be a 1-10 digit string")
         return cik.zfill(10)

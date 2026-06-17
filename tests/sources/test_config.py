@@ -147,6 +147,16 @@ def test_rss_sec_company_filings_parse_from_config():
     ]
 
 
+def test_rss_sec_company_filings_accept_unquoted_numeric_cik():
+    cfg = parse_sources_config(
+        {"sources": {"rss": {"sec": {"company_filings": [{"cik": 320193}]}}}}
+    )
+
+    assert cfg.rss_sec_company_filings == [
+        SecCompanyFilingFeed(cik="0000320193")
+    ]
+
+
 def test_rss_sec_company_filings_typo_raises_validation_error():
     with pytest.raises(ValidationError):
         parse_sources_config(
