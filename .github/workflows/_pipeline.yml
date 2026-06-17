@@ -1,5 +1,6 @@
 name: _pipeline
-# Reusable pipeline: collect -> analyze -> history -> deliver, then commit data + reports.
+# Reusable pipeline: collect -> analyze -> history -> evaluate -> deliver -> dashboard,
+# then commit data + reports.
 # Called by the thin collect-{hourly,daily,weekly,monthly}.yml schedulers.
 on:
   workflow_call:
@@ -36,6 +37,8 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python -m mimir.run --cadence "$CADENCE"
+      - name: Run dashboard
+        run: python -m mimir.dashboard --data-root data --reports-root reports
       - name: Commit data + reports
         env:
           CADENCE: ${{ inputs.cadence }}
