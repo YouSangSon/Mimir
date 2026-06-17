@@ -7,6 +7,8 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
+from mimir.sources.config import SourcesConfig, parse_sources_config
+
 DEFAULT_CONFIG_DIR = Path("config")
 
 
@@ -23,6 +25,13 @@ def load_watchlist(config_dir: Path = DEFAULT_CONFIG_DIR) -> dict[str, list[str]
 
 def load_sources_config(config_dir: Path = DEFAULT_CONFIG_DIR) -> dict[str, Any]:
     return load_yaml(config_dir / "sources.yaml")
+
+
+def load_validated_sources_config(
+    config_dir: Path = DEFAULT_CONFIG_DIR,
+) -> tuple[dict[str, Any], SourcesConfig]:
+    raw = load_sources_config(config_dir)
+    return raw, parse_sources_config(raw)
 
 
 def report_invalid_sources(exc: ValidationError) -> int:

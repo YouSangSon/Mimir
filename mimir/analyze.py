@@ -5,12 +5,14 @@ import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from mimir.analysis.builder import build_signals
 from mimir.analysis.engine import AnalysisEngine
 from mimir.analysis.schema import Insight
-from mimir.config import load_sources_config, load_watchlist
+from mimir.config import load_validated_sources_config, load_watchlist, report_invalid_sources
 from mimir.settings import Settings
-from mimir.sources.config import SourcesConfig, parse_sources_config
+from mimir.sources.config import SourcesConfig
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.reader import DataReader
 
@@ -43,11 +45,15 @@ def main(argv: list[str] | None = None) -> int:
 
     config_dir = Path(args.config_dir)
     as_of = date.fromisoformat(args.date) if args.date else None
+    try:
+        _, sources_config = load_validated_sources_config(config_dir)
+    except ValidationError as exc:
+        return report_invalid_sources(exc)
     insights = run_analyze(
         watchlist=load_watchlist(config_dir),
         data_root=Path(args.data_root),
         as_of=as_of,
-        config=parse_sources_config(load_sources_config(config_dir)),
+        config=sources_config,
         settings=Settings.from_env(),
     )
     for ins in insights:

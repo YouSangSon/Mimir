@@ -5,8 +5,10 @@ import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from mimir.analysis.schema import Insight
-from mimir.config import load_sources_config, load_watchlist
+from mimir.config import load_validated_sources_config, load_watchlist, report_invalid_sources
 from mimir.core.payloads import Payload
 from mimir.core.source import Dataset
 from mimir.doctor.engine import run_doctor
@@ -101,7 +103,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config_dir = Path(args.config_dir)
-    lang = args.lang or load_sources_config(config_dir).get("lang", DEFAULT_LANG)
+    try:
+        sources_config, _ = load_validated_sources_config(config_dir)
+    except ValidationError as exc:
+        return report_invalid_sources(exc)
+    lang = args.lang or sources_config.get("lang", DEFAULT_LANG)
     as_of = date.fromisoformat(args.date) if args.date else None
     out_path = run_dashboard(
         config_dir=config_dir,

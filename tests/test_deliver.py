@@ -184,3 +184,41 @@ def test_main_uses_default_env_path(tmp_path: Path, monkeypatch):
 
     assert rc == 0
     assert "env" not in captured
+
+
+def test_main_reports_invalid_sources_yaml_without_writing_report(
+    tmp_path: Path, monkeypatch, capsys
+):
+    config_dir = tmp_path / "config"
+    reports_root = tmp_path / "reports"
+    config_dir.mkdir()
+    (config_dir / "sources.yaml").write_text(
+        "analysys:\n  news:\n    use_default_aliases: false\n",
+        encoding="utf-8",
+    )
+    (config_dir / "watchlist.yaml").write_text("us: []\nkr: []\n", encoding="utf-8")
+
+    def _fake_run_deliver(**kwargs: object) -> dict[str, object]:
+        report = Path(kwargs["reports_root"]) / "2026/05/31.html"
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.write_text("should not be written", encoding="utf-8")
+        return {"insights": 0, "report": report, "sent": False}
+
+    monkeypatch.setattr(deliver_module, "run_deliver", _fake_run_deliver)
+
+    rc = deliver_module.main(
+        [
+            "--cadence",
+            "daily",
+            "--config-dir",
+            str(config_dir),
+            "--data-root",
+            str(tmp_path / "data"),
+            "--reports-root",
+            str(reports_root),
+        ]
+    )
+
+    assert rc == 1
+    assert capsys.readouterr().err.startswith("[mimir] invalid sources.yaml:")
+    assert not reports_root.exists()

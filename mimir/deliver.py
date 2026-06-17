@@ -7,7 +7,10 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
 from mimir.analysis.schema import Insight
+from mimir.config import load_validated_sources_config, report_invalid_sources
 from mimir.core.source import Cadence, Dataset
 from mimir.evaluation.schema import BucketStat
 from mimir.historical.schema import HistoricalInsight
@@ -77,9 +80,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config-dir", default="config")
     args = parser.parse_args(argv)
 
-    from mimir.config import load_sources_config
-
-    lang = load_sources_config(Path(args.config_dir)).get("lang", DEFAULT_LANG)
+    try:
+        sources_config, _ = load_validated_sources_config(Path(args.config_dir))
+    except ValidationError as exc:
+        return report_invalid_sources(exc)
+    lang = sources_config.get("lang", DEFAULT_LANG)
     as_of = date.fromisoformat(args.date) if args.date else None
     result = run_deliver(
         cadence=args.cadence,

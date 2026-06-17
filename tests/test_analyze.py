@@ -1,6 +1,7 @@
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+from mimir import analyze as analyze_module
 from mimir.analyze import run_analyze
 from mimir.core.source import Dataset, Market
 from mimir.storage.jsonl_store import JsonlStore
@@ -40,3 +41,18 @@ def test_run_analyze_writes_insights(tmp_path: Path):
     )
     assert len(insights) == 1
     assert (data_root / "insights/2026/05/31.jsonl").exists()
+
+
+def test_main_reports_invalid_sources_yaml(tmp_path: Path, capsys):
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "sources.yaml").write_text(
+        "analysys:\n  news:\n    use_default_aliases: false\n",
+        encoding="utf-8",
+    )
+    (config_dir / "watchlist.yaml").write_text("us: []\nkr: []\n", encoding="utf-8")
+
+    rc = analyze_module.main(["--config-dir", str(config_dir)])
+
+    assert rc == 1
+    assert capsys.readouterr().err.startswith("[mimir] invalid sources.yaml:")

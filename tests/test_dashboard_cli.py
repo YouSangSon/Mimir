@@ -4,6 +4,7 @@ import hashlib
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+from mimir import dashboard as dashboard_module
 from mimir.analysis.schema import Insight
 from mimir.analysis.schema import to_record as insight_to_record
 from mimir.analysis.signals.base import SignalDirection
@@ -165,3 +166,42 @@ def test_main_returns_zero_and_writes(tmp_path: Path):
     assert code == 0
     html = (reports_root / "dashboard.html").read_text(encoding="utf-8")
     assert 'lang="ko"' in html
+
+
+def test_main_reports_invalid_sources_yaml_without_writing_dashboard(
+    tmp_path: Path, monkeypatch, capsys
+):
+    data_root = tmp_path / "data"
+    reports_root = tmp_path / "reports"
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "sources.yaml").write_text(
+        "analysys:\n  news:\n    use_default_aliases: false\n",
+        encoding="utf-8",
+    )
+    (config_dir / "watchlist.yaml").write_text("us: []\nkr: []\n", encoding="utf-8")
+
+    def _fake_run_dashboard(**kwargs: object) -> Path:
+        out = Path(kwargs["reports_root"]) / "dashboard.html"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text("should not be written", encoding="utf-8")
+        return out
+
+    monkeypatch.setattr(dashboard_module, "run_dashboard", _fake_run_dashboard)
+
+    rc = dashboard_module.main(
+        [
+            "--config-dir",
+            str(config_dir),
+            "--data-root",
+            str(data_root),
+            "--reports-root",
+            str(reports_root),
+            "--date",
+            "2026-05-31",
+        ]
+    )
+
+    assert rc == 1
+    assert capsys.readouterr().err.startswith("[mimir] invalid sources.yaml:")
+    assert not reports_root.exists()

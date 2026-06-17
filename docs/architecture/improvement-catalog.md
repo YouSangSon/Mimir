@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/MR1/C3/OPS1/ENV1 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/MR1/C3/OPS1/ENV1/CFG1 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -46,6 +46,7 @@
 | **C1** | 데이터 신선도·품질 닥터 (`mimir doctor`) | 운영 | "무음 실패 금지" 약속 | **✅ 구현 완료 (Increment 3)** | 코드 + 테스트(179) |
 | **OPS1** | Scheduled dashboard publication (`reports/dashboard.html`) | 운영가시성 | README + 현행 spec | **✅ 구현 완료 (2026-06-17)** | workflow + 테스트 + docs · [spec](../superpowers/specs/2026-06-17-scheduled-dashboard-publication-design.md) |
 | **ENV1** | Runtime `.env` autoload contract | 운영/DX | README 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-dotenv-cli-autoload-design.md) |
+| **CFG1** | `sources.yaml` CLI validation contract | 운영/DX | docs/reference config 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-sources-config-cli-validation-design.md) |
 | **C2** | 파티션 인덱스 (git-as-DB rglob 스케일) | 성능 | 신규 | ⏸ 보류 | 본 문서 §6 |
 | **C3** | pykrx retry/backoff 정책 | 견고성 | 백로그 LOW | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-pykrx-retry-policy-design.md) |
 | **D1** | 통합 `mimir` CLI (console_scripts) | DX | README 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-cli-entrypoints-design.md) |
@@ -223,6 +224,12 @@ README는 `.env`가 runtime에 자동 로드되고, CI Secrets나 shell 환경�
 
 구현 후 runtime 함수의 `env` 인자는 선택값이다. CLI는 기본 `env=None` 경로를 사용해 기존 `find_dotenv(usecwd=True)`와 `load_dotenv(..., override=False)` 동작을 탄다. 테스트와 library caller는 `env={...}`를 명시해 `.env`를 읽지 않는 deterministic 경로를 계속 쓸 수 있다. Secret 값은 manifest, report, 문서 출력에 추가로 노출하지 않는다.
 
+### CFG1. `sources.yaml` CLI validation contract — **구현 완료 (2026-06-18)**
+
+`docs/reference/config/sources.md`는 malformed `sources.yaml`을 CLI가 `[mimir] invalid sources.yaml:` 메시지로 실패시킨다고 약속한다. 기존 `collect`/`run`/`backfill`은 이 계약을 지켰지만, `analyze`는 raw pydantic `ValidationError`를 노출할 수 있었고 `deliver`/`dashboard`는 `lang`만 unchecked dict에서 읽어 `analysys:` 같은 typo를 숨길 수 있었다.
+
+구현 후 `mimir.config.load_validated_sources_config()`가 raw dict load와 `parse_sources_config()` 검증을 한 번에 제공한다. 각 CLI `main()`은 이 helper 호출만 좁은 `try/except ValidationError`로 감싸고, runtime 함수 호출은 catch 밖에 둔다. 그래서 `analyze`/`deliver`/`dashboard`도 malformed config에 대해 friendly message와 exit code 1로 실패하면서, downstream data/model `ValidationError`는 `sources.yaml` 오류로 오분류하지 않는다.
+
 ---
 
 ## 5. 증분 실행 순서 (Sequencing)
@@ -252,6 +259,7 @@ R1g-SEC-STRUCTURED ─ SEC structured disclosure RSS catalog
 R1h-SEC-TICKER ─ SEC company filing RSS ticker input
 D1 ───────── unified CLI entry points · mimir + mimir.<command>
 ENV1 ─────── runtime .env autoload · CLI default env=None
+CFG1 ─────── sources.yaml CLI validation · shared load_validated_sources_config
 D2 ───────── GitHub Actions Node24-compatible action majors
 C3 ───────── pykrx retry/backoff · FetchError manifest surface
 BF-MANIFEST ─ backfill success/failure manifest

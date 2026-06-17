@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from mimir.config import load_sources_config, load_watchlist, report_invalid_sources
+from mimir.config import load_validated_sources_config, load_watchlist, report_invalid_sources
 from mimir.core.builder import build_sources
 from mimir.core.orchestrator import Orchestrator, RunSummary
 from mimir.core.registry import Registry
@@ -73,9 +73,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config_dir = Path(args.config_dir)
-    sources_config = load_sources_config(config_dir)
     try:  # validate config upfront; keep the except narrow so a downstream
-        parse_sources_config(sources_config)  # ValidationError isn't mislabeled
+        sources_config, _ = load_validated_sources_config(config_dir)
     except ValidationError as exc:
         return report_invalid_sources(exc)
     summary = run_collect(
