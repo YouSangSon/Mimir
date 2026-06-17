@@ -37,6 +37,13 @@ sources:
   rss:
     catalogs:
       - { id: "sec_press_releases" }
+    sec:
+      company_filings:
+        - cik: "0000320193"
+          symbol: "AAPL"
+          forms: ["10-K", "10-Q", "8-K"]
+          count: 40
+          owner: "exclude"
     feeds:
       - { url: "https://www.sec.gov/news/pressreleases.rss", publisher: "SEC", market: "US" }
       - { url: "https://example.com/aapl.rss", publisher: "Example", market: "US", symbol: "AAPL" }
@@ -163,6 +170,13 @@ sources:
   rss:
     catalogs:
       - id: "sec_press_releases"
+    sec:
+      company_filings:
+        - cik: "0000320193"
+          symbol: "AAPL"
+          forms: ["10-K", "10-Q", "8-K"]
+          count: 40
+          owner: "exclude"
     feeds:
       - url: "https://www.sec.gov/news/pressreleases.rss"
         publisher: "SEC"
@@ -175,21 +189,38 @@ sources:
 
 RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 전문을 가져오지 않는다. LLM 뉴스 감성 시그널도 저장된 제목과 요약만 사용한다.
 
+`build_sources()`로 만든 RSS source는 `MIMIR_SEC_USER_AGENT` 값을 모든 RSS HTTP 요청의 `User-Agent` header로 보낸다. 이 header는 SEC feed뿐 아니라 manual RSS feed에도 같이 적용된다.
+
 | 필드 | 필수 | 의미 |
 |---|---|---|
 | `catalogs` | 아니오 | Mimir가 코드에 담아 둔 검증된 RSS feed catalog 선택 목록 |
 | `catalogs[].id` | 예 | catalog id. 현재 내장 id는 `sec_press_releases` |
+| `sec.company_filings` | 아니오 | SEC EDGAR Company Search Atom feed를 CIK와 form 설정에서 조립하는 목록 |
 | `feeds` | 아니오 | 운영자가 직접 지정하는 RSS feed 목록 |
 | `url` | 예 | RSS feed URL |
 | `publisher` | 예 | payload에 저장할 발행자 이름 |
 | `market` | 예 | payload에 저장할 feed market. record envelope market은 source 특성상 `GLOBAL`이다 |
 | `symbol` | 아니오 | 이 feed가 특정 watchlist symbol 전용일 때 쓰는 값. 공백은 제거하고 빈 값은 오류로 처리한다 |
 
-`sources.rss.catalogs`는 반복해서 쓰는 공식 feed URL을 id로 고르는 편의 기능이다. Resolver는 코드 안의 정적 catalog만 읽는다. Catalog를 해석하는 동안 네트워크를 호출하지 않으며, live RSS discovery, vendor URL 추측, EDGAR 검색 RSS 조립도 하지 않는다.
+`sources.rss.catalogs`는 반복해서 쓰는 공식 feed URL을 id로 고르는 편의 기능이다. Resolver는 코드 안의 정적 catalog만 읽는다. Catalog를 해석하는 동안 네트워크를 호출하지 않으며, generic live discovery나 vendor URL 추측도 하지 않는다.
 
 현재 내장 catalog id는 `sec_press_releases`다. 이 id는 `https://www.sec.gov/news/pressreleases.rss` feed를 `publisher="SEC"`, `market="US"`로 확장한다.
 
-`catalogs`와 `feeds`를 함께 쓰면 catalog feed가 먼저 오고, manual feed가 뒤에 붙는다. 같은 `(url, symbol)` 쌍이 두 번 나오면 실패한다. 중복을 조용히 제거하면 운영자가 같은 feed를 두 경로로 설정했다는 사실을 놓칠 수 있기 때문이다. 같은 URL이라도 symbol이 다르면 서로 다른 종목 관계를 뜻하므로 허용한다.
+`catalogs`, `sec.company_filings`, `feeds`를 함께 쓰면 catalog feed, SEC EDGAR feed, manual feed 순서로 붙는다. 같은 `(url, symbol)` 쌍이 두 번 나오면 실패한다. 중복을 조용히 제거하면 운영자가 같은 feed를 두 경로로 설정했다는 사실을 놓칠 수 있기 때문이다. 같은 URL이라도 symbol이 다르면 서로 다른 종목 관계를 뜻하므로 허용한다.
+
+#### SEC EDGAR company filing feeds
+
+`sources.rss.sec.company_filings`는 SEC EDGAR Company Search가 제공하는 Atom feed URL을 설정에서 조립한다. 이 기능은 SEC 페이지를 크롤링하지 않는다. 사용자가 CIK를 명시하면 Mimir가 `browse-edgar?action=getcompany&output=atom` URL을 만든다.
+
+| 필드 | 필수 | 기본값 | 의미 |
+|---|---|---|---|
+| `cik` | 예 | 없음 | SEC CIK. 숫자 1~10자리를 받으며 URL에는 10자리로 zero-pad된다 |
+| `symbol` | 아니오 | 없음 | 이 feed를 연결할 watchlist symbol |
+| `forms` | 아니오 | 없음 | `10-K`, `10-Q`, `8-K`, `10-K/A` 같은 form type 목록 |
+| `count` | 아니오 | `40` | SEC Atom feed의 count. 허용 범위는 10~100 |
+| `owner` | 아니오 | `exclude` | SEC owner filter. `exclude`, `include`, `only` 중 하나 |
+
+SEC fair-access 정책은 자동화 도구가 자신을 식별하고 필요한 요청만 보내기를 요구한다. SEC feed를 쓰는 환경에서는 `MIMIR_SEC_USER_AGENT`를 `서비스명 이메일` 형식으로 설정한다.
 
 `symbol`이 없으면 기존처럼 일반 뉴스 feed로 저장한다. idempotency key도 기존 형식인 `rss:{link}`를 유지한다.
 

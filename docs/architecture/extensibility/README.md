@@ -12,7 +12,7 @@ Mimir는 공개 데이터를 수집하고, 저장된 데이터로 인사이트�
 
 | 확장 지점 | 사용자가 바꾸는 것 | 코드 진입점 | 현재 상태 |
 |---|---|---|---|
-| 수집 소스 | `config/sources.yaml`, 새 `Source` 구현, 또는 `mimir.sources` plugin | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. RSS는 정적 feed catalog와 optional `symbol`로 공식 feed와 종목 전용 feed를 표현한다. 새 내장 소스는 `SourceSpec` 한 줄로 등록. 외부 package는 entry point와 `sources.plugins.<source_id>` 설정 namespace로 source를 추가 |
+| 수집 소스 | `config/sources.yaml`, 새 `Source` 구현, 또는 `mimir.sources` plugin | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. RSS는 정적 feed catalog, SEC EDGAR company filing Atom feed 조립, optional `symbol`로 공식 feed와 종목 전용 feed를 표현한다. 새 내장 소스는 `SourceSpec` 한 줄로 등록. 외부 package는 entry point와 `sources.plugins.<source_id>` 설정 namespace로 source를 추가 |
 | 분석 시그널 | `config/sources.yaml`의 `analysis:` 또는 `build_signals()`에 시그널 추가 | `mimir/analysis/builder.py` | 기본 뉴스 alias, 사용자 alias, symbol-tagged RSS, macro rate-series는 설정으로 제어 가능. LLM 시그널은 off-by-default gate로 배선됨 |
 | 출력 표면 | `daily_report`, `dashboard`, `digest` | `mimir/report/` | 일일 리포트와 대시보드가 인사이트·과거사례·평가를 표시한다. Scheduled workflow는 pipeline 성공 뒤 dashboard CLI를 실행해 `reports/dashboard.html`을 최신 운영 표면으로 publish한다 |
 
@@ -65,6 +65,9 @@ sources:
   rss:
     catalogs:
       - { id: "sec_press_releases" }
+    sec:
+      company_filings:
+        - { cik: "0000320193", symbol: "AAPL", forms: ["10-K", "10-Q", "8-K"] }
     feeds:
       - { url: "https://www.sec.gov/news/pressreleases.rss", publisher: "SEC", market: "US" }
       - { url: "https://example.com/aapl.rss", publisher: "Example", market: "US", symbol: "AAPL" }
@@ -72,7 +75,9 @@ sources:
 
 이 경로는 파이썬 코드를 고치지 않는다. 설정이 없으면 기존 기본값을 그대로 쓴다. 설정 키가 틀리면 조용히 무시하지 않고 `ValidationError`로 실패한다.
 
-RSS catalog는 이 설정 경로 안의 built-in 편의 기능이다. `sources.rss.catalogs`는 Mimir가 정적으로 검증해 둔 feed를 id로 고른다. 현재 id는 `sec_press_releases` 하나이며, resolver는 네트워크를 호출하지 않는다. Provider live discovery, HTML scraping, URL pattern 추측은 source plugin이나 별도 증분 설계 대상이지 현재 catalog resolver의 책임이 아니다.
+RSS 확장은 세 경로를 가진다. `sources.rss.catalogs`는 검증된 정적 feed를 id로 고른다. `sources.rss.sec.company_filings`는 사용자가 명시한 CIK와 form type에서 SEC EDGAR Atom feed URL을 조립한다. `sources.rss.feeds`는 운영자가 직접 아는 URL을 그대로 추가한다.
+
+RSS resolver는 이 설정을 해석하는 동안 네트워크를 호출하지 않는다. Provider live discovery, HTML scraping, URL pattern 추측은 source plugin이나 별도 증분 설계 대상이지 현재 resolver의 책임이 아니다.
 
 ### 3.2 RSS feed catalog
 
