@@ -137,9 +137,10 @@ def test_collect_cli_reports_missing_sec_ticker_mapping(tmp_path: Path, capsys):
     )
     (tmp_path / "watchlist.yaml").write_text("us: []\nkr: []\n", encoding="utf-8")
 
+    map_path = tmp_path / "company_tickers.json"
     rc = main(["--cadence", "daily", "--config-dir", str(tmp_path)])
 
     assert rc == 1
     err = capsys.readouterr().err
     assert err.startswith("[mimir] invalid sources.yaml:")
-    assert "SEC ticker CIK map has no entry for ticker MSFT" in err
+    assert f"SEC ticker CIK map has no entry for ticker MSFT in {map_path}" in err
