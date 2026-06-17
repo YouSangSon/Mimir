@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/BF-PREFLIGHT 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/BF-PREFLIGHT 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -54,6 +54,7 @@
 | **OPS1** | Scheduled dashboard publication (`reports/dashboard.html`) | 운영가시성 | README + 현행 spec | **✅ 구현 완료 (2026-06-17)** | workflow + 테스트 + docs · [spec](../superpowers/specs/2026-06-17-scheduled-dashboard-publication-design.md) |
 | **ENV1** | Runtime `.env` autoload contract | 운영/DX | README 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-dotenv-cli-autoload-design.md) |
 | **CFG1** | `sources.yaml` CLI validation contract | 운영/DX | docs/reference config 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-sources-config-cli-validation-design.md) |
+| **CFG2** | `mimir doctor` sources config validation | 운영/DX | CFG1 후속 + doctor 운영 점검 계약 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/config/CFG2_doctor_sources_config_validation_tech_spec_2026_06_18.md) |
 | **C2** | 파티션 인덱스 (git-as-DB rglob 스케일) | 성능 | 신규 | ⏸ 보류 | 본 문서 §6 |
 | **C3** | pykrx retry/backoff 정책 | 견고성 | 백로그 LOW | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-pykrx-retry-policy-design.md) |
 | **D1** | 통합 `mimir` CLI (console_scripts) | DX | README 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-cli-entrypoints-design.md) |
@@ -281,6 +282,12 @@ README는 `.env`가 runtime에 자동 로드되고, CI Secrets나 shell 환경�
 
 구현 후 `mimir.config.load_validated_sources_config()`가 raw dict load와 `parse_sources_config()` 검증을 한 번에 제공한다. 각 CLI `main()`은 이 helper 호출만 좁은 `try/except ValidationError`로 감싸고, runtime 함수 호출은 catch 밖에 둔다. 그래서 `analyze`/`deliver`/`dashboard`도 malformed config에 대해 friendly message와 exit code 1로 실패하면서, downstream data/model `ValidationError`는 `sources.yaml` 오류로 오분류하지 않는다.
 
+### CFG2. `mimir doctor` sources config validation — **구현 완료 (2026-06-18)**
+
+`mimir doctor`는 `--config-dir`을 받는 운영 점검 명령이다. 변경 전에는 같은 directory의 `watchlist.yaml`만 읽었기 때문에 `sources.yaml` 최상위 키 오타나 block schema 오류가 있어도 데이터 freshness 점검과 HTML 파일 쓰기를 계속할 수 있었다.
+
+구현 후 `doctor_cli.main()`도 `load_validated_sources_config()`를 먼저 호출한다. `sources.yaml` schema가 깨져 있으면 `run_doctor()`를 실행하지 않고, `--html` 파일도 쓰지 않는다. 오류 표면은 다른 CLI와 같은 `[mimir] invalid sources.yaml:` prefix와 exit code 1이다. 이 변경은 source build를 실행하거나 SEC mapping file을 다운로드하지 않으며, doctor의 read-only 데이터 점검 경계는 그대로 유지한다.
+
 ---
 
 ## 5. 증분 실행 순서 (Sequencing)
@@ -315,6 +322,7 @@ R1l-SEC-CIK-CLI-ERRORS ─ SEC ticker CIK map CLI error surface
 D1 ───────── unified CLI entry points · mimir + mimir.<command>
 ENV1 ─────── runtime .env autoload · CLI default env=None
 CFG1 ─────── sources.yaml CLI validation · shared load_validated_sources_config
+CFG2 ─────── mimir doctor sources.yaml schema validation
 D2 ───────── GitHub Actions Node24-compatible action majors
 	C3 ───────── pykrx retry/backoff · FetchError manifest surface
 	BF-MANIFEST ─ backfill success/failure manifest
@@ -352,4 +360,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 등록된 source가 secret/package gate 때문에 fetch 전에 unavailable이어도 `ok=false` manifest를 남기고, 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, MR1, D1, D2, ENV1, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, MR1, D1, D2, ENV1, CFG2, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.

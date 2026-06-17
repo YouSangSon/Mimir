@@ -55,7 +55,7 @@ Text 출력은 터미널에서 빠르게 보기 좋다. JSON 출력은 자동화
 - dashboard HTML에 doctor 전용 페이지를 끼워 넣지 않는다.
 - JSON schema를 바꾸지 않는다.
 - `Finding.message` 자체를 3언어로 번역하지 않는다.
-- `sources.yaml` 검증을 doctor 기본 경로에 새로 추가하지 않는다.
+- `sources.yaml` schema 검증 자체는 DCHTML의 범위가 아니었다. CFG2가 후속으로 doctor 기본 경로의 schema 검증을 추가한다.
 
 ---
 

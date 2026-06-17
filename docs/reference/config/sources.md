@@ -8,7 +8,7 @@
 
 ## 1. 한눈에 보기
 
-`sources.yaml`은 어떤 소스를 켤지, 어떤 언어로 리포트를 만들지, 어떤 외부 시리즈와 RSS 피드를 수집할지, 수집된 데이터를 분석 시그널이 어떻게 해석할지 정한다. 잘못된 최상위 키, `sources:` 블록, `analysis:` 블록은 조용히 무시하지 않는다. 파서가 실패시키고 CLI가 `invalid sources.yaml` 메시지를 낸다.
+`sources.yaml`은 어떤 소스를 켤지, 어떤 언어로 리포트를 만들지, 어떤 외부 시리즈와 RSS 피드를 수집할지, 수집된 데이터를 분석 시그널이 어떻게 해석할지 정한다. 잘못된 최상위 키, `sources:` 블록, `analysis:` 블록은 조용히 무시하지 않는다. 파서가 실패시키고 CLI가 `invalid sources.yaml` 메시지를 낸다. 운영 점검 명령인 `mimir doctor`도 데이터 점검이나 HTML 파일 쓰기 전에 같은 schema 검증을 먼저 수행한다.
 
 ```yaml
 gray_enabled: true

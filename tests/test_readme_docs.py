@@ -11,10 +11,10 @@ BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
 TABLE_RE = re.compile(r"\|\s*\*\*(?:Tests|테스트|测试)\*\*\s*\|\s*(\d+) passing")
 COLLECTED_RE = re.compile(r"(?:(\d+) tests collected|collected (\d+) items)")
 LATEST_COMPLETED_IDS = (
-    "R1k-SEC-CIK-ENTRY-ERRORS",
     "R1l-SEC-CIK-CLI-ERRORS",
     "DCHTML",
     "DOCHEALTH",
+    "CFG2",
 )
 
 

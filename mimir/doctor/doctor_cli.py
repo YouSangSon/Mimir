@@ -4,7 +4,9 @@ import argparse
 from datetime import UTC, datetime
 from pathlib import Path
 
-from mimir.config import load_watchlist
+from pydantic import ValidationError
+
+from mimir.config import load_validated_sources_config, load_watchlist, report_invalid_sources
 from mimir.doctor.engine import run_doctor
 from mimir.doctor.report import DoctorReport, Severity
 from mimir.report.doctor_html import render_doctor_html
@@ -45,7 +47,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    watchlist = load_watchlist(Path(args.config_dir))
+    config_dir = Path(args.config_dir)
+    try:
+        load_validated_sources_config(config_dir)
+    except ValidationError as exc:
+        return report_invalid_sources(exc)
+
+    watchlist = load_watchlist(config_dir)
     store = JsonlStore(root=Path(args.data_root))
     report = run_doctor(store=store, watchlist=watchlist, now=_now())
 

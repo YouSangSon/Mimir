@@ -153,6 +153,35 @@ def test_cli_html_respects_lang(tmp_path: Path, monkeypatch, capsys):
     assert "데이터 닥터" in html
 
 
+def test_cli_reports_invalid_sources_yaml_without_writing_html(
+    tmp_path: Path, monkeypatch, capsys
+):
+    data_root = tmp_path / "data"
+    write_fresh_tree(data_root, NOW)
+    config_dir = _write_config(tmp_path, us=[])
+    (config_dir / "sources.yaml").write_text(
+        "analysys:\n  news:\n    use_default_aliases: false\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "reports" / "doctor.html"
+
+    code = _run(
+        [
+            "--config-dir",
+            str(config_dir),
+            "--data-root",
+            str(data_root),
+            "--html",
+            str(out),
+        ],
+        monkeypatch,
+    )
+
+    assert code == 1
+    assert capsys.readouterr().err.startswith("[mimir] invalid sources.yaml:")
+    assert not out.exists()
+
+
 def test_cli_json_html_preserves_json_stdout(tmp_path: Path, monkeypatch, capsys):
     data_root = tmp_path / "data"
     write_fresh_tree(data_root, NOW)
