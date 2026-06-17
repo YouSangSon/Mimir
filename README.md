@@ -13,7 +13,7 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-438%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-484%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -57,7 +57,8 @@ cp .env.example .env          # fill in only the free keys you want (auto-loaded
 
 # 3. Run the full pipeline (collect → analyze → historical patterns → evaluate → report)
 .venv/bin/python -m mimir.run --cadence daily   # cadence: hourly|daily|weekly|monthly
-#   or step by step: mimir.collect / mimir.analyze / mimir.history / mimir.evaluate / mimir.deliver
+#   installed CLI: .venv/bin/mimir run --cadence daily
+#   or step by step: mimir collect / mimir analyze / mimir history / mimir evaluate / mimir deliver
 ```
 
 `.env` is auto-loaded from the current directory at runtime (keys are never committed). In CI, GitHub Actions Secrets take precedence.
@@ -88,7 +89,7 @@ reports/status.html               # per-source collection status
 
 | Feature | Behavior |
 | :--- | :--- |
-| **Source adapters** | 7 built-in sources behind a shared `Source` protocol. RSS supports a static feed catalog and symbol-tagged feeds. External packages can add source plugins via `mimir.sources` and `sources.plugins.<source_id>` |
+| **Source adapters** | 7 built-in sources behind a shared `Source` protocol. RSS supports a static feed catalog, SEC company filing feed helpers, and symbol-tagged feeds. External packages can add source plugins via `mimir.sources` and `sources.plugins.<source_id>` |
 | **Source isolation** | One source's failure or format change never halts another source or the whole run |
 | **Normalized envelope** | Every source converges to a common record validated with pydantic (`prices` · `filings` · `macro` · `news`) |
 | **Idempotent storage** | Re-running the same collection appends without duplicates thanks to the `idempotency_key` |
@@ -190,24 +191,27 @@ Adding a built-in source is done with a single adapter in `sources/` plus one `S
 ## 🛠️ CLI
 
 ```text
-mimir.collect  --cadence {hourly|daily|weekly|monthly} [--config-dir config]
-mimir.backfill --source <id> --since YYYY-MM-DD [--config-dir config]
-mimir.analyze  [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
-mimir.deliver  [--cadence daily] [--date YYYY-MM-DD] [--reports-root reports]
-mimir.history  [--symbol S] [--date YYYY-MM-DD] [--data-root data]
-mimir.doctor   [--config-dir config] [--data-root data] [--format text|json] [--strict]
-mimir.evaluate [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
-mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
+mimir run       --cadence {hourly|daily|weekly|monthly} [--config-dir config] [--data-root data] [--reports-root reports]
+mimir collect   --cadence {hourly|daily|weekly|monthly} [--config-dir config]
+mimir backfill  --source <id> --since YYYY-MM-DD [--config-dir config]
+mimir analyze   [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
+mimir deliver   [--cadence daily] [--date YYYY-MM-DD] [--reports-root reports]
+mimir history   [--symbol S] [--date YYYY-MM-DD] [--data-root data]
+mimir doctor    [--config-dir config] [--data-root data] [--format text|json] [--strict]
+mimir evaluate  [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
+mimir dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 ```
 
 ```bash
-.venv/bin/python -m mimir.collect --cadence daily     # collect → data/
-.venv/bin/python -m mimir.analyze --date 2026-05-31   # analyze → insights/
+.venv/bin/mimir collect --cadence daily               # collect → data/
+.venv/bin/mimir analyze --date 2026-05-31             # analyze → insights/
 #   [mimir] AAPL bullish ★★★★☆ (conf 0.85)
-.venv/bin/python -m mimir.deliver --cadence daily     # report + digest
+.venv/bin/mimir deliver --cadence daily               # report + digest
 #   reports/2026/05/31.html + reports/index.html (+ Telegram send)
-.venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
+.venv/bin/mimir.backfill --source stooq --since 2018-01-01
 ```
+
+Each command also keeps its module form, for example `.venv/bin/python -m mimir.collect --cadence daily`. Dotted aliases such as `mimir.collect` are installed for scripts and docs that already use the old command names.
 
 > The scheduled workflows (hourly/daily/weekly/monthly) call the reusable pipeline, which chains `collect → analyze → history → evaluate → deliver → dashboard` and commits `data/` and `reports/` to the repo. The daily HTML report is kept permanently at `reports/YYYY/MM/DD.html`, `reports/index.html` browses the archive, and `reports/dashboard.html` is refreshed as the latest operations dashboard.
 
@@ -224,7 +228,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | Item | Value |
 | :--- | :--- |
-| **Tests** | 438 passing (adapters verified with recorded fixtures, no network) |
+| **Tests** | 484 passing (adapters verified with recorded fixtures, no network) |
 | **Coverage** | `mimir/` 97% (gate 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |
@@ -251,7 +255,7 @@ The full picture is managed against [`docs/architecture/roadmap.md`](docs/archit
 
 | Area | Status |
 | :--- | :--- |
-| **Insights / star ratings** | Implemented as rule-based signals with ⭐ conviction, confidence, attention, and a disclaimer. News matching uses the static `sources.rss.catalogs` catalog, symbol-tagged RSS feeds, conservative default company aliases, and user aliases; LLM sentiment is available as an off-by-default seam. Automatic/live feed discovery is not implemented |
+| **Insights / star ratings** | Implemented as rule-based signals with ⭐ conviction, confidence, attention, and a disclaimer. News matching uses the static `sources.rss.catalogs` catalog, SEC company filing RSS helpers, symbol-tagged RSS feeds, conservative default company aliases, and user aliases; LLM sentiment is available as an off-by-default seam. Automatic/live feed discovery is not implemented |
 | **KR prices** | pykrx is GRAY and optional to install (`[kr]`). The price source that works without keys is Stooq (free apikey required) |
 | **Historical-pattern analysis** | S4 implemented (event-study). Needs price history with a large enough sample `n` — backfill recommended |
 | **Signal scorecard** | Implemented via `mimir.evaluate` and shown in the daily report/dashboard. Early runs may show insufficient sample until enough past insights and prices exist |

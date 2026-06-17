@@ -13,7 +13,7 @@ repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 �
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-438%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-484%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -57,7 +57,8 @@ cp .env.example .env          # 원하는 무료 키만 채우면 됨 (자동 �
 
 # 3. 전체 파이프라인 실행 (수집→분석→과거패턴→평가→리포트)
 .venv/bin/python -m mimir.run --cadence daily   # cadence: hourly|daily|weekly|monthly
-#   또는 단계별로: mimir.collect / mimir.analyze / mimir.history / mimir.evaluate / mimir.deliver
+#   설치된 CLI: .venv/bin/mimir run --cadence daily
+#   또는 단계별로: mimir collect / mimir analyze / mimir history / mimir evaluate / mimir deliver
 ```
 
 `.env`는 실행 시 현재 디렉터리에서 자동 로드된다(키는 절대 커밋되지 않음). CI에서는 GitHub Actions Secrets가 우선한다.
@@ -88,7 +89,7 @@ reports/status.html               # 소스별 수집 현황
 
 | 기능 | 동작 |
 | :--- | :--- |
-| **소스 어댑터** | 공통 `Source` 프로토콜 뒤에 7개 내장 소스를 격리 구현한다. RSS는 정적 feed catalog와 종목별 feed를 지원한다. 외부 package는 `mimir.sources` entry point와 `sources.plugins.<source_id>` 설정 namespace로 source plugin을 등록할 수 있다 |
+| **소스 어댑터** | 공통 `Source` 프로토콜 뒤에 7개 내장 소스를 격리 구현한다. RSS는 정적 feed catalog, SEC 회사 공시 feed helper, 종목별 feed를 지원한다. 외부 package는 `mimir.sources` entry point와 `sources.plugins.<source_id>` 설정 namespace로 source plugin을 등록할 수 있다 |
 | **소스 격리** | 한 소스의 실패·포맷 변경이 다른 소스나 전체 실행을 멈추지 않음 |
 | **정규화 envelope** | 모든 소스가 pydantic으로 검증되는 공통 레코드로 수렴 (`prices`·`filings`·`macro`·`news`) |
 | **멱등 저장** | 같은 수집을 다시 돌려도 `idempotency_key`로 중복 없이 append |
@@ -190,24 +191,27 @@ flowchart LR
 ## 🛠️ CLI
 
 ```text
-mimir.collect  --cadence {hourly|daily|weekly|monthly} [--config-dir config]
-mimir.backfill --source <id> --since YYYY-MM-DD [--config-dir config]
-mimir.analyze  [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
-mimir.deliver  [--cadence daily] [--date YYYY-MM-DD] [--reports-root reports]
-mimir.history  [--symbol S] [--date YYYY-MM-DD] [--data-root data]
-mimir.doctor   [--config-dir config] [--data-root data] [--format text|json] [--strict]
-mimir.evaluate [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
-mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
+mimir run       --cadence {hourly|daily|weekly|monthly} [--config-dir config] [--data-root data] [--reports-root reports]
+mimir collect   --cadence {hourly|daily|weekly|monthly} [--config-dir config]
+mimir backfill  --source <id> --since YYYY-MM-DD [--config-dir config]
+mimir analyze   [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
+mimir deliver   [--cadence daily] [--date YYYY-MM-DD] [--reports-root reports]
+mimir history   [--symbol S] [--date YYYY-MM-DD] [--data-root data]
+mimir doctor    [--config-dir config] [--data-root data] [--format text|json] [--strict]
+mimir evaluate  [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
+mimir dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 ```
 
 ```bash
-.venv/bin/python -m mimir.collect --cadence daily     # 수집 → data/
-.venv/bin/python -m mimir.analyze --date 2026-05-31   # 분석 → insights/
+.venv/bin/mimir collect --cadence daily               # 수집 → data/
+.venv/bin/mimir analyze --date 2026-05-31             # 분석 → insights/
 #   [mimir] AAPL bullish ★★★★☆ (conf 0.85)
-.venv/bin/python -m mimir.deliver --cadence daily     # 리포트+다이제스트
+.venv/bin/mimir deliver --cadence daily               # 리포트+다이제스트
 #   reports/2026/05/31.html + reports/index.html (+ 텔레그램 발송)
-.venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
+.venv/bin/mimir.backfill --source stooq --since 2018-01-01
 ```
+
+각 명령은 `.venv/bin/python -m mimir.collect --cadence daily` 같은 module 실행 형태도 계속 지원한다. `mimir.collect`처럼 점이 들어간 alias는 기존 문서와 스크립트가 쓰던 이름을 유지하기 위해 함께 설치된다.
 
 > 스케줄 워크플로(hourly/daily/weekly/monthly)는 reusable pipeline을 호출해 `collect → analyze → history → evaluate → deliver → dashboard`를 실행하고 `data/`·`reports/`를 repo에 커밋한다. 일일 HTML 리포트는 `reports/YYYY/MM/DD.html`로 영구 보관되고, `reports/index.html`은 리포트 archive를 보여주며, `reports/dashboard.html`은 최신 운영 대시보드로 갱신된다.
 
@@ -224,7 +228,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 항목 | 값 |
 | :--- | :--- |
-| **테스트** | 438 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
+| **테스트** | 484 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
 | **커버리지** | `mimir/` 97% (게이트 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — push/PR마다 lint·type·test·coverage |
@@ -251,7 +255,7 @@ TDD를 따르며, HTTP 소스는 `responses`로, pykrx 같은 라이브러리 �
 
 | 영역 | 상태 |
 | :--- | :--- |
-| **인사이트/별점** | 규칙 기반 시그널로 구현됨. ⭐ 확신도, confidence, attention, 면책 문구를 포함한다. 뉴스 매칭은 정적 `sources.rss.catalogs` catalog, 종목별 RSS feed, 보수적 기본 회사명 alias, 사용자 alias를 함께 쓰며, LLM 감성 시그널은 off-by-default seam으로 제공. 자동/live feed discovery는 아직 없다 |
+| **인사이트/별점** | 규칙 기반 시그널로 구현됨. ⭐ 확신도, confidence, attention, 면책 문구를 포함한다. 뉴스 매칭은 정적 `sources.rss.catalogs` catalog, SEC 회사 공시 RSS helper, 종목별 RSS feed, 보수적 기본 회사명 alias, 사용자 alias를 함께 쓰며, LLM 감성 시그널은 off-by-default seam으로 제공. 자동/live feed discovery는 아직 없다 |
 | **KR 가격** | pykrx는 GRAY·선택 설치(`[kr]`). 키 없이 동작하는 가격원은 Stooq(무료 apikey 필요) |
 | **과거패턴 분석** | S4 구현(event-study). 표본 `n`이 충분한 가격 이력이 필요 — 백필 권장 |
 | **시그널 성적표** | `mimir.evaluate`로 구현되어 일일 리포트와 대시보드에 표시된다. 초기 실행에서는 과거 인사이트와 가격 표본이 충분해질 때까지 표본 부족으로 나올 수 있음 |

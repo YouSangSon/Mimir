@@ -47,7 +47,7 @@
 | **OPS1** | Scheduled dashboard publication (`reports/dashboard.html`) | 운영가시성 | README + 현행 spec | **✅ 구현 완료 (2026-06-17)** | workflow + 테스트 + docs · [spec](../superpowers/specs/2026-06-17-scheduled-dashboard-publication-design.md) |
 | **C2** | 파티션 인덱스 (git-as-DB rglob 스케일) | 성능 | 신규 | ⏸ 보류 | 본 문서 §6 |
 | **C3** | pykrx retry/backoff 정책 | 견고성 | 백로그 LOW | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-pykrx-retry-policy-design.md) |
-| **D1** | 통합 `mimir` CLI (console_scripts) | DX | 신규 | ⏸ 보류 | 본 문서 §6 |
+| **D1** | 통합 `mimir` CLI (console_scripts) | DX | README 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-cli-entrypoints-design.md) |
 | **D2** | GH Actions Node20→24 범프 | CI | 백로그 LOW | **✅ 구현 완료 (2026-06-16)** | workflow + 테스트 · [spec](../superpowers/specs/2026-06-16-github-actions-node24-design.md) |
 
 🛠 = 코드 구현 · 📐 = 설계문서 · ⏸ = 보류(근거 명시)
@@ -210,6 +210,12 @@ FRED와 ECOS는 같은 관측일의 값을 나중에 고칠 수 있다. 기존 �
 
 구현 후 source 수집과 backfill은 같은 helper인 `append_overwrite_enabled(dataset)`로 저장 정책을 고른다. 현재 `Dataset.MACRO`만 overwrite append를 쓰고, `prices`, `filings`, `news`는 기존 first-write-wins를 유지한다. `JsonlStore.append(overwrite=True)`는 새 key와 교체된 key를 모두 `stored`에 반영한다. 그래서 macro 값이 실제로 바뀌면 manifest와 backfill 반환값도 변경을 드러낸다.
 
+### D1. 통합 `mimir` CLI — **구현 완료 (2026-06-18)**
+
+README는 `mimir.collect`, `mimir.analyze`, `mimir.doctor` 같은 설치형 실행 파일을 CLI 표면으로 보여줬지만, `pyproject.toml`에는 console script 선언이 없었다. 즉 editable install 후 README에 적힌 명령이 생기지 않는 문서-패키지 계약 불일치가 있었다.
+
+구현 후 `[project.scripts]`는 통합 명령 `mimir`와 dotted aliases(`mimir.collect`, `mimir.analyze`, `mimir.doctor` 등)를 제공한다. `mimir <subcommand>`는 기존 module-level `main(argv)`에 그대로 위임하므로 argparse help, 검증, exit code를 재정의하지 않는다. 기존 `python -m mimir.X` 경로와 workflow 명령도 유지한다.
+
 ---
 
 ## 5. 증분 실행 순서 (Sequencing)
@@ -237,6 +243,7 @@ R1e ──────── static RSS feed catalog · sources.rss.catalogs
 R1f-SEC ─── SEC EDGAR company filing RSS provider
 R1g-SEC-STRUCTURED ─ SEC structured disclosure RSS catalog
 R1h-SEC-TICKER ─ SEC company filing RSS ticker input
+D1 ───────── unified CLI entry points · mimir + mimir.<command>
 D2 ───────── GitHub Actions Node24-compatible action majors
 C3 ───────── pykrx retry/backoff · FetchError manifest surface
 BF-MANIFEST ─ backfill success/failure manifest
@@ -253,7 +260,6 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 | 항목 | 보류 근거 |
 |---|---|
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 핫패스를 처리. 인덱스는 데이터가 수년 누적된 *뒤*의 최적화 — 지금은 시기상조(YAGNI). 신선도 닥터(C1)가 먼저 스케일 신호를 준다. |
-| **D1 통합 CLI** | 순수 DX. 5개 `python -m mimir.X`는 동작에 문제없음. console_scripts entry-point는 좋지만 약속에 추적되지 않음 → 보류. |
 | **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. R1h-SEC-TICKER는 SEC Company Search RSS의 ticker token 입력을 추가했다. SEC mapping file 기반 ticker→CIK 조회·cache·ambiguity policy, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference는 provider 정책과 ToS 검토가 더 필요하다. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서는 KO-only 유지(백로그 결정). 사용자 문서(README ×3)는 이미 trilingual. |
 
@@ -272,4 +278,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, MR1, D2, C3, BF-MANIFEST, OPS1까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, MR1, D1, D2, C3, BF-MANIFEST, OPS1까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.

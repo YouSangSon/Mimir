@@ -11,6 +11,18 @@ dependencies = [
     "python-dotenv>=1.0",
 ]
 
+[project.scripts]
+mimir = "mimir.cli:main"
+"mimir.collect" = "mimir.collect:main"
+"mimir.backfill" = "mimir.backfill:main"
+"mimir.analyze" = "mimir.analyze:main"
+"mimir.deliver" = "mimir.deliver:main"
+"mimir.history" = "mimir.history:main"
+"mimir.doctor" = "mimir.doctor.doctor_cli:main"
+"mimir.evaluate" = "mimir.evaluate:main"
+"mimir.dashboard" = "mimir.dashboard:main"
+"mimir.run" = "mimir.run:main"
+
 [project.optional-dependencies]
 # KR prices via pykrx (GRAY: scraping). Pulls pandas. Install with: pip install -e ".[kr]"
 kr = [

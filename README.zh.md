@@ -13,7 +13,7 @@
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-438%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-484%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -57,7 +57,8 @@ cp .env.example .env          # 只需填入想用的免费密钥（自动加载
 
 # 3. 运行完整流水线（采集→分析→历史模式→评估→报告）
 .venv/bin/python -m mimir.run --cadence daily   # cadence: hourly|daily|weekly|monthly
-#   或按阶段运行: mimir.collect / mimir.analyze / mimir.history / mimir.evaluate / mimir.deliver
+#   已安装 CLI: .venv/bin/mimir run --cadence daily
+#   或按阶段运行: mimir collect / mimir analyze / mimir history / mimir evaluate / mimir deliver
 ```
 
 `.env` 在运行时会从当前目录自动加载（密钥绝不会被提交）。在 CI 中以 GitHub Actions Secrets 为优先。
@@ -88,7 +89,7 @@ reports/status.html               # 各数据源采集状况
 
 | 功能 | 行为 |
 | :--- | :--- |
-| **数据源适配器** | 在统一的 `Source` 协议背后隔离实现 7 个内置数据源。RSS 支持静态 feed catalog 和带 symbol 的 feed。外部 package 可通过 `mimir.sources` entry point 与 `sources.plugins.<source_id>` 配置 namespace 注册 source plugin |
+| **数据源适配器** | 在统一的 `Source` 协议背后隔离实现 7 个内置数据源。RSS 支持静态 feed catalog、SEC 公司公告 feed helper 和带 symbol 的 feed。外部 package 可通过 `mimir.sources` entry point 与 `sources.plugins.<source_id>` 配置 namespace 注册 source plugin |
 | **数据源隔离** | 单个数据源的失败·格式变更不会让其他数据源或整次运行停下 |
 | **规范化 envelope** | 所有数据源汇聚为经 pydantic 校验的统一记录（`prices`·`filings`·`macro`·`news`） |
 | **幂等存储** | 即便重跑同一次采集，也通过 `idempotency_key` 无重复地 append |
@@ -190,24 +191,27 @@ flowchart LR
 ## 🛠️ CLI
 
 ```text
-mimir.collect  --cadence {hourly|daily|weekly|monthly} [--config-dir config]
-mimir.backfill --source <id> --since YYYY-MM-DD [--config-dir config]
-mimir.analyze  [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
-mimir.deliver  [--cadence daily] [--date YYYY-MM-DD] [--reports-root reports]
-mimir.history  [--symbol S] [--date YYYY-MM-DD] [--data-root data]
-mimir.doctor   [--config-dir config] [--data-root data] [--format text|json] [--strict]
-mimir.evaluate [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
-mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
+mimir run       --cadence {hourly|daily|weekly|monthly} [--config-dir config] [--data-root data] [--reports-root reports]
+mimir collect   --cadence {hourly|daily|weekly|monthly} [--config-dir config]
+mimir backfill  --source <id> --since YYYY-MM-DD [--config-dir config]
+mimir analyze   [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
+mimir deliver   [--cadence daily] [--date YYYY-MM-DD] [--reports-root reports]
+mimir history   [--symbol S] [--date YYYY-MM-DD] [--data-root data]
+mimir doctor    [--config-dir config] [--data-root data] [--format text|json] [--strict]
+mimir evaluate  [--date YYYY-MM-DD] [--config-dir config] [--data-root data]
+mimir dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 ```
 
 ```bash
-.venv/bin/python -m mimir.collect --cadence daily     # 采集 → data/
-.venv/bin/python -m mimir.analyze --date 2026-05-31   # 分析 → insights/
+.venv/bin/mimir collect --cadence daily               # 采集 → data/
+.venv/bin/mimir analyze --date 2026-05-31             # 分析 → insights/
 #   [mimir] AAPL bullish ★★★★☆ (conf 0.85)
-.venv/bin/python -m mimir.deliver --cadence daily     # 报告+摘要
+.venv/bin/mimir deliver --cadence daily               # 报告+摘要
 #   reports/2026/05/31.html + reports/index.html (+ Telegram 发送)
-.venv/bin/python -m mimir.backfill --source stooq --since 2018-01-01
+.venv/bin/mimir.backfill --source stooq --since 2018-01-01
 ```
+
+每个命令也继续支持 module 形式，例如 `.venv/bin/python -m mimir.collect --cadence daily`。`mimir.collect` 这类带点号的 alias 会一起安装，用于兼容已经采用旧命令名的文档和脚本。
 
 > 调度工作流（hourly/daily/weekly/monthly）会调用 reusable pipeline，按 `collect → analyze → history → evaluate → deliver → dashboard` 执行，并把 `data/` 和 `reports/` 提交到 repo。每日 HTML 报告以 `reports/YYYY/MM/DD.html` 永久保存，`reports/index.html` 用于浏览报告归档，`reports/dashboard.html` 会刷新为最新运维仪表盘。
 
@@ -224,7 +228,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 项目 | 值 |
 | :--- | :--- |
-| **测试** | 438 passing（适配器以录制的 fixture 在无网络下验证） |
+| **测试** | 484 passing（适配器以录制的 fixture 在无网络下验证） |
 | **覆盖率** | `mimir/` 97%（门槛 80%） |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — 每次 push/PR 执行 lint·type·test·coverage |
@@ -251,7 +255,7 @@ mimir.dashboard [--reports-root reports] [--date YYYY-MM-DD] [--lang en|ko|zh]
 
 | 领域 | 状态 |
 | :--- | :--- |
-| **洞见/星级** | 已以规则驱动信号实现，包含 ⭐确信度、confidence、attention 和免责声明。新闻匹配会使用静态 `sources.rss.catalogs` catalog、带 symbol 的 RSS 订阅源、保守的默认公司名 alias 和用户 alias；LLM 情绪信号以 off-by-default seam 提供。自动/live 订阅源发现尚未实现 |
+| **洞见/星级** | 已以规则驱动信号实现，包含 ⭐确信度、confidence、attention 和免责声明。新闻匹配会使用静态 `sources.rss.catalogs` catalog、SEC 公司公告 RSS helper、带 symbol 的 RSS 订阅源、保守的默认公司名 alias 和用户 alias；LLM 情绪信号以 off-by-default seam 提供。自动/live 订阅源发现尚未实现 |
 | **KR 价格** | pykrx 为 GRAY·可选安装（`[kr]`）。无密钥即可运行的价格源为 Stooq（需免费 apikey） |
 | **历史模式分析** | S4 已实现 (event-study)。需要样本 `n` 充分的价格历史——建议先回填 |
 | **信号记分卡** | 通过 `mimir.evaluate` 实现，并显示在每日报告和 dashboard 中。早期运行可能因历史洞见和价格样本不足而显示样本不足 |
