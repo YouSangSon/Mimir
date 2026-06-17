@@ -15,6 +15,8 @@ Scheduled pipeline은 `reports/status.html`, 날짜별 일일 리포트, `report
 
 중요한 결정은 **doctor hard gate(doctor 결과로 workflow를 실패시키는 정책)를 넣지 않는 것**이다. Doctor 결과는 dashboard에 표시한다. Workflow 실패 조건으로 쓰는 정책은 secrets 없는 운영, 누락 데이터 오탐, 데이터 커밋 순서가 정리된 뒤 별도 증분에서 다룬다.
 
+이 결정은 doctor finding에만 적용된다. 기존 `mimir.run`의 collect failure gate, 즉 source 수집 실패가 있으면 pipeline step이 실패하는 동작은 이번 증분에서 바꾸지 않는다.
+
 ---
 
 ## 2. 현재 문제와 근거
@@ -67,14 +69,17 @@ Scheduled pipeline은 `reports/status.html`, 날짜별 일일 리포트, `report
 - Dashboard step은 `Commit data + reports` 전에 실행한다.
 - `reports/dashboard.html`이 기존 `git add data reports` 흐름에 포함되게 한다.
 - Workflow 테스트가 dashboard step의 존재와 순서를 검증한다.
+- Workflow 테스트가 scheduled workflow에 `mimir.doctor` 또는 `--strict` hard gate가 들어오지 않는다는 정책을 검증한다.
 - README 3개 언어가 scheduled workflow의 실제 산출물을 설명한다.
 - `_pipeline.yml` 주석이 `collect -> analyze -> history -> evaluate -> deliver -> dashboard` 흐름을 말하게 한다.
+- 확장성/개선 문서가 scheduled dashboard publish 상태를 추적하게 한다.
 
 ### 비목표
 
 - Doctor finding을 workflow 실패 조건으로 쓰지 않는다.
 - `mimir.doctor --strict`를 scheduled workflow에 넣지 않는다.
 - `mimir.run` 내부에 dashboard 생성을 섞지 않는다.
+- `mimir.run`의 collect failure exit-code 정책을 바꾸지 않는다.
 - `mimir.dashboard`의 HTML 디자인을 바꾸지 않는다.
 - Dashboard를 날짜별 archive로 저장하지 않는다. 이번 증분은 고정 경로 `reports/dashboard.html`만 갱신한다.
 - Missing secret이 있는 운영에서 어떤 데이터셋을 기대해야 하는지 정책을 바꾸지 않는다.
@@ -117,6 +122,7 @@ flowchart TD
 | doctor WARN | 성공 | dashboard health table에 WARN 표시 |
 | doctor CRITICAL | 성공 | dashboard health table에 CRITICAL 표시 |
 | dashboard 렌더링 코드가 예외 발생 | 실패 | reports를 잘못 publish하지 않음 |
+| `mimir.run`이 source 실패를 반환 | 실패 | 기존 collect failure gate 유지 |
 
 Doctor finding은 운영자가 봐야 하는 데이터 품질 신호다. 그러나 이번 증분에서는 deploy gate가 아니다.
 
@@ -131,7 +137,9 @@ Doctor CLI는 CRITICAL이면 exit code 1을 반환한다. 이 기능은 수동 �
 3. Secret이 없는 운영에서는 source builder가 일부 source를 건너뛰지만, doctor expectation은 명시 상수에서 온다.
 4. 이 차이는 진단 관점에서는 맞지만, hard gate 관점에서는 상시 실패를 만들 수 있다.
 
-그래서 이번 증분은 **보이게 만들기**까지만 한다. **막는 정책**은 별도 설계로 분리한다.
+그래서 이번 증분은 doctor finding을 **보이게 만들기**까지만 한다. **막는 정책**은 별도 설계로 분리한다.
+
+단, 이는 `python -m mimir.run` 자체의 실패 정책을 완화한다는 뜻이 아니다. 현재 `mimir.run`은 source 수집 실패가 있으면 비-0 종료를 반환한다. 이 동작은 이미 status report와 manifest 의미를 가진 별도 운영 계약이므로 이번 증분에서 손대지 않는다. 따라서 publish-first 정책은 "pipeline이 성공한 뒤 dashboard가 발견한 doctor WARN/CRITICAL을 이유로 commit을 막지 않는다"로 한정한다.
 
 ### 4.4 테스트 설계
 
@@ -146,16 +154,20 @@ Doctor CLI는 CRITICAL이면 exit code 1을 반환한다. 이 기능은 수동 �
 3. command에는 `--data-root data`와 `--reports-root reports`가 있다.
 4. `Run dashboard`는 `Run pipeline`보다 뒤에 있다.
 5. `Run dashboard`는 `Commit data + reports`보다 앞에 있다.
+6. `_pipeline.yml`은 `python -m mimir.doctor`를 직접 실행하지 않는다.
+7. `_pipeline.yml`은 `--strict` hard gate를 포함하지 않는다.
 
 ### 4.5 문서 갱신 범위
 
-README 3개 언어에서 scheduled workflow 설명을 갱신한다.
+README 3개 언어에서 scheduled workflow 설명을 갱신한다. 문구는 daily workflow에만 묶지 않는다. Hourly, daily, weekly, monthly caller가 모두 reusable `_pipeline.yml`을 쓰기 때문이다.
 
 | 파일 | 변경 |
 |---|---|
-| `README.md` | daily workflow 설명에 dashboard publish를 추가 |
+| `README.md` | scheduled workflow 설명에 dashboard publish를 추가 |
 | `README.ko.md` | 같은 설명을 한국어로 반영 |
 | `README.zh.md` | 같은 설명을 중국어로 반영 |
+| `docs/architecture/extensibility/README.md` | 데이터 흐름 설명에 scheduled dashboard publish를 반영 |
+| `docs/architecture/improvement-catalog.md` | OPS1 운영 가시성 항목과 hard gate 보류 정책을 반영 |
 
 개발자용 CLI 목록은 이미 `mimir.dashboard`를 포함한다. 별도 새 CLI 설명은 필요 없다.
 
@@ -180,9 +192,18 @@ README 3개 언어에서 scheduled workflow 설명을 갱신한다.
 3. Doctor report의 worst severity가 CRITICAL이어도 dashboard CLI는 렌더링을 마치고 0을 반환한다.
 4. Commit step이 dashboard를 커밋한다.
 
-핵심: 데이터 품질 문제는 dashboard에 남는다. Workflow가 그 문제 때문에 evidence publish를 막지는 않는다.
+핵심: 데이터 품질 문제는 dashboard에 남는다. Workflow가 doctor finding 때문에 evidence publish를 막지는 않는다.
 
-### 5.3 Dashboard 렌더링 자체가 깨진 run
+### 5.3 Source 수집 실패가 있는 run
+
+1. Workflow가 `python -m mimir.run --cadence ...`를 실행한다.
+2. Source 수집 중 하나 이상이 실패한다.
+3. `mimir.run`이 기존처럼 비-0 종료를 반환한다.
+4. Dashboard step과 commit step은 실행되지 않는다.
+
+핵심: 이번 증분은 doctor hard gate를 추가하지 않는 것이다. 기존 pipeline failure gate를 publish-first 정책으로 바꾸는 작업은 아니다.
+
+### 5.4 Dashboard 렌더링 자체가 깨진 run
 
 1. Pipeline은 성공한다.
 2. Dashboard CLI가 예외를 낸다.
@@ -191,15 +212,15 @@ README 3개 언어에서 scheduled workflow 설명을 갱신한다.
 
 핵심: 깨진 dashboard를 조용히 publish하지 않는다. 이 실패는 doctor finding이 아니라 renderer regression이다.
 
-### 5.4 Hourly, weekly, monthly run
+### 5.5 Hourly, weekly, monthly run
 
 Caller workflow는 모두 reusable `_pipeline.yml`을 호출한다. 따라서 dashboard publish는 daily에만 붙지 않는다.
 
 핵심: cadence별 workflow 중복 없이 한 곳에서 운영 dashboard publish 계약을 관리한다.
 
-### 5.5 나중에 hard gate를 추가하려는 경우
+### 5.6 나중에 hard gate를 추가하려는 경우
 
-이 증분의 테스트는 dashboard publish 순서만 고정한다. Hard gate를 추가하려면 별도 spec에서 다음 정책을 먼저 정해야 한다.
+이 증분의 테스트는 dashboard publish 순서와 "현재 workflow에 doctor hard gate가 없다"는 정책을 고정한다. Hard gate를 추가하려면 별도 spec에서 다음 정책을 먼저 정해야 한다.
 
 1. CRITICAL 발견 후에도 report/dashboard를 commit할지
 2. Missing secret 환경에서 expected dataset을 어떻게 해석할지
@@ -215,10 +236,12 @@ Caller workflow는 모두 reusable `_pipeline.yml`을 호출한다. 따라서 da
 | 파일 | 변경 유형 | 내용 |
 |---|---|---|
 | `.github/workflows/_pipeline.yml` | workflow | `Run dashboard` step 추가, 상단 주석 갱신 |
-| `tests/test_workflows.py` | test | dashboard step 순서와 command 계약 테스트 추가 |
+| `tests/test_workflows.py` | test | dashboard step 순서, command 계약, doctor hard gate 부재 테스트 추가 |
 | `README.md` | docs | scheduled workflow 산출물 설명 갱신 |
 | `README.ko.md` | docs | 한국어 설명 갱신 |
 | `README.zh.md` | docs | 중국어 설명 갱신 |
+| `docs/architecture/extensibility/README.md` | docs | 데이터 흐름과 scheduled publication 설명 갱신 |
+| `docs/architecture/improvement-catalog.md` | docs | OPS1 완료/보류 정책 반영 |
 | `docs/superpowers/specs/2026-06-17-scheduled-dashboard-publication-design.md` | spec | 이 설계 문서 |
 
 ---
@@ -228,8 +251,11 @@ Caller workflow는 모두 reusable `_pipeline.yml`을 호출한다. 따라서 da
 - [ ] `_pipeline.yml`이 `Run pipeline` 뒤, `Commit data + reports` 앞에서 `python -m mimir.dashboard --data-root data --reports-root reports`를 실행한다.
 - [ ] `_pipeline.yml` 주석이 실제 흐름을 `collect -> analyze -> history -> evaluate -> deliver -> dashboard`로 설명한다.
 - [ ] `tests/test_workflows.py`가 dashboard step의 존재, command, 순서를 검증한다.
-- [ ] README 3개 언어가 scheduled workflow가 `reports/dashboard.html`도 갱신한다고 설명한다.
+- [ ] `tests/test_workflows.py`가 `_pipeline.yml`에 `mimir.doctor`와 `--strict` hard gate가 없음을 검증한다.
+- [ ] README 3개 언어가 모든 scheduled cadence가 reusable workflow를 통해 `reports/dashboard.html`도 갱신한다고 설명한다.
+- [ ] Architecture/improvement docs가 OPS1 완료 상태와 doctor hard gate 보류 정책을 설명한다.
 - [ ] Doctor WARN/CRITICAL은 dashboard에 표시되지만 workflow 실패 조건으로 쓰지 않는다는 정책이 문서에 남는다.
+- [ ] 기존 `mimir.run` collect failure gate는 변경하지 않는다.
 - [ ] `uv run pytest tests/test_workflows.py -q`가 통과한다.
 - [ ] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`가 통과한다.
 
@@ -238,10 +264,11 @@ Caller workflow는 모두 reusable `_pipeline.yml`을 호출한다. 따라서 da
 ## 8. 구현 작업 분해
 
 1. Workflow ordering test를 먼저 추가한다.
-2. `_pipeline.yml`에 `Run dashboard` step과 최신 주석을 넣는다.
-3. README 3개 언어를 갱신한다.
-4. Targeted test를 통과시킨다.
-5. 전체 quality gate를 실행한다.
-6. 구현 뒤 이 spec의 상태와 수용 기준을 갱신한다.
+2. Workflow hard-gate negative test를 추가한다.
+3. `_pipeline.yml`에 `Run dashboard` step과 최신 주석을 넣는다.
+4. README 3개 언어와 architecture/improvement docs를 갱신한다.
+5. Targeted test를 통과시킨다.
+6. 전체 quality gate를 실행한다.
+7. 구현 뒤 이 spec의 상태와 수용 기준을 갱신한다.
 
 각 작업은 기존 workflow parser 테스트 스타일을 따른다. YAML parser 의존성은 추가하지 않는다.
