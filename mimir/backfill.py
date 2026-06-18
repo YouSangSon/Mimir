@@ -12,9 +12,11 @@ from pydantic import ValidationError
 
 from mimir.config import (
     SourcesConfigError,
+    WatchlistConfigError,
     load_validated_sources_config,
     load_watchlist,
     report_invalid_sources,
+    report_invalid_watchlist,
 )
 from mimir.core.builder import SourceSpec, build_sources, load_source_specs
 from mimir.core.errors import NormalizationError
@@ -173,10 +175,14 @@ def main(argv: list[str] | None = None) -> int:
     except ValidationError as exc:
         return report_invalid_sources(exc)
     try:
+        watchlist = load_watchlist(config_dir)
+    except WatchlistConfigError as exc:
+        return report_invalid_watchlist(exc)
+    try:
         appended = run_backfill(
             source_id=args.source,
             since=date.fromisoformat(args.since),
-            watchlist=load_watchlist(config_dir),
+            watchlist=watchlist,
             sources_config=sources_config,
         )
     except SourcesConfigError as exc:

@@ -13,9 +13,11 @@ from mimir.analyze import run_analyze
 from mimir.collect import run_collect
 from mimir.config import (
     SourcesConfigError,
+    WatchlistConfigError,
     load_validated_sources_config,
     load_watchlist,
     report_invalid_sources,
+    report_invalid_watchlist,
 )
 from mimir.core.source import Cadence
 from mimir.deliver import run_deliver
@@ -97,9 +99,13 @@ def main(argv: list[str] | None = None) -> int:
     except ValidationError as exc:
         return report_invalid_sources(exc)
     try:
+        watchlist = load_watchlist(config_dir)
+    except WatchlistConfigError as exc:
+        return report_invalid_watchlist(exc)
+    try:
         result = run_pipeline(
             cadence=args.cadence,
-            watchlist=load_watchlist(config_dir),
+            watchlist=watchlist,
             data_root=Path(args.data_root),
             reports_root=Path(args.reports_root),
             sources_config=sources_config,

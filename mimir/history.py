@@ -5,7 +5,7 @@ import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from mimir.config import load_watchlist
+from mimir.config import WatchlistConfigError, load_watchlist, report_invalid_watchlist
 from mimir.historical.engine import HistoricalEngine
 from mimir.historical.schema import HistoricalInsight
 from mimir.storage.jsonl_store import JsonlStore
@@ -37,7 +37,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.symbol:
         watchlist = {"us": [args.symbol], "kr": [args.symbol]}
     else:
-        watchlist = load_watchlist(Path(args.config_dir))
+        try:
+            watchlist = load_watchlist(Path(args.config_dir))
+        except WatchlistConfigError as exc:
+            return report_invalid_watchlist(exc)
 
     as_of = date.fromisoformat(args.date) if args.date else None
     insights = run_history(watchlist=watchlist, data_root=Path(args.data_root), as_of=as_of)

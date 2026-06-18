@@ -8,7 +8,13 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from mimir.analysis.schema import Insight
-from mimir.config import load_validated_sources_config, load_watchlist, report_invalid_sources
+from mimir.config import (
+    WatchlistConfigError,
+    load_validated_sources_config,
+    load_watchlist,
+    report_invalid_sources,
+    report_invalid_watchlist,
+)
 from mimir.core.payloads import Payload
 from mimir.core.source import Dataset
 from mimir.doctor.engine import run_doctor
@@ -45,6 +51,7 @@ def _load_latest(
 def run_dashboard(
     *,
     config_dir: Path = Path("config"),
+    watchlist: dict[str, list[str]] | None = None,
     data_root: Path = DEFAULT_ROOT,
     reports_root: Path = DEFAULT_REPORTS_ROOT,
     as_of: date | None,
@@ -73,7 +80,7 @@ def run_dashboard(
         for p in _load_latest(reader, store, Dataset.EVALUATION, as_of)
     ]
 
-    watchlist = load_watchlist(config_dir)
+    watchlist = watchlist if watchlist is not None else load_watchlist(config_dir)
     doctor_report = run_doctor(store=store, watchlist=watchlist, now=now)
     run = Manifest(root=data_root).latest_run()
 
@@ -107,10 +114,15 @@ def main(argv: list[str] | None = None) -> int:
         sources_config, _ = load_validated_sources_config(config_dir)
     except ValidationError as exc:
         return report_invalid_sources(exc)
+    try:
+        watchlist = load_watchlist(config_dir)
+    except WatchlistConfigError as exc:
+        return report_invalid_watchlist(exc)
     lang = args.lang or sources_config.get("lang", DEFAULT_LANG)
     as_of = date.fromisoformat(args.date) if args.date else None
     out_path = run_dashboard(
         config_dir=config_dir,
+        watchlist=watchlist,
         data_root=Path(args.data_root),
         reports_root=Path(args.reports_root),
         as_of=as_of,

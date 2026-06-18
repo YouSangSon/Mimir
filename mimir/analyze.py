@@ -10,7 +10,13 @@ from pydantic import ValidationError
 from mimir.analysis.builder import build_signals
 from mimir.analysis.engine import AnalysisEngine
 from mimir.analysis.schema import Insight
-from mimir.config import load_validated_sources_config, load_watchlist, report_invalid_sources
+from mimir.config import (
+    WatchlistConfigError,
+    load_validated_sources_config,
+    load_watchlist,
+    report_invalid_sources,
+    report_invalid_watchlist,
+)
 from mimir.settings import Settings
 from mimir.sources.config import SourcesConfig
 from mimir.storage.jsonl_store import JsonlStore
@@ -49,8 +55,12 @@ def main(argv: list[str] | None = None) -> int:
         _, sources_config = load_validated_sources_config(config_dir)
     except ValidationError as exc:
         return report_invalid_sources(exc)
+    try:
+        watchlist = load_watchlist(config_dir)
+    except WatchlistConfigError as exc:
+        return report_invalid_watchlist(exc)
     insights = run_analyze(
-        watchlist=load_watchlist(config_dir),
+        watchlist=watchlist,
         data_root=Path(args.data_root),
         as_of=as_of,
         config=sources_config,

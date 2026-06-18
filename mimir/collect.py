@@ -11,10 +11,12 @@ from pydantic import ValidationError
 
 from mimir.config import (
     SourcesConfigError,
+    WatchlistConfigError,
     load_validated_sources_config,
     load_watchlist,
     report_invalid_sources,
-    )
+    report_invalid_watchlist,
+)
 from mimir.core.builder import build_sources
 from mimir.core.orchestrator import Orchestrator, RunSummary
 from mimir.core.registry import Registry
@@ -89,9 +91,13 @@ def main(argv: list[str] | None = None) -> int:
     except ValidationError as exc:
         return report_invalid_sources(exc)
     try:
+        watchlist = load_watchlist(config_dir)
+    except WatchlistConfigError as exc:
+        return report_invalid_watchlist(exc)
+    try:
         summary = run_collect(
             cadence=args.cadence,
-            watchlist=load_watchlist(config_dir),
+            watchlist=watchlist,
             sources_config=sources_config,
         )
     except SourcesConfigError as exc:

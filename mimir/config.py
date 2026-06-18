@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError, field_validator
 
 from mimir.sources.config import SourcesConfig, parse_sources_config
 
@@ -22,6 +22,25 @@ class SecTickerCikMapConfigError(SourcesConfigError):
     """The configured SEC ticker CIK mapping file could not be used."""
 
 
+class WatchlistConfigError(ValueError):
+    """The configured watchlist.yaml could not be used."""
+
+
+class _WatchlistConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    us: list[StrictStr] = Field(default_factory=list)
+    kr: list[StrictStr] = Field(default_factory=list)
+
+    @field_validator("us", "kr")
+    @classmethod
+    def _normalize_symbols(cls, value: list[str]) -> list[str]:
+        symbols = [symbol.strip() for symbol in value]
+        if any(not symbol for symbol in symbols):
+            raise ValueError("watchlist symbols must not be blank")
+        return symbols
+
+
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
@@ -29,8 +48,12 @@ def load_yaml(path: Path) -> dict[str, Any]:
 
 
 def load_watchlist(config_dir: Path = DEFAULT_CONFIG_DIR) -> dict[str, list[str]]:
-    wl = load_yaml(config_dir / "watchlist.yaml")
-    return {"us": list(wl.get("us", [])), "kr": list(wl.get("kr", []))}
+    path = config_dir / "watchlist.yaml"
+    try:
+        cfg = _WatchlistConfig.model_validate(load_yaml(path))
+    except ValidationError as exc:
+        raise WatchlistConfigError(f"{path}: {exc}") from exc
+    return cfg.model_dump()
 
 
 def load_sources_config(config_dir: Path = DEFAULT_CONFIG_DIR) -> Any:
@@ -77,4 +100,9 @@ def report_invalid_sources(exc: ValidationError | SourcesConfigError) -> int:
     ``[mimir] invalid sources.yaml: <detail>`` message and exit code 1 (spec §5),
     instead of a raw pydantic traceback. Call from a CLI ``main``'s except clause."""
     print(f"[mimir] invalid sources.yaml: {exc}", file=sys.stderr)
+    return 1
+
+
+def report_invalid_watchlist(exc: WatchlistConfigError) -> int:
+    print(f"[mimir] invalid watchlist.yaml: {exc}", file=sys.stderr)
     return 1

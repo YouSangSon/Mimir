@@ -6,7 +6,13 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from mimir.config import load_validated_sources_config, load_watchlist, report_invalid_sources
+from mimir.config import (
+    WatchlistConfigError,
+    load_validated_sources_config,
+    load_watchlist,
+    report_invalid_sources,
+    report_invalid_watchlist,
+)
 from mimir.doctor.engine import run_doctor
 from mimir.doctor.report import DoctorReport, Severity
 from mimir.report.doctor_html import render_doctor_html
@@ -53,7 +59,10 @@ def main(argv: list[str] | None = None) -> int:
     except ValidationError as exc:
         return report_invalid_sources(exc)
 
-    watchlist = load_watchlist(config_dir)
+    try:
+        watchlist = load_watchlist(config_dir)
+    except WatchlistConfigError as exc:
+        return report_invalid_watchlist(exc)
     store = JsonlStore(root=Path(args.data_root))
     report = run_doctor(store=store, watchlist=watchlist, now=_now())
 

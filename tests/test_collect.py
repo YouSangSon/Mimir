@@ -119,6 +119,17 @@ def test_collect_cli_reports_sec_ticker_map_build_error(tmp_path: Path, capsys):
     assert "SEC ticker CIK map file is not valid JSON" in err
 
 
+def test_collect_cli_reports_invalid_watchlist_yaml(tmp_path: Path, capsys):
+    (tmp_path / "watchlist.yaml").write_text("us: AAPL\nkr: []\n", encoding="utf-8")
+
+    code = main(["--cadence", "daily", "--config-dir", str(tmp_path)])
+
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "[mimir] invalid watchlist.yaml:" in captured.err
+    assert str(tmp_path / "watchlist.yaml") in captured.err
+
+
 def test_collect_cli_reports_missing_sec_ticker_mapping(tmp_path: Path, capsys):
     (tmp_path / "sources.yaml").write_text(
         """
