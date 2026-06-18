@@ -248,7 +248,9 @@ source 수집과 backfill은 `append_overwrite_enabled(dataset)`로 같은 저�
 
 재생성 데이터셋은 `JsonlStore.replace_partition(dataset, day, records)`를 써야 한다. 새 실행 결과가 0건이면 기존 파티션 파일을 삭제한다. 그래야 watchlist에서 빠진 종목이나 표본 부족으로 사라진 평가 버킷이 다음 리포트에 남지 않는다.
 
-NEWS 파티션은 다른 원천 데이터처럼 `ts.date()` 기준으로 저장된다. 다만 뉴스 분석 시그널은 `DataReader.read_captured_window()`를 통해 `captured_at.date()` 기준으로 today와 baseline을 읽는다. 이 reader는 파티션 프루닝을 쓰지 않고 NEWS 전체를 읽은 뒤 필터링한다. `captured_at` 기준으로 `read_window()`를 호출하면, 발행일이 오래된 late-captured 뉴스가 파티션 단계에서 빠질 수 있기 때문이다.
+NEWS 파티션은 다른 원천 데이터처럼 `ts.date()` 기준으로 저장된다. 다만 뉴스 분석 시그널은 `DataReader.read_captured_window()`를 통해 `captured_at.date()` 기준으로 today와 baseline을 읽는다. `captured_at`은 Mimir가 뉴스를 실제로 관측한 실행일이다. 그래서 발행일이 오래된 뉴스라도 오늘 처음 수집되면 오늘 분석 입력에 들어간다.
+
+`DataReader.read_captured_window()`는 `captured_at` 기준 파티션 프루닝을 쓰지 않는다. `captured_at` 기준으로 `read_window()`를 호출하면, 발행일이 오래된 late-captured 뉴스가 파티션 단계에서 빠질 수 있기 때문이다. 대신 한 `DataReader` 안에서 dataset별 captured-date 인메모리 index를 만든다. 같은 분석 실행에서 `news_volume` today, baseline, optional `llm_sentiment`가 여러 번 호출되어도 NEWS 전체 스캔은 첫 호출 한 번만 일어난다. `JsonlStore.revision`이 바뀌면 cache를 버리고 다시 만든다.
 
 ---
 
@@ -264,6 +266,7 @@ NEWS 파티션은 다른 원천 데이터처럼 `ts.date()` 기준으로 저장�
 
 | 항목 | 왜 남았나 | 다음 행동 |
 |---|---|---|
+| Captured-date persistent index | 현재 구현은 실행 중 메모리 cache다. 저장 파일, rebuild command, stale-index fallback은 아직 필요하지 않다 | NEWS 데이터가 수년치로 커지고 cache rebuild가 병목이라는 측정이 나오면 별도 index 설계 |
 | Provider별 RSS live discovery | 정적 catalog는 검증된 feed id만 제공한다. Mimir가 vendor별 endpoint를 자동 탐색하거나 URL pattern을 추측하지는 않는다 | 필요하면 provider별 공식 문서, rate limit, ToS를 검토한 뒤 별도 discovery 설계 |
 | SEC mapping file live cache | 로컬 `company_tickers.json` lookup은 지원하지만 파일 다운로드, freshness 검증, cache 갱신은 하지 않는다 | 운영 정책과 SEC fair-access 기준을 정한 뒤 별도 cache 설계 |
 

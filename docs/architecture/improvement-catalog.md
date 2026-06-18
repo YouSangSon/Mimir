@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/BF-PREFLIGHT 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/BF-PREFLIGHT 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -34,6 +34,7 @@
 | **B2** | LLM 뉴스 감성 시그널 (news_volume 대체, 하이브리드) | 분석심화 | 로드맵 + 백로그 R1 | **✅ seam 구현 (Increment 5, off-by-default)** | 코드 + 테스트 |
 | **R1a** | 뉴스 mention alias matcher (`analysis.news.aliases`) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-mention-alias-design.md) |
 | **R1b** | 뉴스 captured window (`captured_at` 기준 today/baseline) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-captured-window-design.md) |
+| **C2a-CAPTURED-NEWS-CACHE** | captured news window 인메모리 cache | 성능/분석품질 | R1b 후속 스케일 gap | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/storage/C2a_captured_news_window_cache_tech_spec_2026_06_18.md) |
 | **R1c** | 기본 news alias 데이터셋 (`analysis.news.use_default_aliases`) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-default-news-aliases-design.md) |
 | **R1d** | Symbol-tagged RSS feeds (`sources.rss.feeds[].symbol`) | 분석품질/확장성 | 백로그 R1 후속 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-symbol-tagged-rss-feeds-design.md) |
 | **R1e** | 정적 RSS feed catalog (`sources.rss.catalogs`) | 분석품질/확장성 | R1d 보류 항목 | **✅ 구현 완료 (2026-06-17)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-17-rss-feed-catalog-design.md) |
@@ -144,7 +145,15 @@ R1c는 기본 watchlist의 핵심 symbol에 대해 보수적 기본 alias를 제
 
 `DataReader.read_captured_window()`는 저장 파티션을 바꾸지 않고 `captured_at.date()`로 윈도우를 자른다. `NewsVolumeSignal`과 opt-in `LlmSentimentSignal`만 이 API를 사용한다. 가격, 공시, 거시 신호는 기존처럼 이벤트 날짜(`ts`) 기준 reader를 쓴다.
 
-이 구현은 `read_all(Dataset.NEWS)` 후 필터링한다. JSONL 파티션은 여전히 `ts.date()` 기준이므로, `captured_at` 윈도우에 `read_window()` 파티션 프루닝을 쓰면 늦게 수집된 오래된 발행 기사를 읽기 전에 놓친다. 뉴스 데이터가 커지면 `captured_at` 보조 인덱스나 파티션을 별도 설계한다.
+이 구현은 `read_all(Dataset.NEWS)` 후 필터링한다. JSONL 파티션은 여전히 `ts.date()` 기준이므로, `captured_at` 윈도우에 `read_window()` 파티션 프루닝을 쓰면 늦게 수집된 오래된 발행 기사를 읽기 전에 놓친다. C2a는 같은 `DataReader` 안에서 이 전체 scan을 한 번만 수행하도록 보강했다. 뉴스 데이터가 더 커져 cache rebuild 자체가 병목이 되면 `captured_at` persistent index나 보조 파티션을 별도 설계한다.
+
+### C2a-CAPTURED-NEWS-CACHE. captured news window 인메모리 cache — **구현 완료 (2026-06-18)**
+
+R1b 이후 `NewsVolumeSignal`은 한 symbol마다 today window와 baseline window를 각각 읽었다. LLM 감성 시그널을 켜면 같은 날짜의 NEWS scan이 한 번 더 생긴다. Watchlist가 커지면 한 분석 실행 안에서 같은 NEWS dataset을 반복해서 읽는 문제가 생긴다.
+
+구현 후 `DataReader`는 dataset별 captured-date index를 메모리에 만든다. 첫 `read_captured_window(Dataset.NEWS, ...)` 호출은 기존처럼 `JsonlStore.read_all(Dataset.NEWS)`를 읽고, record를 `captured_at.date()`로 묶는다. 같은 `DataReader`의 다음 captured window 호출은 이 index를 재사용한다. `JsonlStore.revision`이 바뀌면 cache를 무효화해 같은 store 객체에 새 record가 append된 경우도 놓치지 않는다.
+
+이 증분은 on-disk index가 아니다. 저장 경로, JSONL 직렬화, `idempotency_key`, NEWS partition 기준은 그대로 유지한다. 그래서 migration이나 rebuild command가 필요 없다.
 
 ### R1d. Symbol-tagged RSS feeds — **구현 완료 (2026-06-16)**
 
@@ -323,6 +332,7 @@ A3b ──────── external source plugin entry points · mimir.source
 A3c ──────── source plugin settings namespace · sources.plugins.<source_id>
 R1a ──────── news mention alias matcher · analysis.news.aliases
 R1b ──────── news captured window · DataReader.read_captured_window
+C2a-CAPTURED-NEWS-CACHE ─ captured news window in-memory cache
 R1c ──────── default news aliases · analysis.news.use_default_aliases
 R1d ──────── symbol-tagged RSS feeds · sources.rss.feeds[].symbol
 R1e ──────── static RSS feed catalog · sources.rss.catalogs
@@ -357,7 +367,7 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 
 | 항목 | 보류 근거 |
 |---|---|
-| **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 핫패스를 처리. 인덱스는 데이터가 수년 누적된 *뒤*의 최적화 — 지금은 시기상조(YAGNI). 신선도 닥터(C1)가 먼저 스케일 신호를 준다. |
+| **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 일반 날짜 윈도우 핫패스를 처리한다. R1b의 captured-window 반복 scan은 C2a 인메모리 cache로 완화했다. persistent index나 보조 파티션은 데이터가 수년 누적되고 cache rebuild 자체가 병목이라는 측정이 나온 뒤 설계한다. |
 | **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. R1h-SEC-TICKER는 SEC Company Search RSS의 ticker token 입력을 추가했다. R1i-SEC-CIK는 사용자가 제공한 로컬 SEC `company_tickers.json` lookup과 ambiguity failure policy를 추가했다. R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT는 잘못된 로컬 파일, 개별 entry, CLI 출력, missing ticker lookup, CLI stderr 회귀 계약의 오류 표면을 정리했다. SEC mapping file live download/cache, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference는 provider 정책과 ToS 검토가 더 필요하다. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서는 KO-only 유지(백로그 결정). 사용자 문서(README ×3)는 이미 trilingual. |
 
@@ -376,4 +386,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 등록된 source가 secret/package gate 때문에 fetch 전에 unavailable이어도 `ok=false` manifest를 남기고, 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, MR1, D1, D2, ENV1, CFG2, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, MR1, D1, D2, ENV1, CFG2, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery와 persistent partition/captured-date index다.

@@ -164,3 +164,27 @@ def test_read_captured_window_cache_invalidates_after_store_append(tmp_path: Pat
 
     assert {r.idempotency_key for r in recs} == {"news:AAPL:30:31"}
     assert store.read_all_calls == 2
+
+
+def test_read_captured_window_cache_invalidates_after_replace_partition(tmp_path: Path):
+    store = CountingStore(root=tmp_path)
+    store.append([_rec("AAPL", 30, Dataset.NEWS, captured_day=31)])
+    reader = DataReader(store)
+
+    first_read = reader.read_captured_window(
+        Dataset.NEWS, since=date(2026, 5, 31), until=date(2026, 5, 31)
+    )
+    assert {r.idempotency_key for r in first_read} == {"news:AAPL:30:31"}
+
+    store.replace_partition(
+        Dataset.NEWS,
+        date(2026, 5, 30),
+        [_rec("MSFT", 30, Dataset.NEWS, captured_day=31)],
+    )
+
+    second_read = reader.read_captured_window(
+        Dataset.NEWS, since=date(2026, 5, 31), until=date(2026, 5, 31)
+    )
+
+    assert {r.idempotency_key for r in second_read} == {"news:MSFT:30:31"}
+    assert store.read_all_calls == 2
