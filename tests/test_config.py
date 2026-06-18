@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from mimir.config import (
+    WatchlistConfigError,
     load_sources_config,
     load_validated_sources_config,
     load_watchlist,
@@ -12,8 +13,49 @@ from mimir.config import (
 
 
 def test_load_watchlist_returns_lists(tmp_path: Path):
-    (tmp_path / "watchlist.yaml").write_text("us:\n  - AAPL\nkr: []\n", encoding="utf-8")
+    (tmp_path / "watchlist.yaml").write_text("us:\n  - ' AAPL '\nkr: []\n", encoding="utf-8")
     assert load_watchlist(tmp_path) == {"us": ["AAPL"], "kr": []}
+
+
+def test_load_watchlist_rejects_scalar_market_value(tmp_path: Path):
+    (tmp_path / "watchlist.yaml").write_text("us: AAPL\nkr: []\n", encoding="utf-8")
+
+    with pytest.raises(WatchlistConfigError) as exc_info:
+        load_watchlist(tmp_path)
+
+    message = str(exc_info.value)
+    assert "watchlist.yaml" in message
+    assert "us" in message
+
+
+def test_load_watchlist_rejects_non_mapping_top_level(tmp_path: Path):
+    (tmp_path / "watchlist.yaml").write_text("- AAPL\n", encoding="utf-8")
+
+    with pytest.raises(WatchlistConfigError) as exc_info:
+        load_watchlist(tmp_path)
+
+    assert "watchlist.yaml" in str(exc_info.value)
+
+
+def test_load_watchlist_rejects_non_string_symbol(tmp_path: Path):
+    (tmp_path / "watchlist.yaml").write_text("us: [123]\nkr: []\n", encoding="utf-8")
+
+    with pytest.raises(WatchlistConfigError) as exc_info:
+        load_watchlist(tmp_path)
+
+    assert "watchlist.yaml" in str(exc_info.value)
+
+
+def test_load_watchlist_strips_symbols_and_rejects_blank_symbol(tmp_path: Path):
+    (tmp_path / "watchlist.yaml").write_text(
+        "us:\n  - ' AAPL '\nkr:\n  - '   '\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(WatchlistConfigError) as exc_info:
+        load_watchlist(tmp_path)
+
+    assert "watchlist.yaml" in str(exc_info.value)
 
 
 def test_load_watchlist_missing_file_falls_back(tmp_path: Path):
