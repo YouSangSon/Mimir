@@ -48,6 +48,16 @@ def _reader(tmp_path: Path, records) -> DataReader:
     return DataReader(store)
 
 
+class CountingStore(JsonlStore):
+    def __init__(self, root: Path) -> None:
+        super().__init__(root=root)
+        self.read_all_calls = 0
+
+    def read_all(self, dataset: Dataset):
+        self.read_all_calls += 1
+        yield from super().read_all(dataset)
+
+
 def test_read_filters_by_symbol(tmp_path: Path):
     reader = _reader(tmp_path, [_rec("AAPL", 28), _rec("MSFT", 28)])
     recs = reader.read(Dataset.PRICES, symbol="AAPL")
@@ -101,3 +111,56 @@ def test_read_captured_window_applies_symbol_and_inclusive_bounds(tmp_path: Path
 
     assert {r.symbol for r in recs} == {"AAPL"}
     assert {r.captured_at.date() for r in recs} == {date(2026, 5, 24), date(2026, 5, 30)}
+
+
+def test_read_captured_window_reuses_one_dataset_scan_for_multiple_windows(
+    tmp_path: Path,
+):
+    store = CountingStore(root=tmp_path)
+    store.append(
+        [
+            _rec("AAPL", 20, Dataset.NEWS, captured_day=24),
+            _rec("AAPL", 30, Dataset.NEWS, captured_day=31),
+            _rec("MSFT", 30, Dataset.NEWS, captured_day=31),
+        ]
+    )
+    reader = DataReader(store)
+
+    today = reader.read_captured_window(
+        Dataset.NEWS, since=date(2026, 5, 31), until=date(2026, 5, 31)
+    )
+    baseline = reader.read_captured_window(
+        Dataset.NEWS, since=date(2026, 5, 24), until=date(2026, 5, 30)
+    )
+    msft_today = reader.read_captured_window(
+        Dataset.NEWS,
+        symbol="MSFT",
+        since=date(2026, 5, 31),
+        until=date(2026, 5, 31),
+    )
+
+    assert {r.idempotency_key for r in today} == {
+        "news:AAPL:30:31",
+        "news:MSFT:30:31",
+    }
+    assert {r.idempotency_key for r in baseline} == {"news:AAPL:20:24"}
+    assert {r.symbol for r in msft_today} == {"MSFT"}
+    assert store.read_all_calls == 1
+
+
+def test_read_captured_window_cache_invalidates_after_store_append(tmp_path: Path):
+    store = CountingStore(root=tmp_path)
+    reader = DataReader(store)
+
+    assert (
+        reader.read_captured_window(Dataset.NEWS, since=date(2026, 5, 31), until=date(2026, 5, 31))
+        == []
+    )
+    store.append([_rec("AAPL", 30, Dataset.NEWS, captured_day=31)])
+
+    recs = reader.read_captured_window(
+        Dataset.NEWS, since=date(2026, 5, 31), until=date(2026, 5, 31)
+    )
+
+    assert {r.idempotency_key for r in recs} == {"news:AAPL:30:31"}
+    assert store.read_all_calls == 2

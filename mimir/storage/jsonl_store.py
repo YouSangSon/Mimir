@@ -11,18 +11,21 @@ from mimir.storage.schema import Record
 
 
 def _same_stored_record(left: Record, right: Record) -> bool:
-    return left.model_dump(exclude={"captured_at"}) == right.model_dump(
-        exclude={"captured_at"}
-    )
+    return left.model_dump(exclude={"captured_at"}) == right.model_dump(exclude={"captured_at"})
 
 
 class JsonlStore:
     def __init__(self, root: Path = DEFAULT_ROOT) -> None:
         self._root = root
+        self._revision = 0
 
     @property
     def root(self) -> Path:
         return self._root
+
+    @property
+    def revision(self) -> int:
+        return self._revision
 
     def partition_dates(self, dataset: Dataset) -> list[date]:
         """Read-only: sorted partition dates for a dataset (empty if absent).
@@ -67,10 +70,10 @@ class JsonlStore:
         for path, recs in by_path.items():
             path.parent.mkdir(parents=True, exist_ok=True)
             written += (
-                self._append_overwrite(path, recs)
-                if overwrite
-                else self._append_only(path, recs)
+                self._append_overwrite(path, recs) if overwrite else self._append_only(path, recs)
             )
+        if written:
+            self._revision += 1
         return written
 
     def replace_partition(self, dataset: Dataset, day: date, records: Iterable[Record]) -> int:
@@ -91,11 +94,17 @@ class JsonlStore:
         if not recs:
             if path.exists():
                 path.unlink()
+                self._revision += 1
             return 0
+        if path.exists():
+            existing = list(self._read_file(path))
+            if [rec.model_dump() for rec in existing] == [rec.model_dump() for rec in recs]:
+                return 0
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w", encoding="utf-8") as fh:
             for rec in recs:
                 fh.write(rec.model_dump_json() + "\n")
+        self._revision += 1
         return len(recs)
 
     def _append_only(self, path: Path, recs: list[Record]) -> int:

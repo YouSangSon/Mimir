@@ -16,6 +16,7 @@ class DataReader:
 
     def __init__(self, store: JsonlStore) -> None:
         self._store = store
+        self._captured_index: dict[Dataset, tuple[int, dict[date, tuple[Record, ...]]]] = {}
 
     def read(
         self,
@@ -46,15 +47,29 @@ class DataReader:
         until: date | None = None,
     ) -> list[Record]:
         out: list[Record] = []
-        # Partitions are keyed by rec.ts.date(), so captured_at windows cannot
-        # safely use read_window() pruning without dropping late-captured records.
-        for rec in self._store.read_all(dataset):
-            if symbol is not None and rec.symbol != symbol:
-                continue
-            day = rec.captured_at.date()
+        index = self._captured_date_index(dataset)
+        for day in sorted(index):
             if since is not None and day < since:
                 continue
             if until is not None and day > until:
                 continue
-            out.append(rec)
+            for rec in index[day]:
+                if symbol is not None and rec.symbol != symbol:
+                    continue
+                out.append(rec)
         return out
+
+    def _captured_date_index(self, dataset: Dataset) -> dict[date, tuple[Record, ...]]:
+        revision = self._store.revision
+        cached = self._captured_index.get(dataset)
+        if cached is not None and cached[0] == revision:
+            return cached[1]
+
+        buckets: dict[date, list[Record]] = {}
+        # Partitions are keyed by rec.ts.date(), so captured_at windows cannot
+        # safely use read_window() pruning without dropping late-captured records.
+        for rec in self._store.read_all(dataset):
+            buckets.setdefault(rec.captured_at.date(), []).append(rec)
+        index = {day: tuple(records) for day, records in buckets.items()}
+        self._captured_index[dataset] = (revision, index)
+        return index
