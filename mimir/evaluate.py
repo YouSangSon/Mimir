@@ -29,7 +29,6 @@ def run_evaluate(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mimir.evaluate")
     parser.add_argument("--date", help="YYYY-MM-DD (default: today UTC)")
-    parser.add_argument("--config-dir", default="config")
     parser.add_argument("--data-root", default=str(DEFAULT_ROOT))
     args = parser.parse_args(argv)
 
