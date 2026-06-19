@@ -111,3 +111,21 @@ def test_non_object_json_is_not_adopted(tmp_path):
         http_get_fn=rec,
     )
     assert path.read_text(encoding="utf-8") == "cached"  # not overwritten
+
+
+def test_invalid_entry_download_is_not_adopted(tmp_path):
+    # A JSON object whose entries fail the loader's validation (here: missing cik_str)
+    # must NOT overwrite the existing good cache. The download is validated through the
+    # canonical loader before adopt; the temp file is cleaned up on rejection.
+    path = tmp_path / "company_tickers.json"
+    path.write_text("cached", encoding="utf-8")
+    rec = _Recorder(resp=_FakeResp(200, text='{"0": {"ticker": "AAPL"}}'))
+    refresh_sec_ticker_cik_map(
+        path,
+        _enabled(max_age_hours=168),
+        user_agent="Svc me@x.com",
+        now=_now_after(path, 200),
+        http_get_fn=rec,
+    )
+    assert path.read_text(encoding="utf-8") == "cached"  # good cache preserved
+    assert not (tmp_path / "company_tickers.json.tmp").exists()  # temp cleaned up

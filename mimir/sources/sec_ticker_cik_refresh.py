@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import logging
+import os
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -11,6 +11,7 @@ import requests
 from mimir.core.errors import FetchError
 from mimir.sources.base import http_get
 from mimir.sources.config import TickerCikMapRefresh
+from mimir.sources.rss_catalog import load_sec_ticker_cik_map
 
 logger = logging.getLogger(__name__)
 
@@ -59,18 +60,23 @@ def refresh_sec_ticker_cik_map(
         return
     if resp.status_code == 304:
         return
-    try:
-        payload = json.loads(resp.text)
-    except ValueError:
-        logger.warning("SEC ticker CIK map refresh returned non-JSON; keeping existing file")
-        return
-    if not isinstance(payload, dict):
-        logger.warning(
-            "SEC ticker CIK map refresh returned non-object JSON; keeping existing file"
-        )
-        return
+    # Adopt the download only if it passes the SAME validation the loader applies at
+    # build time (JSON object + per-entry ticker/cik_str + no ambiguity), so a broken
+    # download never overwrites a good cache. Validate a temp sibling, then replace
+    # atomically.
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(resp.text, encoding="utf-8")
+    tmp_path = path.with_name(path.name + ".tmp")
+    tmp_path.write_text(resp.text, encoding="utf-8")
+    try:
+        load_sec_ticker_cik_map(tmp_path)
+    except ValueError as exc:
+        logger.warning(
+            "SEC ticker CIK map refresh downloaded an invalid map (%s); keeping existing file",
+            exc,
+        )
+        tmp_path.unlink(missing_ok=True)
+        return
+    os.replace(tmp_path, path)
     etag = resp.headers.get("ETag")
     if etag:
         etag_path.write_text(etag, encoding="utf-8")
