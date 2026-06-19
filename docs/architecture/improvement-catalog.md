@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/CFG3-CONFIG-GUARDRAILS/COV1-CONTRACT-COVERAGE/BF-PREFLIGHT 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/CFG3-CONFIG-GUARDRAILS/COV1-CONTRACT-COVERAGE/I18N1-PARITY-GUARD/BF-PREFLIGHT 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -60,6 +60,7 @@
 | **CFG2** | `mimir doctor` sources config validation | 운영/DX | CFG1 후속 + doctor 운영 점검 계약 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/config/CFG2_doctor_sources_config_validation_tech_spec_2026_06_18.md) |
 | **CFG3-CONFIG-GUARDRAILS** | watchlist schema 검증 + LLM headline cap 경계 | 견고성/비용 | CFG1/CFG2 후속 + 무료 원칙 비용 가드 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/config/CFG3_config_guardrails_tech_spec_2026_06_18.md) |
 | **COV1-CONTRACT-COVERAGE** | 기존 계약 characterization 커버리지 (ECOS Q/A cycle·blank value, config 절대경로, price volume edge) | 견고성/테스트 | 80%+ 커버리지 + idempotency_key/partition 불변식 약속 | **✅ 구현 완료 (2026-06-19)** | 테스트 + 문서 (본 문서 §4) |
+| **I18N1-PARITY-GUARD** | 리포트 i18n 키·placeholder 패리티 drift guard | 운영/DX | trilingual 리포트 약속 + DOCHEALTH류 drift guard 계약 | **✅ 구현 완료 (2026-06-19)** | 테스트 + 문서 (본 문서 §4) |
 | **C2** | 파티션 인덱스 (git-as-DB rglob 스케일) | 성능 | 신규 | ⏸ 보류 | 본 문서 §6 |
 | **C3** | pykrx retry/backoff 정책 | 견고성 | 백로그 LOW | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-pykrx-retry-policy-design.md) |
 | **D1** | 통합 `mimir` CLI (console_scripts) | DX | README 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-cli-entrypoints-design.md) |
@@ -330,6 +331,12 @@ CFG1/CFG2는 `sources.yaml`을 CLI와 doctor 경계에서 검증했다. 그러�
 
 모든 테스트는 추가 즉시 GREEN이다(기존 코드가 옳으므로). 새 동작·네트워크 호출·저장 계약 변경은 없다.
 
+### I18N1-PARITY-GUARD. 리포트 i18n 패리티 drift guard — **구현 완료 (2026-06-19)**
+
+`mimir/report/i18n.py`는 en/ko/zh 리포트 UI 문자열을 `t(key, lang, **fmt)`로 제공하고, 키가 없으면 영어로, 그래도 없으면 key 자체로 fallback한다. 이 fallback은 런타임 크래시를 막는 안전장치지만, 동시에 *조용한 drift*를 가린다. 누군가 `en`에만 키를 추가하고 `ko`/`zh`에 빠뜨리면, 한국어·중국어 리포트가 오류 없이 영어 문자열을 노출한다. placeholder가 어긋나면(`{count}`를 한 언어에서 빠뜨림) `t()`가 값을 누락하거나 `KeyError`를 낸다. trilingual 리포트는 README가 한 약속이지만, 이 drift를 잡는 테스트가 없었다.
+
+구현 후 `tests/report/test_i18n.py`가 세 가지를 고정한다. (1) `LANGS`의 모든 언어가 `en`과 동일한 키 집합을 갖는다(누락/잉여 키 = 조용한 영어 fallback 차단). (2) 각 키의 `{placeholder}` 집합이 언어 간 동일하다(렌더 시 값 누락·`KeyError` 차단). (3) `t()`의 문서화된 fallback 계약(unknown lang→en, unknown key→key)을 고정한다. 현재 패리티가 맞으므로 세 테스트는 추가 즉시 GREEN이고, 이후 번역 drift가 생기면 회귀로 잡는다. 이는 DOCHEALTH(README 수치 drift)·catalog ID guard와 같은 "조용한 문서/UI drift 금지" 계열이다. 런타임 코드·저장 계약 변경은 없다.
+
 > **고려 후 보류 — LLM signal weight YAML 노출.** 확장성 감사는 `LlmSentimentSignal(weight=...)` 생성자 인자가 config로 배선되지 않음을 발견했다. 그러나 spec(2026-06-13-llm-sentiment-seam-design.md §5.1/§5.2)은 `weight`를 *생성자 기본값*(0.8)으로만 문서화하고 sources.yaml key로 약속하지 않는다. 다른 모든 시그널도 weight를 코드 상수로 둔다(`상수는 백테스트 B1로 보정`). llm_sentiment만 YAML로 노출하면 일관성 없는 순수 신규 튜닝 표면이 된다(catalog §0 "스코프 제조기" 회피). 따라서 구현하지 않고 §6 보류로 기록한다.
 
 ---
@@ -372,6 +379,7 @@ CFG1 ─────── sources.yaml CLI validation · shared load_validated_
 CFG2 ─────── mimir doctor sources.yaml schema validation
 CFG3-CONFIG-GUARDRAILS ─ watchlist schema + llm_sentiment_max_headlines cap
 COV1-CONTRACT-COVERAGE ─ ECOS Q/A cycle·blank value · config 절대경로 · price volume edge characterization
+I18N1-PARITY-GUARD ─ report i18n key·placeholder parity drift guard
 D2 ───────── GitHub Actions Node24-compatible action majors
 	C3 ───────── pykrx retry/backoff · FetchError manifest surface
 	BF-MANIFEST ─ backfill success/failure manifest
@@ -410,4 +418,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 등록된 source가 secret/package gate 때문에 fetch 전에 unavailable이어도 `ok=false` manifest를 남기고, 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, COV1-CONTRACT-COVERAGE, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery와 persistent partition/captured-date index다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, COV1-CONTRACT-COVERAGE, I18N1-PARITY-GUARD, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery와 persistent partition/captured-date index다.
