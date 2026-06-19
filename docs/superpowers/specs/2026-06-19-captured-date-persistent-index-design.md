@@ -89,7 +89,7 @@ mimir index rebuild --dataset news_captured   # 전체 재빌드 (운영/복구�
 2. 한 분석 실행에서 C2a in-memory rebuild(NEWS 전체 스캔)가 측정 가능한 병목이다(예: 실행 시간의 유의미한 비중, 또는 절대 초 단위 임계 초과).
 3. 이 병목이 GitHub Actions 무료 cron 시간 예산을 위협한다.
 
-하나라도 미충족이면 C2a in-memory cache가 정답으로 남는다. **먼저 측정하라** — 그 측정 자체가 별도의 작은 작업(예: cache build 시간·record 수를 doctor/dashboard에 노출)이며, 이 설계의 선행 조건이다.
+하나라도 미충족이면 C2a in-memory cache가 정답으로 남는다. **먼저 측정하라** — 그 측정 자체가 별도의 작은 작업이며 이 설계의 선행 조건이다. **이 측정 계기는 이미 구현됐다**(2026-06-19): `DataReader._captured_date_index`가 재빌드할 때마다 `records`/`days`/`elapsed_ms`를 DEBUG 로그(`mimir.storage.reader`)로 남긴다. 운영자는 verbose 로깅으로 NEWS scan 규모와 비용을 관측해, 이 on-disk index 착수 시점을 데이터로 판단한다.
 
 ---
 

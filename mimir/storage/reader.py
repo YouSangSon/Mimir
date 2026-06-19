@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
+import time
 from datetime import date
 
 from mimir.core.source import Dataset
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.schema import Record
+
+logger = logging.getLogger(__name__)
 
 
 class DataReader:
@@ -66,10 +70,23 @@ class DataReader:
             return cached[1]
 
         buckets: dict[date, list[Record]] = {}
+        record_count = 0
+        start = time.perf_counter()
         # Partitions are keyed by rec.ts.date(), so captured_at windows cannot
         # safely use read_window() pruning without dropping late-captured records.
         for rec in self._store.read_all(dataset):
             buckets.setdefault(rec.captured_at.date(), []).append(rec)
+            record_count += 1
         index = {day: tuple(records) for day, records in buckets.items()}
         self._captured_index[dataset] = (revision, index)
+        # Measurement for the deferred persistent-index decision (catalog §6 / C2):
+        # this full scan is the cost that a persistent index would amortize. Surfacing
+        # records/days/elapsed lets an operator see when it becomes a bottleneck.
+        logger.debug(
+            "captured-date index rebuilt: dataset=%s records=%d days=%d elapsed_ms=%.1f",
+            dataset.value,
+            record_count,
+            len(index),
+            (time.perf_counter() - start) * 1000,
+        )
         return index

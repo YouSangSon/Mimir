@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -111,6 +112,24 @@ def test_read_captured_window_applies_symbol_and_inclusive_bounds(tmp_path: Path
 
     assert {r.symbol for r in recs} == {"AAPL"}
     assert {r.captured_at.date() for r in recs} == {date(2026, 5, 24), date(2026, 5, 30)}
+
+
+def test_captured_index_rebuild_logs_scan_scale(tmp_path: Path, caplog):
+    # The full captured-date scan (the cost a persistent index would amortize, catalog
+    # §6/C2) emits an observable record/day count, and runs ONCE per reader revision.
+    records = [
+        _rec("AAPL", 30, Dataset.NEWS, captured_day=31),
+        _rec("MSFT", 30, Dataset.NEWS, captured_day=31),
+        _rec("AAPL", 20, Dataset.NEWS, captured_day=24),
+    ]
+    reader = _reader(tmp_path, records)
+    with caplog.at_level(logging.DEBUG, logger="mimir.storage.reader"):
+        reader.read_captured_window(Dataset.NEWS, since=date(2026, 5, 24), until=date(2026, 5, 31))
+        reader.read_captured_window(Dataset.NEWS, since=date(2026, 5, 31), until=date(2026, 5, 31))
+    rebuilds = [r for r in caplog.records if "captured-date index rebuilt" in r.getMessage()]
+    assert len(rebuilds) == 1  # scanned once for both windows, not per call
+    assert "records=3" in rebuilds[0].getMessage()
+    assert "days=2" in rebuilds[0].getMessage()
 
 
 def test_read_captured_window_reuses_one_dataset_scan_for_multiple_windows(
