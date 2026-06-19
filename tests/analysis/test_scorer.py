@@ -43,6 +43,23 @@ def test_neutral_activity_is_low_stars_but_high_attention():
     assert s.attention >= 0.9  # but the activity is surfaced separately
 
 
+def test_neutral_signals_do_not_dilute_directional_conviction():
+    # Stars reflect directional conviction, not signal count: adding always-neutral
+    # activity signals (e.g. news_volume) must not lower the stars of a real
+    # directional call — but the activity must still raise attention.
+    bullish_only = score([_r(SignalDirection.BULLISH, 1.0, 0.9, weight=1.0)])
+    with_neutral = score(
+        [
+            _r(SignalDirection.BULLISH, 1.0, 0.9, weight=1.0),
+            _r(SignalDirection.NEUTRAL, 1.0, 1.0, weight=0.5),
+            _r(SignalDirection.NEUTRAL, 1.0, 1.0, weight=0.8),
+        ]
+    )
+    assert with_neutral.direction is SignalDirection.BULLISH
+    assert with_neutral.stars == bullish_only.stars
+    assert with_neutral.attention >= bullish_only.attention
+
+
 def test_reasons_are_prefixed_with_signal():
     s = score([_r(SignalDirection.BULLISH, 0.5, 0.5, signal="price_momentum")])
     assert s.reasons == ["[price_momentum] r"]

@@ -22,12 +22,18 @@ def score(results: list[SignalResult]) -> InsightScore:
         )
 
     total_weight = sum(r.weight for r in results) or 1.0
-    # net is the signed, weighted directional pull in [-1, 1].
+    # net is the signed, weighted directional pull in [-1, 1]. Normalize by the
+    # DIRECTIONAL weight only: an always-neutral activity signal (e.g. news_volume)
+    # contributes 0 to the numerator, so dividing by total_weight would let it dilute
+    # a real directional call's conviction. Neutral signals still feed attention below.
+    directional_weight = (
+        sum(r.weight for r in results if DIRECTION_SIGN[r.direction] != 0.0) or 1.0
+    )
     net = (
         sum(DIRECTION_SIGN[r.direction] * r.strength * r.confidence * r.weight for r in results)
-        / total_weight
+        / directional_weight
     )
-    # attention is the unsigned weighted activity (neutral signals contribute here only).
+    # attention is the unsigned weighted activity (all signals, incl. neutral).
     attention = sum(r.strength * r.confidence * r.weight for r in results) / total_weight
     confidence = sum(r.confidence * r.weight for r in results) / total_weight
 
