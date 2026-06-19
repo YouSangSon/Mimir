@@ -59,6 +59,10 @@ def refresh_sec_ticker_cik_map(
         logger.warning("SEC ticker CIK map refresh failed (%s); keeping existing file", exc)
         return
     if resp.status_code == 304:
+        # The cached file is current; reset its mtime so the TTL gate suppresses
+        # requests for the next max_age window. Otherwise every later build would keep
+        # re-sending a conditional request (304) — wasteful and against SEC fair-access.
+        os.utime(path)
         return
     # Adopt the download only if it passes the SAME validation the loader applies at
     # build time (JSON object + per-entry ticker/cik_str + no ambiguity), so a broken
