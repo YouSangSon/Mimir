@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import html
 from pathlib import Path
 
 from mimir.doctor.report import DoctorReport, Finding, Severity
+from mimir.report.html import SEVERITY_COLOR, esc
 from mimir.report.i18n import DEFAULT_LANG, normalize_lang, t
 
 _SEVERITY_RANK: dict[Severity, int] = {
@@ -12,19 +12,8 @@ _SEVERITY_RANK: dict[Severity, int] = {
     Severity.OK: 2,
 }
 
-_SEVERITY_COLOR: dict[Severity, str] = {
-    Severity.CRITICAL: "#dc2626",
-    Severity.WARN: "#d97706",
-    Severity.OK: "#16a34a",
-}
-
-
-def _esc(value: object) -> str:
-    return html.escape(str(value))
-
-
 def _empty(value: object | None) -> str:
-    return "—" if value is None else _esc(value)
+    return "—" if value is None else esc(value)
 
 
 def _ordered_findings(findings: list[Finding]) -> list[Finding]:
@@ -36,16 +25,16 @@ def _severity_label(severity: Severity, lang: str) -> str:
 
 
 def _finding_row(finding: Finding, lang: str) -> str:
-    severity = _esc(_severity_label(finding.severity, lang))
+    severity = esc(_severity_label(finding.severity, lang))
     badge = (
-        f'<span class="sev" style="background:{_SEVERITY_COLOR[finding.severity]}">'
+        f'<span class="sev" style="background:{SEVERITY_COLOR[finding.severity]}">'
         f"{severity}</span>"
     )
     return (
-        f"<tr><td>{_esc(finding.dataset.value)}</td>"
+        f"<tr><td>{esc(finding.dataset.value)}</td>"
         f"<td>{_empty(finding.scope)}</td>"
         f"<td>{badge}</td>"
-        f"<td>{_esc(finding.message)}</td></tr>"
+        f"<td>{esc(finding.message)}</td></tr>"
     )
 
 
@@ -69,9 +58,9 @@ def render_doctor_html(
     lang: str = DEFAULT_LANG,
 ) -> None:
     lang = normalize_lang(lang)
-    checked_at = _esc(report.checked_at.isoformat())
-    data_root = _esc(report.data_root)
-    worst = _esc(_severity_label(report.worst, lang))
+    checked_at = esc(report.checked_at.isoformat())
+    data_root = esc(report.data_root)
+    worst = esc(_severity_label(report.worst, lang))
     findings = _findings_section(report, lang)
 
     doc = f"""<!doctype html>

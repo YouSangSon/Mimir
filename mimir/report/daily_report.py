@@ -9,6 +9,7 @@ from mimir.analysis.schema import Insight
 from mimir.analysis.signals.base import SignalDirection
 from mimir.evaluation.schema import BucketStat
 from mimir.historical.schema import HistoricalInsight
+from mimir.report.html import stars
 from mimir.report.i18n import DEFAULT_LANG, normalize_lang, t
 
 DEFAULT_REPORTS_ROOT = Path("reports")
@@ -19,10 +20,6 @@ DIRECTION_COLOR: dict[SignalDirection, str] = {
     SignalDirection.BEARISH: "#dc2626",
     SignalDirection.NEUTRAL: "#6b7280",
 }
-
-
-def _stars(n: int) -> str:
-    return "★" * n + "☆" * (5 - n)
 
 
 def _card(ins: Insight, lang: str) -> str:
@@ -36,7 +33,7 @@ def _card(ins: Insight, lang: str) -> str:
     <span class="badge" style="background:{color}">{label}</span>
     <span class="attn" title="{t("activity_tooltip", lang)}">{activity}</span>
     <span class="stars" title="{t("conviction_tooltip", lang, confidence=ins.confidence)}">\
-{_stars(ins.stars)}</span>
+{stars(ins.stars)}</span>
   </div>
   <ul class="reasons">{reasons}</ul>
 </div>"""

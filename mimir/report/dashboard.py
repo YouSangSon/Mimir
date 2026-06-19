@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import html
 from datetime import datetime
 
 from mimir.analysis.schema import Insight
@@ -9,27 +8,14 @@ from mimir.evaluation.schema import BucketStat
 from mimir.historical.schema import HistoricalInsight
 from mimir.manifest.manifest import RunRecord, SourceResult
 from mimir.report.daily_report import DIRECTION_COLOR
+from mimir.report.html import SEVERITY_COLOR, esc, stars
 from mimir.report.i18n import DEFAULT_LANG, normalize_lang, t
-
-SEVERITY_COLOR: dict[Severity, str] = {
-    Severity.OK: "#16a34a",
-    Severity.WARN: "#d97706",
-    Severity.CRITICAL: "#dc2626",
-}
 
 _STATUS_HTML_HREF = "status.html"
 
 
-def _stars(n: int) -> str:
-    return "★" * n + "☆" * (5 - n)
-
-
-def _esc(value: object) -> str:
-    return html.escape(str(value))
-
-
 def _badge(text: str, color: str) -> str:
-    return f'<span class="hb" style="background:{color}">{_esc(text)}</span>'
+    return f'<span class="hb" style="background:{color}">{esc(text)}</span>'
 
 
 def _badges(
@@ -77,11 +63,11 @@ def _ordered_findings(findings: list[Finding]) -> list[Finding]:
 
 def _health_row(f: Finding) -> str:
     color = SEVERITY_COLOR[f.severity]
-    sev = f'<span class="sev" style="background:{color}">{_esc(f.severity.value)}</span>'
-    scope = _esc(f.scope) if f.scope else "—"
+    sev = f'<span class="sev" style="background:{color}">{esc(f.severity.value)}</span>'
+    scope = esc(f.scope) if f.scope else "—"
     return (
-        f"<tr><td>{_esc(f.dataset.value)}</td><td>{scope}</td>"
-        f"<td>{sev}</td><td>{_esc(f.message)}</td></tr>"
+        f"<tr><td>{esc(f.dataset.value)}</td><td>{scope}</td>"
+        f"<td>{sev}</td><td>{esc(f.message)}</td></tr>"
     )
 
 
@@ -108,11 +94,11 @@ def _insight_row(ins: Insight, lang: str) -> str:
         f'<span class="badge" style="background:{color}">'
         f"{t(f'direction_{ins.direction.value}', lang)}</span>"
     )
-    reason = _esc(ins.reasons[0]) if ins.reasons else "—"
+    reason = esc(ins.reasons[0]) if ins.reasons else "—"
     return (
-        f"<tr><td class=\"sym\">{_esc(ins.symbol)}</td>"
-        f"<td>{_esc(ins.market.value)}</td><td>{direction}</td>"
-        f'<td class="stars">{_stars(ins.stars)}</td>'
+        f"<tr><td class=\"sym\">{esc(ins.symbol)}</td>"
+        f"<td>{esc(ins.market.value)}</td><td>{direction}</td>"
+        f'<td class="stars">{stars(ins.stars)}</td>'
         f"<td>{ins.confidence:.2f}</td><td>{reason}</td></tr>"
     )
 
@@ -144,8 +130,8 @@ def _bucket_row(b: BucketStat, lang: str) -> str:
         for h in b.horizons
     )
     return (
-        f"<tr><td>{_esc(b.dimension)}</td><td>{_esc(b.key)}</td>"
-        f"<td>{_esc(b.market.value)}</td><td>{cells}</td></tr>"
+        f"<tr><td>{esc(b.dimension)}</td><td>{esc(b.key)}</td>"
+        f"<td>{esc(b.market.value)}</td><td>{cells}</td></tr>"
     )
 
 
@@ -175,8 +161,8 @@ def _historical_row(h: HistoricalInsight, lang: str) -> str:
         for s in h.horizons
     )
     return (
-        f"<tr><td class=\"sym\">{_esc(h.symbol)}</td>"
-        f"<td>{_esc(h.event_type)} ×{_esc(h.occurrences)}{trig}</td>"
+        f"<tr><td class=\"sym\">{esc(h.symbol)}</td>"
+        f"<td>{esc(h.event_type)} ×{esc(h.occurrences)}{trig}</td>"
         f"<td>{horizons}</td></tr>"
     )
 
@@ -196,14 +182,14 @@ def _collection_section(run: RunRecord | None, lang: str) -> str:
 
 
 def _collection_row(r: SourceResult, lang: str) -> str:
-    source = _esc(r.source)
+    source = esc(r.source)
     color = SEVERITY_COLOR[Severity.OK] if r.ok else SEVERITY_COLOR[Severity.CRITICAL]
     status = t("status_ok", lang) if r.ok else t("status_fail", lang)
     status_cell = f'<span class="sev" style="background:{color}">{status}</span>'
     if r.ok:
         detail = t("status_detail_fetched_stored", lang, fetched=r.fetched, stored=r.stored)
     else:
-        detail = _esc(r.error or "")
+        detail = esc(r.error or "")
     return f"<tr><td>{source}</td><td>{status_cell}</td><td>{detail}</td></tr>"
 
 
