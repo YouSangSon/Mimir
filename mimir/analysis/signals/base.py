@@ -4,7 +4,7 @@ from datetime import date
 from enum import StrEnum
 from typing import TYPE_CHECKING, Protocol
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from mimir.core.source import Market
 
@@ -29,12 +29,18 @@ DIRECTION_SIGN: dict[SignalDirection, float] = {
 
 
 class SignalResult(BaseModel):
+    # Stored nested in the INSIGHTS payload (Insight.signals[]) and re-validated on
+    # every read, so it carries the same boundary contract as the A4 typed payloads:
+    # reject drift keys, and keep weight a non-negative multiplier (a negative weight
+    # would flip the signed directional pull in scorer.score()).
+    model_config = ConfigDict(extra="forbid")
+
     signal: str
     direction: SignalDirection
     strength: float = Field(ge=0.0, le=1.0)  # magnitude of the signal
     confidence: float = Field(ge=0.0, le=1.0)  # trust in the signal
     reason: str
-    weight: float = 1.0
+    weight: float = Field(default=1.0, ge=0.0)
 
 
 class Signal(Protocol):
