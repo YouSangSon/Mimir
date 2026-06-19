@@ -13,7 +13,7 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-541%20passing%20%C2%B7%2098%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-553%20passing%20%C2%B7%2098%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -228,7 +228,7 @@ Each command also keeps its module form, for example `.venv/bin/python -m mimir.
 
 | Item | Value |
 | :--- | :--- |
-| **Tests** | 541 passing (adapters verified with recorded fixtures, no network) |
+| **Tests** | 553 passing (adapters verified with recorded fixtures, no network) |
 | **Coverage** | `mimir/` 98% (gate 80%) |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |
@@ -270,7 +270,10 @@ The full picture is managed against [`docs/architecture/roadmap.md`](docs/archit
 | :--- | :--- |
 | [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) | Full program breakdown and phased value delivery |
 | [`docs/architecture/extensibility/README.md`](docs/architecture/extensibility/README.md) | Current extension points, source-spec registration, macro-series registry, and regenerated-data policy |
+| [`docs/architecture/improvement-catalog.md`](docs/architecture/improvement-catalog.md) | Extensibility/robustness improvement catalog with per-increment decisions |
+| [`docs/decisions/tech-spec/README.md`](docs/decisions/tech-spec/README.md) | Decision tech-spec index grouped by domain |
 | [`docs/reference/config/sources.md`](docs/reference/config/sources.md) | `config/sources.yaml` operator reference |
+| [`docs/reference/config/watchlist.md`](docs/reference/config/watchlist.md) | `config/watchlist.yaml` operator reference |
 | [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector design (architecture · source catalog · acceptance criteria) |
 | [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring design (signals · scorer · Insight) |
 | [`docs/superpowers/specs/2026-05-31-delivery-design.md`](docs/superpowers/specs/2026-05-31-delivery-design.md) | S3 Delivery & Reporting design (HTML report · digest) |

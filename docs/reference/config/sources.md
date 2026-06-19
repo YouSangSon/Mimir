@@ -68,7 +68,7 @@ sources:
 | `disabled_ids` | string list | `[]` | 특정 소스 id를 끈다. 예: `["dart", "rss"]` |
 | `lang` | string | `en` | 리포트 언어. 허용 값은 `en`, `ko`, `zh` |
 | `llm_sentiment_enabled` | boolean | `false` | 유료 LLM 뉴스 감성 시그널을 분석 단계에 추가할지 정한다 |
-| `llm_sentiment_max_headlines` | integer | `50` | 한 실행에서 LLM으로 분류할 최대 headline 수 |
+| `llm_sentiment_max_headlines` | integer | `50` | 한 실행에서 LLM으로 분류할 최대 headline 수. 유효 범위는 `1`~`50`이며, `0`·음수·`51` 이상은 설정 오류다 |
 
 위 표의 최상위 키와 `sources`, `analysis` 외의 키는 설정 오류로 처리한다. `analysis`를 `analysys`처럼 잘못 쓰면 기본값으로 조용히 돌아가지 않고 실패한다.
 
@@ -403,6 +403,14 @@ analysis:
 analysys:
   macro_regime:
     rate_series: ["DGS10"]  # 오타. analysis가 맞다.
+```
+
+```yaml
+llm_sentiment_max_headlines: 0   # 0과 음수는 허용하지 않는다. 유효 범위는 1~50이다.
+```
+
+```yaml
+llm_sentiment_max_headlines: 51  # 안전 상한 50을 넘는다. 유효 범위는 1~50이다.
 ```
 
 실패를 빠르게 내는 이유는 명확하다. 설정 오타가 조용히 기본값으로 돌아가면 사용자는 새 시리즈가 수집되거나 분석에 반영된다고 믿지만 실제 동작은 바뀌지 않는다.

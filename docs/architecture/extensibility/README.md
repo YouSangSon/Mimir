@@ -70,6 +70,7 @@ sources:
       - { id: "sec_structured_inline_xbrl" }
       - { id: "sec_structured_all_xbrl" }
     sec:
+      ticker_cik_map_path: company_tickers.json
       company_filings:
         - { ticker: "AAPL", symbol: "AAPL", forms: ["10-K", "10-Q", "8-K"] }
     feeds:

@@ -13,7 +13,7 @@
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-541%20passing%20%C2%B7%2098%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-553%20passing%20%C2%B7%2098%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -228,7 +228,7 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 
 | 项目 | 值 |
 | :--- | :--- |
-| **测试** | 541 passing（适配器以录制的 fixture 在无网络下验证） |
+| **测试** | 553 passing（适配器以录制的 fixture 在无网络下验证） |
 | **覆盖率** | `mimir/` 98%（门槛 80%） |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — 每次 push/PR 执行 lint·type·test·coverage |
@@ -270,7 +270,10 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 | :--- | :--- |
 | [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) | 整体项目分解与分阶段价值交付 |
 | [`docs/architecture/extensibility/README.md`](docs/architecture/extensibility/README.md) | 当前扩展点、source-spec 注册、macro series registry、再生成数据策略 |
+| [`docs/architecture/improvement-catalog.md`](docs/architecture/improvement-catalog.md) | 扩展性·健壮性改进目录（按增量决策） |
+| [`docs/decisions/tech-spec/README.md`](docs/decisions/tech-spec/README.md) | 按领域分组的决策 tech-spec 索引 |
 | [`docs/reference/config/sources.md`](docs/reference/config/sources.md) | `config/sources.yaml` 运维参考 |
+| [`docs/reference/config/watchlist.md`](docs/reference/config/watchlist.md) | `config/watchlist.yaml` 运维参考 |
 | [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector 设计（架构·数据源目录·完成标准） |
 | [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring 设计（信号·评分器·Insight） |
 | [`docs/superpowers/specs/2026-05-31-delivery-design.md`](docs/superpowers/specs/2026-05-31-delivery-design.md) | S3 Delivery & Reporting 设计（HTML 报告·摘要） |

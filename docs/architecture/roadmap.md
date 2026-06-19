@@ -80,7 +80,7 @@ Mímir는 북유럽 신화에서 지혜의 샘을 지키는 존재다. 이 프�
 ## 5. 횡단 관심사 (모든 스펙에 적용)
 
 - **스케줄링** — 별도 스펙이 아니다. cadence 오케스트레이터를 S1에서 세우고, 각 스펙이 자기 워크플로를 추가한다.
-- **문서화** — 스펙마다 설계문서(`docs/superpowers/specs/`)와 사용자 문서를 남긴다.
+- **문서화** — 스펙마다 설계문서와 사용자 문서를 남긴다. S1–S4 단계 설계문서는 `docs/superpowers/specs/`에 있고, 그 위에 쌓인 최신 결정 spec은 `docs/decisions/tech-spec/`에도 위치할 수 있다([tech-spec 색인](../decisions/tech-spec/README.md)).
 - **테스트** — TDD, 커버리지 80%+ (단위·통합·E2E).
 - **시크릿** — API 키·봇 토큰은 GitHub Actions Secrets로만 관리하고 절대 커밋하지 않는다.
 - **합법성 레지스트리** — 소스마다 `legal_status`와 `rate_limit`을 메타데이터로 들고 코드로 강제한다.

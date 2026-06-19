@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/BF-PREFLIGHT 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/CFG3-CONFIG-GUARDRAILS/BF-PREFLIGHT 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -58,6 +58,7 @@
 | **ENV1** | Runtime `.env` autoload contract | 운영/DX | README 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-dotenv-cli-autoload-design.md) |
 | **CFG1** | `sources.yaml` CLI validation contract | 운영/DX | docs/reference config 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-sources-config-cli-validation-design.md) |
 | **CFG2** | `mimir doctor` sources config validation | 운영/DX | CFG1 후속 + doctor 운영 점검 계약 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/config/CFG2_doctor_sources_config_validation_tech_spec_2026_06_18.md) |
+| **CFG3-CONFIG-GUARDRAILS** | watchlist schema 검증 + LLM headline cap 경계 | 견고성/비용 | CFG1/CFG2 후속 + 무료 원칙 비용 가드 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/config/CFG3_config_guardrails_tech_spec_2026_06_18.md) |
 | **C2** | 파티션 인덱스 (git-as-DB rglob 스케일) | 성능 | 신규 | ⏸ 보류 | 본 문서 §6 |
 | **C3** | pykrx retry/backoff 정책 | 견고성 | 백로그 LOW | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-pykrx-retry-policy-design.md) |
 | **D1** | 통합 `mimir` CLI (console_scripts) | DX | README 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-cli-entrypoints-design.md) |
@@ -311,6 +312,12 @@ README는 `.env`가 runtime에 자동 로드되고, CI Secrets나 shell 환경�
 
 구현 후 `doctor_cli.main()`도 `load_validated_sources_config()`를 먼저 호출한다. `sources.yaml` schema가 깨져 있으면 `run_doctor()`를 실행하지 않고, `--html` 파일도 쓰지 않는다. 오류 표면은 다른 CLI와 같은 `[mimir] invalid sources.yaml:` prefix와 exit code 1이다. 이 변경은 source build를 실행하거나 SEC mapping file을 다운로드하지 않으며, doctor의 read-only 데이터 점검 경계는 그대로 유지한다.
 
+### CFG3-CONFIG-GUARDRAILS. Watchlist schema + LLM headline cap — **구현 완료 (2026-06-18)**
+
+CFG1/CFG2는 `sources.yaml`을 CLI와 doctor 경계에서 검증했다. 그러나 두 설정 입력이 여전히 무음 손상 또는 비용 위험을 안고 있었다. `watchlist.yaml`은 schema 검증 없이 읽혀 `us: AAPL` 같은 스칼라가 `["A", "A", "P", "L"]`로 풀릴 수 있었고, `llm_sentiment_max_headlines`는 정수 타입만 검증해 `0`·음수·`51`도 받았다.
+
+구현 후 `_WatchlistConfig`(`extra="forbid"`, `us`/`kr`는 `list[StrictStr]`)가 비-매핑 최상위, 비-문자열 symbol, 공백 symbol을 거부하고 symbol 양끝 공백을 제거한다. `load_watchlist()`는 `ValidationError`를 path가 포함된 `WatchlistConfigError`로 감싸고, watchlist를 읽는 CLI는 `[mimir] invalid watchlist.yaml:` prefix와 exit code 1로 실패한다. `llm_sentiment_max_headlines`는 `SourcesConfig`와 `_TopLevelSourcesConfig` 두 모델 모두에서 `Field(default=50, ge=1, le=50)`로 제한해, raw YAML 검증 경로와 직접 생성 경로 양쪽에서 유료 LLM 호출량을 안전 범위로 묶는다. 기본값 `50`과 `llm_sentiment_enabled: false`는 유지하고, 새 네트워크 호출이나 저장 계약 변경은 없다.
+
 ---
 
 ## 5. 증분 실행 순서 (Sequencing)
@@ -349,6 +356,7 @@ D1 ───────── unified CLI entry points · mimir + mimir.<comman
 ENV1 ─────── runtime .env autoload · CLI default env=None
 CFG1 ─────── sources.yaml CLI validation · shared load_validated_sources_config
 CFG2 ─────── mimir doctor sources.yaml schema validation
+CFG3-CONFIG-GUARDRAILS ─ watchlist schema + llm_sentiment_max_headlines cap
 D2 ───────── GitHub Actions Node24-compatible action majors
 	C3 ───────── pykrx retry/backoff · FetchError manifest surface
 	BF-MANIFEST ─ backfill success/failure manifest
@@ -386,4 +394,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 등록된 source가 secret/package gate 때문에 fetch 전에 unavailable이어도 `ok=false` manifest를 남기고, 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, MR1, D1, D2, ENV1, CFG2, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery와 persistent partition/captured-date index다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery와 persistent partition/captured-date index다.

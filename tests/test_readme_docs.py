@@ -7,6 +7,11 @@ from pathlib import Path
 
 README_FILES = (Path("README.md"), Path("README.ko.md"), Path("README.zh.md"))
 IMPROVEMENT_CATALOG = Path("docs/architecture/improvement-catalog.md")
+README_REQUIRED_LINKS = (
+    "docs/architecture/improvement-catalog.md",
+    "docs/decisions/tech-spec/README.md",
+    "docs/reference/config/watchlist.md",
+)
 BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
 TABLE_RE = re.compile(r"\|\s*\*\*(?:Tests|테스트|测试)\*\*\s*\|\s*(\d+) passing")
 COLLECTED_RE = re.compile(r"(?:(\d+) tests collected|collected (\d+) items)")
@@ -59,3 +64,10 @@ def test_improvement_catalog_summary_mentions_latest_completed_ids() -> None:
     for item_id in LATEST_COMPLETED_IDS:
         assert item_id in status_line
         assert item_id in conclusion
+
+
+def test_readmes_link_current_decision_and_config_docs() -> None:
+    for path in README_FILES:
+        text = path.read_text(encoding="utf-8")
+        for link in README_REQUIRED_LINKS:
+            assert link in text, f"{path} missing {link}"
