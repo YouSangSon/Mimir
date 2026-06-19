@@ -19,7 +19,7 @@ AS_OF = date(2026, 5, 31)
 _KEY = itertools.count()
 
 
-def _price(close: float, volume: float) -> dict:
+def _price(close: float, volume: float | None) -> dict:
     return {
         "open": close,
         "high": close,
@@ -91,6 +91,20 @@ def test_price_momentum_bullish_with_volume_surge(tmp_path: Path):
 def test_price_momentum_none_with_insufficient_data(tmp_path: Path):
     recs = [_rec(Dataset.PRICES, "AAPL", 29, _price(100.0, 1000))]
     assert PriceMomentumSignal().evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs)) is None
+
+
+def test_price_momentum_handles_missing_volumes(tmp_path: Path):
+    # Prices present but volumes absent: the surge bump is skipped (no division by
+    # an empty prior window) and base confidence holds — the signal must not crash.
+    recs = [
+        _rec(Dataset.PRICES, "AAPL", 27, _price(100.0, None)),
+        _rec(Dataset.PRICES, "AAPL", 28, _price(103.0, None)),
+        _rec(Dataset.PRICES, "AAPL", 29, _price(110.0, None)),  # +10%
+    ]
+    r = PriceMomentumSignal().evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
+    assert r is not None
+    assert r.direction is SignalDirection.BULLISH
+    assert r.confidence == 0.6  # no volume surge applied
 
 
 def test_filing_event_flags_material_8k(tmp_path: Path):

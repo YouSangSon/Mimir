@@ -91,6 +91,27 @@ def test_load_validated_sources_config_resolves_relative_sec_map_path(tmp_path: 
     assert cfg.rss_sec_ticker_cik_map_path == expected
 
 
+def test_load_validated_sources_config_preserves_absolute_sec_map_path(tmp_path: Path):
+    abs_map = tmp_path / "abs" / "company_tickers.json"
+    (tmp_path / "sources.yaml").write_text(
+        f"""
+        sources:
+          rss:
+            sec:
+              ticker_cik_map_path: {abs_map}
+              company_filings:
+                - {{ ticker: AAPL }}
+        """,
+        encoding="utf-8",
+    )
+
+    raw, cfg = load_validated_sources_config(tmp_path)
+
+    # An absolute path must pass through unchanged, never re-rooted under config_dir.
+    assert raw["sources"]["rss"]["sec"]["ticker_cik_map_path"] == str(abs_map)
+    assert cfg.rss_sec_ticker_cik_map_path == abs_map
+
+
 def test_load_validated_sources_config_bad_sec_map_path_raises_validation_error(
     tmp_path: Path,
 ):

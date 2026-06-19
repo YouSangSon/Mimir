@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/CFG3-CONFIG-GUARDRAILS/BF-PREFLIGHT 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/CFG3-CONFIG-GUARDRAILS/COV1-CONTRACT-COVERAGE/BF-PREFLIGHT 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -59,6 +59,7 @@
 | **CFG1** | `sources.yaml` CLI validation contract | 운영/DX | docs/reference config 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-sources-config-cli-validation-design.md) |
 | **CFG2** | `mimir doctor` sources config validation | 운영/DX | CFG1 후속 + doctor 운영 점검 계약 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/config/CFG2_doctor_sources_config_validation_tech_spec_2026_06_18.md) |
 | **CFG3-CONFIG-GUARDRAILS** | watchlist schema 검증 + LLM headline cap 경계 | 견고성/비용 | CFG1/CFG2 후속 + 무료 원칙 비용 가드 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/config/CFG3_config_guardrails_tech_spec_2026_06_18.md) |
+| **COV1-CONTRACT-COVERAGE** | 기존 계약 characterization 커버리지 (ECOS Q/A cycle·blank value, config 절대경로, price volume edge) | 견고성/테스트 | 80%+ 커버리지 + idempotency_key/partition 불변식 약속 | **✅ 구현 완료 (2026-06-19)** | 테스트 + 문서 (본 문서 §4) |
 | **C2** | 파티션 인덱스 (git-as-DB rglob 스케일) | 성능 | 신규 | ⏸ 보류 | 본 문서 §6 |
 | **C3** | pykrx retry/backoff 정책 | 견고성 | 백로그 LOW | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-pykrx-retry-policy-design.md) |
 | **D1** | 통합 `mimir` CLI (console_scripts) | DX | README 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-cli-entrypoints-design.md) |
@@ -318,6 +319,19 @@ CFG1/CFG2는 `sources.yaml`을 CLI와 doctor 경계에서 검증했다. 그러�
 
 구현 후 `_WatchlistConfig`(`extra="forbid"`, `us`/`kr`는 `list[StrictStr]`)가 비-매핑 최상위, 비-문자열 symbol, 공백 symbol을 거부하고 symbol 양끝 공백을 제거한다. `load_watchlist()`는 `ValidationError`를 path가 포함된 `WatchlistConfigError`로 감싸고, watchlist를 읽는 CLI는 `[mimir] invalid watchlist.yaml:` prefix와 exit code 1로 실패한다. `llm_sentiment_max_headlines`는 `SourcesConfig`와 `_TopLevelSourcesConfig` 두 모델 모두에서 `Field(default=50, ge=1, le=50)`로 제한해, raw YAML 검증 경로와 직접 생성 경로 양쪽에서 유료 LLM 호출량을 안전 범위로 묶는다. 기본값 `50`과 `llm_sentiment_enabled: false`는 유지하고, 새 네트워크 호출이나 저장 계약 변경은 없다.
 
+### COV1-CONTRACT-COVERAGE. 기존 계약 characterization 커버리지 — **구현 완료 (2026-06-19)**
+
+4차원 감사(견고성·문서계약·테스트·확장성) 결과 코드베이스는 성숙했고, 견고성·문서계약·확장성 차원은 이미 구현됐거나 근거와 함께 보류됐다. 남은 실질 작업은 *이미 옳지만 테스트로 고정되지 않은 계약*을 characterization 테스트로 박는 것이었다. 이 증분은 새 동작을 추가하지 않는다. 기존 코드가 이미 옳음을 확인하고 회귀를 막는다.
+
+- **ECOS 비월간 cycle (`Q`/`A`)**: `EcosSource`의 idempotency_key는 원본 `TIME` token을 그대로 쓰고, `ts`는 분기 첫날·연초로 파싱된다. 기존 테스트는 월간(`M`)만 exercise했다. 분기(`2026Q2` → 4월 1일)와 연간(`2026` → 1월 1일)이 stable key와 올바른 partition day를 만드는지 고정했다. git-as-DB의 "idempotency_key/partition 불변" 약속을 비월간 cycle까지 확장한다.
+- **ECOS 결측 관측값**: `DATA_VALUE`가 빈 문자열이거나 없는 row는 bogus float로 강제하지 않고 skip한다. 이 fail-soft 경로를 고정했다.
+- **config 절대경로 보존**: `_resolve_sources_config_paths()`는 상대 `ticker_cik_map_path`만 config_dir 기준으로 재배치하고, 절대경로는 그대로 통과시켜야 한다. 절대경로 분기를 고정했다(R1m/R1n의 path-in-error 계약 보호).
+- **price_momentum 결측 거래량**: 가격은 있고 거래량이 없을 때 volume surge 보정을 건너뛰고 base confidence를 유지하며 크래시하지 않는다. 이 방어 분기를 고정했다.
+
+모든 테스트는 추가 즉시 GREEN이다(기존 코드가 옳으므로). 새 동작·네트워크 호출·저장 계약 변경은 없다.
+
+> **고려 후 보류 — LLM signal weight YAML 노출.** 확장성 감사는 `LlmSentimentSignal(weight=...)` 생성자 인자가 config로 배선되지 않음을 발견했다. 그러나 spec(2026-06-13-llm-sentiment-seam-design.md §5.1/§5.2)은 `weight`를 *생성자 기본값*(0.8)으로만 문서화하고 sources.yaml key로 약속하지 않는다. 다른 모든 시그널도 weight를 코드 상수로 둔다(`상수는 백테스트 B1로 보정`). llm_sentiment만 YAML로 노출하면 일관성 없는 순수 신규 튜닝 표면이 된다(catalog §0 "스코프 제조기" 회피). 따라서 구현하지 않고 §6 보류로 기록한다.
+
 ---
 
 ## 5. 증분 실행 순서 (Sequencing)
@@ -357,6 +371,7 @@ ENV1 ─────── runtime .env autoload · CLI default env=None
 CFG1 ─────── sources.yaml CLI validation · shared load_validated_sources_config
 CFG2 ─────── mimir doctor sources.yaml schema validation
 CFG3-CONFIG-GUARDRAILS ─ watchlist schema + llm_sentiment_max_headlines cap
+COV1-CONTRACT-COVERAGE ─ ECOS Q/A cycle·blank value · config 절대경로 · price volume edge characterization
 D2 ───────── GitHub Actions Node24-compatible action majors
 	C3 ───────── pykrx retry/backoff · FetchError manifest surface
 	BF-MANIFEST ─ backfill success/failure manifest
@@ -378,6 +393,7 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 일반 날짜 윈도우 핫패스를 처리한다. R1b의 captured-window 반복 scan은 C2a 인메모리 cache로 완화했다. persistent index나 보조 파티션은 데이터가 수년 누적되고 cache rebuild 자체가 병목이라는 측정이 나온 뒤 설계한다. |
 | **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. R1h-SEC-TICKER는 SEC Company Search RSS의 ticker token 입력을 추가했다. R1i-SEC-CIK는 사용자가 제공한 로컬 SEC `company_tickers.json` lookup과 ambiguity failure policy를 추가했다. R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT는 잘못된 로컬 파일, 개별 entry, CLI 출력, missing ticker lookup, CLI stderr 회귀 계약의 오류 표면을 정리했다. SEC mapping file live download/cache, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference는 provider 정책과 ToS 검토가 더 필요하다. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서는 KO-only 유지(백로그 결정). 사용자 문서(README ×3)는 이미 trilingual. |
+| **LLM signal weight YAML 노출** | `LlmSentimentSignal(weight=...)` 생성자 인자는 spec에서 *생성자 기본값*(0.8)으로만 문서화되고 sources.yaml key로 약속되지 않았다. 모든 시그널 weight는 코드 상수이며 백테스트(B1)로 보정 대상이다. llm_sentiment만 YAML로 노출하면 일관성 없는 순수 신규 튜닝 표면이 되므로(catalog §0) 보류한다. signal weight 튜닝이 실제 요구되면 모든 시그널을 아우르는 별도 설계로 다룬다. |
 
 ---
 
@@ -394,4 +410,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 등록된 source가 secret/package gate 때문에 fetch 전에 unavailable이어도 `ok=false` manifest를 남기고, 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery와 persistent partition/captured-date index다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, COV1-CONTRACT-COVERAGE, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery와 persistent partition/captured-date index다.

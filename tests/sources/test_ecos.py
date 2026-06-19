@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 import requests
@@ -55,6 +55,88 @@ def test_ecos_parses_monthly_rows():
     assert first.idempotency_key == "ecos:722Y001:0101000:202604"
     assert first.payload["value"] == 3.50
     assert first.ts == datetime(2026, 4, 1, tzinfo=UTC)  # YYYYMM -> day 1
+
+
+@responses.activate
+def test_ecos_parses_quarterly_rows():
+    # Quarterly TIME tokens ("YYYYQn") must keep a stable idempotency key and land
+    # on the first day of the quarter, which fixes the storage partition.
+    quarterly = {
+        "StatisticSearch": {
+            "list_total_count": 1,
+            "row": [
+                {
+                    "STAT_CODE": "722Y001",
+                    "ITEM_CODE1": "0101000",
+                    "ITEM_NAME1": "분기 지표",
+                    "TIME": "2026Q2",
+                    "DATA_VALUE": "1.25",
+                    "UNIT_NAME": "%",
+                }
+            ],
+        }
+    }
+    responses.add(responses.GET, URL_RE, body=json.dumps(quarterly), status=200)
+    series = [EcosSeries(stat_code="722Y001", cycle="Q", item_code="0101000")]
+    src = EcosSource(api_key="dummy", series=series, session=requests.Session())
+    recs = list(src.fetch(_ctx()))
+    assert len(recs) == 1
+    rec = recs[0]
+    assert rec.idempotency_key == "ecos:722Y001:0101000:2026Q2"
+    assert rec.ts == datetime(2026, 4, 1, tzinfo=UTC)  # Q2 -> first day of quarter
+    assert rec.ts.date() == date(2026, 4, 1)  # storage partition day
+
+
+@responses.activate
+def test_ecos_parses_annual_rows():
+    # Annual TIME tokens ("YYYY") land on Jan 1 and keep the raw token in the key.
+    annual = {
+        "StatisticSearch": {
+            "list_total_count": 1,
+            "row": [
+                {
+                    "STAT_CODE": "722Y001",
+                    "ITEM_CODE1": "0101000",
+                    "ITEM_NAME1": "연간 지표",
+                    "TIME": "2026",
+                    "DATA_VALUE": "2.00",
+                    "UNIT_NAME": "%",
+                }
+            ],
+        }
+    }
+    responses.add(responses.GET, URL_RE, body=json.dumps(annual), status=200)
+    series = [EcosSeries(stat_code="722Y001", cycle="A", item_code="0101000")]
+    src = EcosSource(api_key="dummy", series=series, session=requests.Session())
+    recs = list(src.fetch(_ctx()))
+    assert len(recs) == 1
+    rec = recs[0]
+    assert rec.idempotency_key == "ecos:722Y001:0101000:2026"
+    assert rec.ts == datetime(2026, 1, 1, tzinfo=UTC)
+    assert rec.ts.date() == date(2026, 1, 1)
+
+
+@responses.activate
+def test_ecos_skips_rows_with_blank_or_missing_value():
+    # A blank "" or absent DATA_VALUE means "no observation"; the row is skipped
+    # rather than coerced to a bogus float.
+    payload = {
+        "StatisticSearch": {
+            "list_total_count": 3,
+            "row": [
+                {"STAT_CODE": "722Y001", "ITEM_CODE1": "0101000",
+                 "TIME": "202604", "DATA_VALUE": "", "UNIT_NAME": "%"},
+                {"STAT_CODE": "722Y001", "ITEM_CODE1": "0101000",
+                 "TIME": "202605", "UNIT_NAME": "%"},  # DATA_VALUE absent
+                {"STAT_CODE": "722Y001", "ITEM_CODE1": "0101000",
+                 "TIME": "202606", "DATA_VALUE": "3.75", "UNIT_NAME": "%"},
+            ],
+        }
+    }
+    responses.add(responses.GET, URL_RE, body=json.dumps(payload), status=200)
+    src = EcosSource(api_key="dummy", series=SERIES, session=requests.Session())
+    recs = list(src.fetch(_ctx()))
+    assert [r.payload["time"] for r in recs] == ["202606"]
 
 
 @responses.activate
