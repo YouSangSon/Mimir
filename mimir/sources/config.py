@@ -28,7 +28,7 @@ class SourcesConfig(BaseModel):
     # nested `sources:` block). `build_signals` requires this AND a key AND the
     # anthropic package before it registers the signal.
     llm_sentiment_enabled: bool = False
-    llm_sentiment_max_headlines: int = 50
+    llm_sentiment_max_headlines: int = Field(default=50, ge=1, le=50)
 
     def plugin_config(self, source_id: str) -> dict[str, Any]:
         """Return a copy of the plugin config block for ``source_id``."""
@@ -103,7 +103,7 @@ class _TopLevelSourcesConfig(BaseModel):
     disabled_ids: list[str] | None = None
     lang: str = "en"
     llm_sentiment_enabled: bool = False
-    llm_sentiment_max_headlines: int = 50
+    llm_sentiment_max_headlines: int = Field(default=50, ge=1, le=50)
     analysis: _AnalysisBlock | None = None
 
 

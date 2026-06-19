@@ -399,6 +399,24 @@ def test_llm_sentiment_bad_headline_cap_raises_validation_error():
         parse_sources_config({"llm_sentiment_max_headlines": "nope"})
 
 
+@pytest.mark.parametrize("bad_cap", [0, -1, 51])
+def test_llm_sentiment_max_headlines_rejects_unsafe_bounds(bad_cap: int):
+    with pytest.raises(ValidationError):
+        parse_sources_config({"llm_sentiment_max_headlines": bad_cap})
+
+
+@pytest.mark.parametrize("good_cap", [1, 50])
+def test_llm_sentiment_max_headlines_accepts_safe_bounds(good_cap: int):
+    cfg = parse_sources_config({"llm_sentiment_max_headlines": good_cap})
+
+    assert cfg.llm_sentiment_max_headlines == good_cap
+
+
+def test_sources_config_direct_model_rejects_unsafe_llm_cap():
+    with pytest.raises(ValidationError):
+        SourcesConfig(llm_sentiment_max_headlines=0)
+
+
 def test_analysis_macro_regime_rate_series_parses_from_config():
     cfg = parse_sources_config({"analysis": {"macro_regime": {"rate_series": ["T10Y2Y"]}}})
     assert cfg.macro_regime_rate_series == ["T10Y2Y"]
