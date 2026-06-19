@@ -269,6 +269,6 @@ NEWS 파티션은 다른 원천 데이터처럼 `ts.date()` 기준으로 저장�
 |---|---|---|
 | Captured-date persistent index | 현재 구현은 실행 중 메모리 cache다. 저장 파일, rebuild command, stale-index fallback은 아직 필요하지 않다 | NEWS 데이터가 수년치로 커지고 cache rebuild가 병목이라는 측정이 나오면 별도 index 설계 |
 | Provider별 RSS live discovery | 정적 catalog는 검증된 feed id만 제공한다. Mimir가 vendor별 endpoint를 자동 탐색하거나 URL pattern을 추측하지는 않는다 | 필요하면 provider별 공식 문서, rate limit, ToS를 검토한 뒤 별도 discovery 설계 |
-| SEC mapping file live cache | 로컬 `company_tickers.json` lookup은 지원하지만 파일 다운로드, freshness 검증, cache 갱신은 하지 않는다 | 운영 정책과 SEC fair-access 기준을 정한 뒤 별도 cache 설계 |
+| SEC mapping file live cache | 로컬 `company_tickers.json` lookup은 지원하지만 파일 다운로드, freshness 검증, cache 갱신은 하지 않는다 | 엄밀한 설계와 unblock 기준은 [SEC mapping cache 설계문서](../../superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md)에 정리됨. 운영 정책과 SEC fair-access 결정이 충족되면 구현 |
 
 이 문서는 현재 구현을 설명한다. 미래 설계가 확정되면 새 ADR 또는 증분 스펙에서 이 문서를 갱신한다.
