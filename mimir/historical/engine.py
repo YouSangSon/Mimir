@@ -79,7 +79,11 @@ class HistoricalEngine:
                         as_of=as_of,
                         event_type=event_type,
                         occurrences=len(idxs),
-                        triggered_today=(len(series) - 1) in idxs,
+                        # The event must be on the LATEST bar AND that bar's date
+                        # must equal as_of — otherwise a weekend/holiday/stale-price
+                        # run (latest bar < as_of) would mislabel a past event as
+                        # "triggered today".
+                        triggered_today=(len(series) - 1) in idxs and series[-1].day == as_of,
                         horizons=stats,
                         examples=_examples(series, idxs),
                     )

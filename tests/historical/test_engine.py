@@ -81,6 +81,51 @@ def test_engine_skips_below_min_occurrences(tmp_path: Path):
     assert all(i.event_type != "sharp_drop" for i in insights)
 
 
+# Sharp drops at idx 2, 5, and 8 (the LAST bar): exercises the triggered_today path.
+LAST_BAR_DROP_CLOSES = [100, 100, 90, 95, 96, 86, 92, 93, 83]
+
+
+def _seed_last_bar_drop(tmp_path: Path) -> JsonlStore:
+    store = JsonlStore(root=tmp_path)
+    store.append(
+        [
+            Record(
+                source="seed",
+                dataset=Dataset.PRICES,
+                market=Market.US,
+                symbol="AAPL",
+                ts=datetime(2026, 5, day + 1, tzinfo=UTC),
+                captured_at=datetime(2026, 5, 31, tzinfo=UTC),
+                idempotency_key=f"p:AAPL:{day}",
+                payload=_price_payload(float(close)),
+            )
+            for day, close in enumerate(LAST_BAR_DROP_CLOSES)
+        ]
+    )
+    return store
+
+
+def test_triggered_today_true_when_event_on_as_of(tmp_path: Path):
+    store = _seed_last_bar_drop(tmp_path)
+    engine = HistoricalEngine(DataReader(store), store)
+    # as_of is the last price bar's date (2026-05-09): the drop is "today".
+    insights = engine.run({"us": ["AAPL"], "kr": []}, date(2026, 5, 9))
+    drop = [i for i in insights if i.event_type == "sharp_drop"]
+    assert len(drop) == 1
+    assert drop[0].triggered_today is True
+
+
+def test_triggered_today_false_when_as_of_after_last_price_bar(tmp_path: Path):
+    # Weekend/holiday/stale-price run: as_of is after the latest price bar, so a
+    # past event must NOT be labeled "triggered today".
+    store = _seed_last_bar_drop(tmp_path)
+    engine = HistoricalEngine(DataReader(store), store)
+    insights = engine.run({"us": ["AAPL"], "kr": []}, date(2026, 5, 10))
+    drop = [i for i in insights if i.event_type == "sharp_drop"]
+    assert len(drop) == 1
+    assert drop[0].triggered_today is False
+
+
 def test_engine_clears_stale_historical_when_rerun_has_no_events(tmp_path: Path):
     store = JsonlStore(root=tmp_path)
     stale = HistoricalInsight(
