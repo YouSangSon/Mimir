@@ -237,6 +237,8 @@ Symbol이 없는 RSS feed는 기존 key 형식인 `rss:{link}`를 유지한다. 
 
 ## 5. 저장소 정책
 
+운영자용 on-disk 레이아웃 레퍼런스(파티션 경로·데이터셋 목록·idempotency-key 규약·저장 정책)는 [data-layout.md](../../reference/storage/data-layout.md)에 한 곳으로 모았다. 아래는 설계 배경이다.
+
 원천 데이터와 재생성 데이터는 저장 정책이 다르다.
 
 | 데이터셋 | 성격 | 저장 정책 |
