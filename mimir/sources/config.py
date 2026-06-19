@@ -11,6 +11,21 @@ from mimir.sources.rss_catalog import RssCatalogSelection, SecCompanyFilingFeed
 
 PluginConfig = TypeVar("PluginConfig", bound=BaseModel)
 
+DEFAULT_SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
+
+
+class TickerCikMapRefresh(BaseModel):
+    """Off-by-default opt-in for auto-refreshing the local SEC company_tickers.json.
+
+    When ``enabled`` is false (default) the pipeline never touches the network for
+    the mapping file — the operator keeps managing it manually (R1i behavior).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool = False
+    url: str = DEFAULT_SEC_TICKERS_URL
+    max_age_hours: int = Field(default=168, ge=1)
+
 
 class SourcesConfig(BaseModel):
     fred_series: list[str] | None = None
@@ -19,6 +34,7 @@ class SourcesConfig(BaseModel):
     rss_catalogs: list[RssCatalogSelection] | None = None
     rss_sec_company_filings: list[SecCompanyFilingFeed] | None = None
     rss_sec_ticker_cik_map_path: Path | None = None
+    rss_sec_ticker_cik_map_refresh: TickerCikMapRefresh | None = None
     plugin_settings: dict[str, dict[str, Any]] = Field(default_factory=dict)
     macro_regime_rate_series: list[str] | None = None
     news_aliases: dict[str, list[str]] | None = None
@@ -55,6 +71,7 @@ class _RssSecBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
     company_filings: list[SecCompanyFilingFeed] | None = None
     ticker_cik_map_path: Path | None = None
+    ticker_cik_map_refresh: TickerCikMapRefresh | None = None
 
     @field_validator("ticker_cik_map_path", mode="before")
     @classmethod
@@ -131,6 +148,9 @@ def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
         ),
         rss_sec_ticker_cik_map_path=(
             block.rss.sec.ticker_cik_map_path if block.rss and block.rss.sec else None
+        ),
+        rss_sec_ticker_cik_map_refresh=(
+            block.rss.sec.ticker_cik_map_refresh if block.rss and block.rss.sec else None
         ),
         plugin_settings=block.plugins or {},
         macro_regime_rate_series=(

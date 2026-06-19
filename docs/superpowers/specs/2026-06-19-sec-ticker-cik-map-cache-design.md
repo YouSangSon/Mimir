@@ -1,6 +1,6 @@
 # SEC ticker→CIK mapping file refresh/cache — 설계문서 (보류 항목, 미구현)
 
-> **상태**: 설계만 — 구현하지 않음 (catalog §6 보류 항목의 엄밀한 설계 + unblock 기준)
+> **상태**: off-by-default 구현 완료 (2026-06-19) — `enabled: true` opt-in 시에만 동작. 기본 경로는 네트워크 0. 구현: `mimir/sources/sec_ticker_cik_refresh.py`, 배선: `build_sources` prep step.
 > **작성**: 2026-06-19
 > **선행**: R1i-SEC-CIK(로컬 lookup), R1j~R1n(오류 표면) · [개선 카탈로그 §6](../../architecture/improvement-catalog.md)
 > **대상 독자**: 이 보류 항목을 실제로 풀기로 결정할 때 구현하는 개발자

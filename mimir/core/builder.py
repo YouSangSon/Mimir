@@ -18,6 +18,7 @@ from mimir.sources.pykrx_source import PykrxSource
 from mimir.sources.rss import RssFeed, RssSource
 from mimir.sources.rss_catalog import load_sec_ticker_cik_map, resolve_rss_feeds
 from mimir.sources.sec_edgar import SecEdgarSource
+from mimir.sources.sec_ticker_cik_refresh import refresh_sec_ticker_cik_map
 from mimir.sources.stooq import StooqSource
 
 logger = logging.getLogger(__name__)
@@ -263,5 +264,14 @@ def build_sources(
             "Set it to e.g. 'Your Name you@example.com'."
     )
     cfg = config or SourcesConfig()
+    # Off-by-default prep step: refresh the local SEC ticker->CIK map before sources
+    # are built, so the RSS resolver still reads a plain local file (no network in the
+    # resolver). Disabled by default -> zero network calls on the standard path.
+    if cfg.rss_sec_ticker_cik_map_refresh and cfg.rss_sec_ticker_cik_map_path:
+        refresh_sec_ticker_cik_map(
+            cfg.rss_sec_ticker_cik_map_path,
+            cfg.rss_sec_ticker_cik_map_refresh,
+            user_agent=settings.sec_user_agent,
+        )
     selected_specs = tuple(specs) if specs is not None else load_source_specs()
     return _build_sources_from_specs(settings, cfg, selected_specs)
