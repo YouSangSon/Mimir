@@ -274,6 +274,7 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 | [`docs/decisions/tech-spec/README.md`](docs/decisions/tech-spec/README.md) | 按领域分组的决策 tech-spec 索引 |
 | [`docs/reference/config/sources.md`](docs/reference/config/sources.md) | `config/sources.yaml` 运维参考 |
 | [`docs/reference/config/watchlist.md`](docs/reference/config/watchlist.md) | `config/watchlist.yaml` 运维参考 |
+| [`docs/reference/analysis/scoring.md`](docs/reference/analysis/scoring.md) | 分析信号 & ⭐评分模型参考 |
 | [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector 设计（架构·数据源目录·完成标准） |
 | [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring 设计（信号·评分器·Insight） |
 | [`docs/superpowers/specs/2026-05-31-delivery-design.md`](docs/superpowers/specs/2026-05-31-delivery-design.md) | S3 Delivery & Reporting 设计（HTML 报告·摘要） |

@@ -274,6 +274,7 @@ The full picture is managed against [`docs/architecture/roadmap.md`](docs/archit
 | [`docs/decisions/tech-spec/README.md`](docs/decisions/tech-spec/README.md) | Decision tech-spec index grouped by domain |
 | [`docs/reference/config/sources.md`](docs/reference/config/sources.md) | `config/sources.yaml` operator reference |
 | [`docs/reference/config/watchlist.md`](docs/reference/config/watchlist.md) | `config/watchlist.yaml` operator reference |
+| [`docs/reference/analysis/scoring.md`](docs/reference/analysis/scoring.md) | Analysis signals & star-scoring model reference |
 | [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector design (architecture · source catalog · acceptance criteria) |
 | [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring design (signals · scorer · Insight) |
 | [`docs/superpowers/specs/2026-05-31-delivery-design.md`](docs/superpowers/specs/2026-05-31-delivery-design.md) | S3 Delivery & Reporting design (HTML report · digest) |
