@@ -7,6 +7,7 @@ from pathlib import Path
 
 README_FILES = (Path("README.md"), Path("README.ko.md"), Path("README.zh.md"))
 IMPROVEMENT_CATALOG = Path("docs/architecture/improvement-catalog.md")
+CLI_REFERENCE = Path("docs/reference/cli.md")
 README_REQUIRED_LINKS = (
     "docs/architecture/improvement-catalog.md",
     "docs/decisions/tech-spec/README.md",
@@ -111,3 +112,22 @@ def test_scoring_reference_documents_news_volume_confidence() -> None:
     text = Path("docs/reference/analysis/scoring.md").read_text(encoding="utf-8")
 
     assert "| `news_volume` | 항상 NEUTRAL | 0.5 | 0.5 |" in text
+
+
+def test_cli_reference_documents_config_file_boundaries() -> None:
+    text = CLI_REFERENCE.read_text(encoding="utf-8")
+
+    assert (
+        "| `mimir backfill` | 단일 source 과거 데이터 적재 | 예 | 예 | 일부 | 예 | 아니오 |"
+        in text
+    )
+    assert (
+        "| `mimir deliver` | 일일 HTML 리포트/인덱스/다이제스트 생성 | "
+        "예 | 아니오 | 예 | 아니오 | 예 |"
+        in text
+    )
+    assert (
+        "| `mimir history` | 저장된 인사이트와 가격으로 과거 유사 사례 계산 | "
+        "아니오 | 예 | 예 | 예 | 아니오 |"
+        in text
+    )

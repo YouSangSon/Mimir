@@ -20,9 +20,9 @@ Mimir는 통합 진입점 `mimir <command>`를 기본으로 제공한다. `colle
 |---|---|---:|---:|---:|---:|---:|
 | `mimir run` | scheduled pipeline (`collect → analyze → history → evaluate → deliver`) | 예 | 예 | 예 | 예 | 예 |
 | `mimir collect` | cadence에 맞는 소스 수집 + manifest/status 기록 | 예 | 예 | 일부 | 예 | `reports/status.html` |
-| `mimir backfill` | 단일 source 과거 데이터 적재 | 예 | 아니오 | 일부 | 예 | 아니오 |
+| `mimir backfill` | 단일 source 과거 데이터 적재 | 예 | 예 | 일부 | 예 | 아니오 |
 | `mimir analyze` | 저장된 원천 데이터에서 인사이트 생성 | 예 | 예 | 예 | 예 | 아니오 |
-| `mimir deliver` | 일일 HTML 리포트/인덱스/다이제스트 생성 | 예 | 예 | 예 | 아니오 | 예 |
+| `mimir deliver` | 일일 HTML 리포트/인덱스/다이제스트 생성 | 예 | 아니오 | 예 | 아니오 | 예 |
 | `mimir history` | 저장된 인사이트와 가격으로 과거 유사 사례 계산 | 아니오 | 예 | 예 | 예 | 아니오 |
 | `mimir doctor` | 설정 검증 + 데이터 상태 진단 | 예 | 예 | 예 | 아니오 | 선택(`--html`) |
 | `mimir evaluate` | 저장된 인사이트와 가격으로 시그널 성적표 계산 | 아니오 | 아니오 | 예 | 예 | 아니오 |
