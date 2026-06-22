@@ -109,6 +109,7 @@ def test_sec_ticker_cik_refresh_docs_match_implemented_state() -> None:
         "SEC mapping file live download/cache와 generic discovery는 아직 보류",
         "파일을 자동으로 다운로드하거나 stale 여부를 판단하지 않는다",
         "파일 다운로드, freshness 검증, cache 갱신은 하지 않는다",
+        "If-Modified-Since",
     )
     for path in SEC_REFRESH_STALE_GUARD_DOCS:
         text = path.read_text(encoding="utf-8")
