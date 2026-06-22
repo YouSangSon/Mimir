@@ -23,7 +23,7 @@ Mimir는 통합 진입점 `mimir <command>`를 기본으로 제공한다. `colle
 | `mimir backfill` | 단일 source 과거 데이터 적재 | 예 | 아니오 | 일부 | 예 | 아니오 |
 | `mimir analyze` | 저장된 원천 데이터에서 인사이트 생성 | 예 | 예 | 예 | 예 | 아니오 |
 | `mimir deliver` | 일일 HTML 리포트/인덱스/다이제스트 생성 | 예 | 예 | 예 | 아니오 | 예 |
-| `mimir history` | 저장된 인사이트와 가격으로 과거 유사 사례 계산 | 예 | 예 | 예 | 예 | 아니오 |
+| `mimir history` | 저장된 인사이트와 가격으로 과거 유사 사례 계산 | 아니오 | 예 | 예 | 예 | 아니오 |
 | `mimir doctor` | 설정 검증 + 데이터 상태 진단 | 예 | 예 | 예 | 아니오 | 선택(`--html`) |
 | `mimir evaluate` | 저장된 인사이트와 가격으로 시그널 성적표 계산 | 아니오 | 아니오 | 예 | 예 | 아니오 |
 | `mimir dashboard` | 최신 운영 대시보드 HTML 생성 | 예 | 예 | 예 | 아니오 | `reports/dashboard.html` |
@@ -55,7 +55,7 @@ CLI 경계는 설정 파일 오류를 raw traceback 대신 고정된 prefix로 �
 - `[mimir] invalid sources.yaml:`
 - `[mimir] invalid watchlist.yaml:`
 
-`collect`, `run`, `backfill`, `analyze`, `deliver`, `history`, `dashboard`, `doctor`는 필요할 때 설정 파일을 읽고 이 prefix 계약을 유지한다. 오타나 schema drift를 조용히 기본값으로 넘기지 않는 이유는 운영자가 "설정이 반영됐다"라고 믿는 상황을 막기 위해서다.
+`collect`, `run`, `backfill`, `analyze`, `deliver`, `dashboard`, `doctor`는 필요할 때 `sources.yaml`을 읽고 `[mimir] invalid sources.yaml:` prefix 계약을 유지한다. `history`는 `sources.yaml`을 읽지 않는다. 대신 `--symbol`이 없을 때 `watchlist.yaml`을 읽고, 잘못된 watchlist는 `[mimir] invalid watchlist.yaml:`로 보고한다. 오타나 schema drift를 조용히 기본값으로 넘기지 않는 이유는 운영자가 "설정이 반영됐다"라고 믿는 상황을 막기 위해서다.
 
 ---
 

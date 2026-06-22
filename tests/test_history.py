@@ -2,7 +2,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 
 from mimir.core.source import Dataset, Market
-from mimir.history import run_history
+from mimir.history import main, run_history
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.schema import Record
 
@@ -43,3 +43,26 @@ def test_run_history_writes_historical_insights(tmp_path: Path):
     )
     assert any(i.event_type == "sharp_drop" for i in insights)
     assert (data_root / "historical/2026/05/31.jsonl").exists()
+
+
+def test_history_cli_does_not_read_sources_yaml_when_symbol_is_provided(
+    tmp_path: Path, capsys
+):
+    (tmp_path / "sources.yaml").write_text("not: [valid", encoding="utf-8")
+
+    rc = main(
+        [
+            "--symbol",
+            "AAPL",
+            "--config-dir",
+            str(tmp_path),
+            "--data-root",
+            str(tmp_path / "data"),
+            "--date",
+            "2026-05-31",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "[mimir] invalid sources.yaml:" not in captured.err
