@@ -408,10 +408,15 @@ Add constants:
 
 ```python
 REFERENCE_DOCS = tuple(sorted(Path("docs/reference").rglob("*.md")))
+SEC_REFRESH_DESIGN_SPEC = Path(
+    "docs/superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md"
+)
 SEC_REFRESH_DOCS = (
     Path("docs/reference/config/sources.md"),
     Path("docs/architecture/extensibility/README.md"),
+    SEC_REFRESH_DESIGN_SPEC,
 )
+SEC_REFRESH_STALE_GUARD_DOCS = tuple(sorted(Path("docs").rglob("*.md")))
 ```
 
 Add tests:
@@ -433,11 +438,10 @@ def test_sec_ticker_cik_refresh_docs_match_implemented_state():
         assert "max_age_hours" in text, f"{path} missing TTL field"
 
     stale_phrases = (
-        "SEC mapping file live download/cache와 generic discovery는 아직 보류",
-        "파일을 자동으로 다운로드하거나 stale 여부를 판단하지 않는다",
-        "파일 다운로드, freshness 검증, cache 갱신은 하지 않는다",
+        # Keep the final literal list in tests/test_readme_docs.py only, so docs
+        # can be scanned without matching their own examples.
     )
-    for path in SEC_REFRESH_DOCS:
+    for path in SEC_REFRESH_STALE_GUARD_DOCS:
         text = path.read_text(encoding="utf-8")
         for phrase in stale_phrases:
             assert phrase not in text, f"{path} still says: {phrase}"

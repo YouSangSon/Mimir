@@ -26,7 +26,7 @@ CFG1은 `sources.yaml` schema 오류를 CLI에서 같은 메시지로 보여주�
 | 항목 | 제외 이유 |
 | ---- | --------- |
 | source registry build | doctor는 source fetch 가능성 점검이 아니라 저장 데이터 점검 명령입니다. |
-| SEC mapping file live download/cache | provider 정책과 freshness 판단이 필요한 별도 설계입니다. |
+| SEC mapping refresh/cache 실행 | off-by-default refresh/cache는 별도 R1 설계로 구현됐고, doctor는 fetch 준비나 network freshness 점검 명령이 아닙니다. |
 | `watchlist.yaml` schema 검증 | 이번 변경은 CFG1의 `sources.yaml` schema 검증 후속입니다. |
 | scheduled workflow doctor hard gate | OPS1에서 dashboard 표시와 hard gate는 분리하기로 했습니다. |
 

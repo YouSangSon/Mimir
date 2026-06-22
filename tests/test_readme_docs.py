@@ -25,11 +25,7 @@ SEC_REFRESH_DOCS = (
     Path("docs/architecture/extensibility/README.md"),
     SEC_REFRESH_DESIGN_SPEC,
 )
-SEC_REFRESH_STALE_GUARD_DOCS = (
-    *SEC_REFRESH_DOCS,
-    Path("docs/IMPROVEMENTS.md"),
-    IMPROVEMENT_CATALOG,
-)
+SEC_REFRESH_STALE_GUARD_DOCS = tuple(sorted(Path("docs").rglob("*.md")))
 BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
 TABLE_RE = re.compile(r"\|\s*\*\*(?:Tests|테스트|测试)\*\*\s*\|\s*(\d+) passing")
 COLLECTED_RE = re.compile(r"(?:(\d+) tests collected|collected (\d+) items)")
