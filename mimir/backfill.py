@@ -24,7 +24,7 @@ from mimir.core.normalize import normalize
 from mimir.core.source import Cadence, FetchContext
 from mimir.manifest.manifest import Manifest, SourceResult
 from mimir.settings import Settings
-from mimir.sources.config import parse_sources_config
+from mimir.sources.config import RuntimeSourcesConfig, parse_runtime_sources_config
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.policy import append_overwrite_enabled
 from mimir.storage.schema import Record
@@ -83,15 +83,19 @@ def run_backfill(
     env: Mapping[str, str] | None = None,
     watchlist: dict[str, list[str]],
     data_root: Path = DEFAULT_DATA_ROOT,
-    sources_config: dict[str, Any] | None = None,
+    sources_config: dict[str, Any] | RuntimeSourcesConfig | None = None,
     now: datetime | None = None,
 ) -> int:
     now = now or datetime.now(UTC)
     settings = Settings.from_env(env)
-    config = parse_sources_config(sources_config or {})
+    runtime = (
+        sources_config
+        if isinstance(sources_config, RuntimeSourcesConfig)
+        else parse_runtime_sources_config(sources_config or {})
+    )
     manifest = Manifest(root=data_root)
     specs = load_source_specs()
-    built_sources = build_sources(settings, config, specs=specs)
+    built_sources = build_sources(settings, runtime.source_config, specs=specs)
     sources = {s.meta.id: s for s in built_sources}
     if source_id not in sources:
         if (spec := _source_spec_for_id(specs, source_id)) and spec.meta is not None:
@@ -171,7 +175,7 @@ def main(argv: list[str] | None = None) -> int:
 
     config_dir = Path(args.config_dir)
     try:  # validate config upfront; keep the except narrow so a downstream
-        sources_config, _ = load_validated_sources_config(config_dir)
+        _, runtime_config = load_validated_sources_config(config_dir)
     except ValidationError as exc:
         return report_invalid_sources(exc)
     try:
@@ -183,7 +187,7 @@ def main(argv: list[str] | None = None) -> int:
             source_id=args.source,
             since=date.fromisoformat(args.since),
             watchlist=watchlist,
-            sources_config=sources_config,
+            sources_config=runtime_config,
         )
     except SourcesConfigError as exc:
         return report_invalid_sources(exc)

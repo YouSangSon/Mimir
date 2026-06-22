@@ -61,6 +61,27 @@ def test_run_collect_explicit_env_does_not_load_dotenv(tmp_path: Path, monkeypat
     assert not (tmp_path / "data/prices/2026/05/29.jsonl").exists()
 
 
+def test_run_collect_uses_typed_runtime_config_for_registry_and_lang(tmp_path: Path):
+    summary = run_collect(
+        cadence="daily",
+        env={},
+        watchlist={"us": [], "kr": []},
+        data_root=tmp_path / "data",
+        status_path=tmp_path / "reports/status.html",
+        sources_config={
+            "gray_enabled": False,
+            "disabled_ids": ["sec_edgar", "rss"],
+            "lang": "ko",
+        },
+        now=datetime(2026, 5, 31, tzinfo=UTC),
+    )
+
+    html = (tmp_path / "reports/status.html").read_text(encoding="utf-8")
+    assert summary.had_failures is False
+    assert 'lang="ko"' in html
+    assert "source(s)" not in html
+
+
 @responses.activate
 def test_collect_cli_auto_loads_dotenv(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)

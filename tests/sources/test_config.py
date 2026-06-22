@@ -1,7 +1,13 @@
 import pytest
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from mimir.sources.config import SourcesConfig, parse_sources_config
+from mimir.report.i18n import DEFAULT_LANG
+from mimir.sources.config import (
+    RuntimeSourcesConfig,
+    SourcesConfig,
+    parse_runtime_sources_config,
+    parse_sources_config,
+)
 from mimir.sources.ecos import EcosSeries
 from mimir.sources.rss import RssFeed
 from mimir.sources.rss_catalog import RssCatalogSelection, SecCompanyFilingFeed
@@ -19,6 +25,35 @@ def test_absent_sources_block_yields_all_none():
     # The full config dict (gray_enabled/disabled_ids/lang) but no `sources:` block.
     cfg = parse_sources_config({"gray_enabled": True, "disabled_ids": [], "lang": "en"})
     assert cfg == SourcesConfig()
+
+
+def test_parse_runtime_sources_config_keeps_top_level_runtime_fields():
+    cfg = parse_runtime_sources_config(
+        {
+            "gray_enabled": False,
+            "disabled_ids": ["rss", "sec_edgar"],
+            "lang": "ko",
+            "sources": {"fred": {"series": ["DGS10"]}},
+        }
+    )
+
+    assert cfg.gray_enabled is False
+    assert cfg.disabled_ids == ("rss", "sec_edgar")
+    assert cfg.lang == "ko"
+    assert cfg.source_config.fred_series == ["DGS10"]
+
+
+def test_parse_runtime_sources_config_normalizes_unknown_lang_to_default():
+    cfg = parse_runtime_sources_config({"lang": 'en" onmouseover="alert(1)'})
+
+    assert cfg.lang == DEFAULT_LANG
+
+
+def test_parse_sources_config_still_returns_source_only_model():
+    cfg = parse_sources_config({"gray_enabled": False, "disabled_ids": ["rss"], "lang": "ko"})
+
+    assert isinstance(cfg, SourcesConfig)
+    assert not isinstance(cfg, RuntimeSourcesConfig)
 
 
 def test_full_block_parses_typed_models():

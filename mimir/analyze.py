@@ -52,7 +52,7 @@ def main(argv: list[str] | None = None) -> int:
     config_dir = Path(args.config_dir)
     as_of = date.fromisoformat(args.date) if args.date else None
     try:
-        _, sources_config = load_validated_sources_config(config_dir)
+        _, runtime_config = load_validated_sources_config(config_dir)
     except ValidationError as exc:
         return report_invalid_sources(exc)
     try:
@@ -63,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
         watchlist=watchlist,
         data_root=Path(args.data_root),
         as_of=as_of,
-        config=sources_config,
+        config=runtime_config.source_config,
         settings=Settings.from_env(),
     )
     for ins in insights:

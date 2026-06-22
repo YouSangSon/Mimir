@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from mimir.report.i18n import DEFAULT_LANG, normalize_lang
 from mimir.sources.ecos import EcosSeries
 from mimir.sources.rss import RssFeed
 from mimir.sources.rss_catalog import RssCatalogSelection, SecCompanyFilingFeed
@@ -124,18 +125,16 @@ class _TopLevelSourcesConfig(BaseModel):
     analysis: _AnalysisBlock | None = None
 
 
-def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
-    """Read source and analysis-plane settings into a validated model.
+class RuntimeSourcesConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
 
-    Absent source keys map to ``None`` ("keep the code default"). Malformed
-    input — a non-mapping block, a wrong-typed field, or a typo'd key/block name
-    — raises ``pydantic.ValidationError`` (``extra="forbid"`` rejects unknown
-    keys), never a silent fallback to defaults. To turn a source off entirely
-    use ``disabled_ids`` in sources.yaml, not an empty series list.
-    """
-    # Collapse only an absent/None block to defaults; any other non-mapping
-    # (0, false, [], "x") is malformed and must raise — not silently fall back.
-    top_level = _TopLevelSourcesConfig.model_validate(raw)
+    source_config: SourcesConfig = Field(default_factory=SourcesConfig)
+    gray_enabled: bool = True
+    disabled_ids: tuple[str, ...] = ()
+    lang: str = DEFAULT_LANG
+
+
+def _source_config_from_top_level(top_level: _TopLevelSourcesConfig) -> SourcesConfig:
     block = top_level.sources or _SourcesBlock()
     news_block = top_level.analysis.news if top_level.analysis and top_level.analysis.news else None
     return SourcesConfig(
@@ -163,4 +162,29 @@ def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
         # Top-level analysis-plane toggles (siblings of gray_enabled), not under `sources:`.
         llm_sentiment_enabled=top_level.llm_sentiment_enabled,
         llm_sentiment_max_headlines=top_level.llm_sentiment_max_headlines,
+    )
+
+
+def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
+    """Read source and analysis-plane settings into a validated model.
+
+    Absent source keys map to ``None`` ("keep the code default"). Malformed
+    input — a non-mapping block, a wrong-typed field, or a typo'd key/block name
+    — raises ``pydantic.ValidationError`` (``extra="forbid"`` rejects unknown
+    keys), never a silent fallback to defaults. To turn a source off entirely
+    use ``disabled_ids`` in sources.yaml, not an empty series list.
+    """
+    # Collapse only an absent/None block to defaults; any other non-mapping
+    # (0, false, [], "x") is malformed and must raise — not silently fall back.
+    top_level = _TopLevelSourcesConfig.model_validate(raw)
+    return _source_config_from_top_level(top_level)
+
+
+def parse_runtime_sources_config(raw: dict[str, Any]) -> RuntimeSourcesConfig:
+    top_level = _TopLevelSourcesConfig.model_validate(raw)
+    return RuntimeSourcesConfig(
+        source_config=_source_config_from_top_level(top_level),
+        gray_enabled=top_level.gray_enabled,
+        disabled_ids=tuple(top_level.disabled_ids or ()),
+        lang=normalize_lang(top_level.lang),
     )
