@@ -1,23 +1,23 @@
-# SEC ticker→CIK mapping file refresh/cache — 설계문서 (보류 항목, 미구현)
+# SEC ticker→CIK mapping file refresh/cache — 설계문서 (off-by-default 구현 완료)
 
 > **상태**: off-by-default 구현 완료 (2026-06-19) — `enabled: true` opt-in 시에만 동작. 기본 경로는 네트워크 0. 구현: `mimir/sources/sec_ticker_cik_refresh.py`, 배선: `build_sources` prep step.
 > **작성**: 2026-06-19
 > **선행**: R1i-SEC-CIK(로컬 lookup), R1j~R1n(오류 표면) · [개선 카탈로그 §6](../../architecture/improvement-catalog.md)
-> **대상 독자**: 이 보류 항목을 실제로 풀기로 결정할 때 구현하는 개발자
+> **대상 독자**: SEC mapping refresh/cache의 현재 경계와 실패 정책을 유지·확장하는 개발자
 
 ---
 
 ## 0. 이 문서의 위치
 
-이 문서는 **코드를 지르지 않는다.** Mimir의 분류 규율(catalog §0)에서 "가치 높은 신규"는 *지금 설계*만 하고 구현은 명시적 결정 뒤로 미룬다. SEC `company_tickers.json` 자동 다운로드·freshness·cache는 provider 정책(SEC fair-access)과 git-as-DB 저장 원칙이 걸려 있어 R1i 이후 의도적으로 보류됐다. 이 문서는 그 한 줄 보류 사유를 "구현만 하면 되는 설계 + 언제 풀 수 있는지"로 승격한다.
+이 문서는 R1i 이후 보류됐던 SEC `company_tickers.json` 자동 갱신·cache를 어떤 경계로 풀었는지 기록한다. 현재 구현은 `sources.rss.sec.ticker_cik_map_refresh.enabled`가 켜진 경우에만 build prep 단계에서 동작하며, 기본 경로는 네트워크 0을 유지한다. resolver의 "네트워크 호출 없음" 불변식과 git-as-DB 저장 원칙은 계속 유지된다.
 
 ---
 
 ## 1. 한눈에 보기
 
-현재(R1i~R1n): 운영자가 SEC `company_tickers.json`을 **직접 내려받아** 로컬에 두고 `sources.rss.sec.ticker_cik_map_path`로 가리키면, resolver가 그 파일을 읽어 ticker를 10자리 CIK로 바꾼다. Mimir는 파일을 **다운로드하지 않고**, **stale 여부를 판단하지 않으며**, 파일이 없거나 깨지면 path가 포함된 설정 오류로 실패한다.
+현재: 운영자가 SEC `company_tickers.json`을 로컬에 두고 `sources.rss.sec.ticker_cik_map_path`로 가리키면, resolver가 그 파일을 읽어 ticker를 10자리 CIK로 바꾼다. `ticker_cik_map_refresh.enabled`를 켠 경우에만 Mimir가 build prep 단계에서 TTL gate와 ETag conditional GET으로 mapping file을 best-effort 갱신한다. 파일이 없거나 깨진 상태에서 lookup이 필요하면 path가 포함된 설정 오류로 실패한다.
 
-이 설계가 다루는 보류 조각: Mimir가 SEC fair-access를 지키며 mapping file을 **선택적으로(opt-in)** 자동 갱신·캐시하는 방법.
+이 설계가 고정하는 구현 조각: Mimir가 SEC fair-access를 지키며 mapping file을 **선택적으로(opt-in)** 자동 갱신·캐시하는 방법.
 
 ---
 
@@ -52,7 +52,7 @@ sources:
 
 ### 3.2 SEC fair-access 준수 갱신
 
-- **조건부 GET**: 저장된 `ETag`/`Last-Modified`를 `If-None-Match`/`If-Modified-Since`로 보내 304면 다운로드 생략. 변경 없을 때 bandwidth·요청을 최소화.
+- **조건부 GET**: 저장된 `ETag`를 `If-None-Match`로 보내 304면 다운로드 생략. 변경 없을 때 bandwidth·요청을 최소화.
 - **UA 의무**: 기존 `MIMIR_SEC_USER_AGENT`(`서비스명 이메일`)를 그대로 재사용. UA 없으면 갱신 비활성(경고).
 - **rate limit / throttle**: 기존 `Throttle`·`http_get`(429/5xx backoff, 4xx fast-fail) 경로를 재사용. 갱신은 실행당 최대 1회.
 - **TTL 게이트**: 로컬 파일 mtime이 `max_age_hours` 이내면 네트워크를 아예 건드리지 않는다(불필요한 요청 금지).

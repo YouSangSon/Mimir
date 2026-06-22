@@ -8,6 +8,9 @@ from pathlib import Path
 README_FILES = (Path("README.md"), Path("README.ko.md"), Path("README.zh.md"))
 IMPROVEMENT_CATALOG = Path("docs/architecture/improvement-catalog.md")
 CLI_REFERENCE = Path("docs/reference/cli.md")
+SEC_REFRESH_DESIGN_SPEC = Path(
+    "docs/superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md"
+)
 README_REQUIRED_LINKS = (
     "docs/architecture/improvement-catalog.md",
     "docs/decisions/tech-spec/README.md",
@@ -20,6 +23,7 @@ REFERENCE_DOCS = tuple(sorted(Path("docs/reference").rglob("*.md")))
 SEC_REFRESH_DOCS = (
     Path("docs/reference/config/sources.md"),
     Path("docs/architecture/extensibility/README.md"),
+    SEC_REFRESH_DESIGN_SPEC,
 )
 SEC_REFRESH_STALE_GUARD_DOCS = (
     *SEC_REFRESH_DOCS,
