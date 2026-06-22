@@ -85,6 +85,17 @@ def test_stale_file_sends_if_none_match_and_304_keeps_file(tmp_path):
     assert path.read_text(encoding="utf-8") == "cached"
 
 
+def test_304_without_existing_cache_file_does_not_crash(tmp_path):
+    path = tmp_path / "company_tickers.json"
+    (tmp_path / "company_tickers.json.etag").write_text('"abc"', encoding="utf-8")
+    rec = _Recorder(resp=_FakeResp(304))
+
+    refresh_sec_ticker_cik_map(path, _enabled(), user_agent="Svc me@x.com", http_get_fn=rec)
+
+    assert rec.calls[0][1]["If-None-Match"] == '"abc"'
+    assert not path.exists()
+
+
 def test_304_resets_ttl_so_next_build_skips_request(tmp_path):
     # A 304 keeps the cached file AND refreshes its mtime, so the TTL gate suppresses
     # the NEXT build's request — no repeated 304 storms against SEC fair-access.
