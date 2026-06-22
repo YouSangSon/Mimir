@@ -196,9 +196,9 @@ SEC는 structured disclosure submission을 위한 공식 RSS feed를 따로 제�
 
 SEC Company Search RSS는 현재 `browse-edgar?action=getcompany&output=atom` URL의 `CIK=` query parameter에 ticker token을 넣어도 Atom feed를 반환한다. 이번 증분은 그 편의 입력을 `sources.rss.sec.company_filings[].ticker`로 노출한다.
 
-구현 후 각 SEC company filing 항목은 `cik` 또는 `ticker` 중 정확히 하나를 받아야 한다. `cik`는 기존처럼 10자리로 zero-pad하고, `ticker`는 공백 제거 후 대문자로 정규화하며 letters/digits/dot/hyphen token만 허용한다. Resolver는 여전히 네트워크를 호출하지 않는다. SEC mapping file을 다운로드하거나 cache하지 않고, watchlist 전체에서 feed를 자동 생성하지 않는다.
+구현 후 각 SEC company filing 항목은 `cik` 또는 `ticker` 중 정확히 하나를 받아야 한다. `cik`는 기존처럼 10자리로 zero-pad하고, `ticker`는 공백 제거 후 대문자로 정규화하며 letters/digits/dot/hyphen token만 허용한다. Resolver는 여전히 네트워크를 호출하지 않는다. SEC mapping file refresh/cache는 이후 `sources.rss.sec.ticker_cik_map_refresh.enabled`(기본 `false`)로 resolver 밖 build prep 단계에 off-by-default 구현됐다. watchlist 전체에서 feed를 자동 생성하지 않는다.
 
-남은 generic discovery 부채는 SEC mapping file live download/cache, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference다.
+남은 generic discovery 부채는 generic live discovery, SEC 외 provider discovery, HTML RSS link crawling, vendor URL pattern inference다.
 
 ### R1i-SEC-CIK. SEC ticker CIK local mapping lookup — **구현 완료 (2026-06-18)**
 
@@ -206,7 +206,7 @@ R1h는 ticker token을 SEC Company Search RSS URL에 그대로 넣는 편의 입
 
 구현 후 `sources.rss.sec.ticker_cik_map_path`는 사용자가 내려받아 둔 SEC `company_tickers.json` 로컬 파일을 읽는다. `company_filings[].ticker`가 있고 mapping file에도 같은 ticker가 있으면 resolver는 URL의 `CIK=` 값을 10자리 CIK로 바꾼다. 같은 ticker가 서로 다른 CIK로 중복되면 ambiguous mapping으로 실패한다. 파일에 ticker가 없으면 feed를 조용히 ticker token으로 되돌리지 않고 실패한다.
 
-이 증분은 resolver-time network call을 추가하지 않는다. Mimir는 SEC mapping file을 다운로드하지 않고, freshness를 판단하지 않고, watchlist 전체에서 SEC feed를 자동 생성하지 않는다. 그래서 SEC fair-access 부담은 늘리지 않으면서 사용자가 제공한 공식 mapping file만 안전하게 활용한다.
+이 증분은 resolver-time network call을 추가하지 않는다. 현재도 resolver는 네트워크를 호출하지 않는다. SEC mapping file refresh/cache는 이후 `sources.rss.sec.ticker_cik_map_refresh.enabled`(기본 `false`)로 off-by-default 구현됐다. 켜면 build 전에 TTL(`max_age_hours`) gate와 conditional GET으로 best-effort 갱신하고, 실패 시 기존 파일로 fallback한다. watchlist 전체에서 SEC feed를 자동 생성하지 않는 경계는 그대로다.
 
 ### R1j-SEC-CIK-ERRORS. SEC ticker CIK map file error surface — **구현 완료 (2026-06-18)**
 
@@ -399,7 +399,7 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 | 항목 | 보류 근거 |
 |---|---|
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 일반 날짜 윈도우 핫패스를 처리한다. R1b의 captured-window 반복 scan은 C2a 인메모리 cache로 완화했다. persistent index나 보조 파티션은 데이터가 수년 누적되고 cache rebuild 자체가 병목이라는 측정이 나온 뒤 설계한다. 엄밀한 설계와 측정 기반 unblock 기준은 [설계문서](../superpowers/specs/2026-06-19-captured-date-persistent-index-design.md)로 승격했고, unblock 선행 조건인 **측정 계기는 구현됐다**: `DataReader._captured_date_index`가 재빌드 시 records/days/elapsed_ms를 DEBUG 로그로 남긴다. on-disk index 구현은 이 측정이 병목 임계를 넘을 때 착수한다(아직 미도달). |
-| **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. R1h-SEC-TICKER는 SEC Company Search RSS의 ticker token 입력을 추가했다. R1i-SEC-CIK는 사용자가 제공한 로컬 SEC `company_tickers.json` lookup과 ambiguity failure policy를 추가했다. R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT는 잘못된 로컬 파일, 개별 entry, CLI 출력, missing ticker lookup, CLI stderr 회귀 계약의 오류 표면을 정리했다. SEC mapping file live download/cache, SEC 외 provider, HTML RSS link crawling, vendor URL pattern inference는 provider 정책과 ToS 검토가 더 필요하다. SEC mapping file refresh/cache는 [설계문서](../superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md) 후 **off-by-default로 구현됐다**(`sources.rss.sec.ticker_cik_map_refresh.enabled`; 기본 false → 네트워크 0, 켜면 conditional GET + TTL + fallback). live provider discovery 일반화만 정책 검토가 남는다. |
+| **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. R1h-SEC-TICKER는 SEC Company Search RSS의 ticker token 입력을 추가했다. R1i-SEC-CIK는 사용자가 제공한 로컬 SEC `company_tickers.json` lookup과 ambiguity failure policy를 추가했다. R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT는 잘못된 로컬 파일, 개별 entry, CLI 출력, missing ticker lookup, CLI stderr 회귀 계약의 오류 표면을 정리했다. SEC mapping file refresh/cache는 [설계문서](../superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md) 후 **off-by-default로 구현됐다**(`sources.rss.sec.ticker_cik_map_refresh.enabled`; 기본 `false` → 네트워크 0, 켜면 conditional GET + TTL + fallback). 남은 부채는 generic live discovery, SEC 외 provider discovery, HTML RSS link crawling, vendor URL pattern inference처럼 provider 정책과 ToS 검토가 더 필요한 범위다. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서는 KO-only 유지(백로그 결정). 사용자 문서(README ×3)는 이미 trilingual. |
 | **LLM signal weight YAML 노출** | `LlmSentimentSignal(weight=...)` 생성자 인자는 spec에서 *생성자 기본값*(0.8)으로만 문서화되고 sources.yaml key로 약속되지 않았다. 모든 시그널 weight는 코드 상수이며 백테스트(B1)로 보정 대상이다. llm_sentiment만 YAML로 노출하면 일관성 없는 순수 신규 튜닝 표면이 되므로(catalog §0) 보류한다. signal weight 튜닝이 실제 요구되면 모든 시그널을 아우르는 별도 설계로 다룬다. |
 

@@ -21,6 +21,11 @@ SEC_REFRESH_DOCS = (
     Path("docs/reference/config/sources.md"),
     Path("docs/architecture/extensibility/README.md"),
 )
+SEC_REFRESH_STALE_GUARD_DOCS = (
+    *SEC_REFRESH_DOCS,
+    Path("docs/IMPROVEMENTS.md"),
+    IMPROVEMENT_CATALOG,
+)
 BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
 TABLE_RE = re.compile(r"\|\s*\*\*(?:Tests|테스트|测试)\*\*\s*\|\s*(\d+) passing")
 COLLECTED_RE = re.compile(r"(?:(\d+) tests collected|collected (\d+) items)")
@@ -98,11 +103,14 @@ def test_sec_ticker_cik_refresh_docs_match_implemented_state() -> None:
         assert "max_age_hours" in text, f"{path} missing TTL field"
 
     stale_phrases = (
+        "SEC mapping file live download/cache",
+        "SEC mapping file을 다운로드하거나 cache하지 않고",
+        "SEC mapping file을 다운로드하지 않고, freshness를 판단하지 않고",
         "SEC mapping file live download/cache와 generic discovery는 아직 보류",
         "파일을 자동으로 다운로드하거나 stale 여부를 판단하지 않는다",
         "파일 다운로드, freshness 검증, cache 갱신은 하지 않는다",
     )
-    for path in SEC_REFRESH_DOCS:
+    for path in SEC_REFRESH_STALE_GUARD_DOCS:
         text = path.read_text(encoding="utf-8")
         for phrase in stale_phrases:
             assert phrase not in text, f"{path} still says: {phrase}"
