@@ -10,9 +10,15 @@ IMPROVEMENT_CATALOG = Path("docs/architecture/improvement-catalog.md")
 README_REQUIRED_LINKS = (
     "docs/architecture/improvement-catalog.md",
     "docs/decisions/tech-spec/README.md",
+    "docs/reference/cli.md",
     "docs/reference/config/watchlist.md",
     "docs/reference/analysis/scoring.md",
     "docs/reference/storage/data-layout.md",
+)
+REFERENCE_DOCS = tuple(sorted(Path("docs/reference").rglob("*.md")))
+SEC_REFRESH_DOCS = (
+    Path("docs/reference/config/sources.md"),
+    Path("docs/architecture/extensibility/README.md"),
 )
 BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
 TABLE_RE = re.compile(r"\|\s*\*\*(?:Tests|테스트|测试)\*\*\s*\|\s*(\d+) passing")
@@ -73,3 +79,35 @@ def test_readmes_link_current_decision_and_config_docs() -> None:
         text = path.read_text(encoding="utf-8")
         for link in README_REQUIRED_LINKS:
             assert link in text, f"{path} missing {link}"
+
+
+def test_readme_links_all_reference_docs() -> None:
+    required = tuple(str(path) for path in REFERENCE_DOCS)
+    for path in README_FILES:
+        text = path.read_text(encoding="utf-8")
+        for link in required:
+            assert link in text, f"{path} missing {link}"
+
+
+def test_sec_ticker_cik_refresh_docs_match_implemented_state() -> None:
+    for path in SEC_REFRESH_DOCS:
+        text = path.read_text(encoding="utf-8")
+        assert "ticker_cik_map_refresh" in text, f"{path} missing refresh config"
+        assert "enabled" in text, f"{path} missing enabled field"
+        assert "max_age_hours" in text, f"{path} missing TTL field"
+
+    stale_phrases = (
+        "SEC mapping file live download/cache와 generic discovery는 아직 보류",
+        "파일을 자동으로 다운로드하거나 stale 여부를 판단하지 않는다",
+        "파일 다운로드, freshness 검증, cache 갱신은 하지 않는다",
+    )
+    for path in SEC_REFRESH_DOCS:
+        text = path.read_text(encoding="utf-8")
+        for phrase in stale_phrases:
+            assert phrase not in text, f"{path} still says: {phrase}"
+
+
+def test_scoring_reference_documents_news_volume_confidence() -> None:
+    text = Path("docs/reference/analysis/scoring.md").read_text(encoding="utf-8")
+
+    assert "| `news_volume` | 항상 NEUTRAL | 0.5 | 0.5 |" in text

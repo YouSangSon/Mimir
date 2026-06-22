@@ -1,7 +1,7 @@
 # `config/sources.yaml` 설정 레퍼런스
 
 > **상태**: 현재 구현 기준
-> **최종 업데이트**: 2026-06-18
+> **최종 업데이트**: 2026-06-23
 > **대상 독자**: 로컬 실행자, GitHub Actions 운영자, 새 데이터 커버리지를 추가하는 개발자
 
 ---
@@ -42,6 +42,10 @@ sources:
       - { id: "sec_structured_inline_xbrl" }
       - { id: "sec_structured_all_xbrl" }
     sec:
+      ticker_cik_map_path: "cache/company_tickers.json"
+      ticker_cik_map_refresh:
+        enabled: true
+        max_age_hours: 168
       company_filings:
         - ticker: "AAPL"
           symbol: "AAPL"
@@ -205,6 +209,7 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 | `catalogs[].id` | 예 | catalog id. 아래 표의 내장 id 중 하나 |
 | `sec.company_filings` | 아니오 | SEC EDGAR Company Search Atom feed를 CIK 또는 ticker token과 form 설정에서 조립하는 목록 |
 | `sec.ticker_cik_map_path` | 아니오 | SEC `company_tickers.json` 로컬 파일 경로. 설정하면 ticker 입력을 10자리 CIK로 바꾼 뒤 URL을 만든다 |
+| `sec.ticker_cik_map_refresh` | 아니오 | 로컬 SEC mapping file을 build 전에 best-effort로 갱신하는 opt-in 설정. 기본값은 disabled |
 | `feeds` | 아니오 | 운영자가 직접 지정하는 RSS feed 목록 |
 | `url` | 예 | RSS feed URL |
 | `publisher` | 예 | payload에 저장할 발행자 이름 |
@@ -223,15 +228,47 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 | `sec_structured_inline_xbrl` | Inline XBRL financial statement filings |
 | `sec_structured_all_xbrl` | all XBRL filings submitted to the SEC |
 
-`sec_structured_*` catalog는 SEC가 공식으로 공개한 broad SEC/XBRL feed다. 특정 watchlist symbol 전용 feed가 아니므로 `symbol`을 설정하지 않는다. 특정 종목의 SEC filing feed가 필요하면 사용자가 CIK 또는 ticker token을 명시하는 `sources.rss.sec.company_filings`를 쓴다. 운영자가 SEC `company_tickers.json` 파일을 로컬에 두고 `sec.ticker_cik_map_path`를 설정하면, Mimir는 ticker를 10자리 CIK로 바꾼 뒤 URL을 만든다. SEC mapping file live download/cache와 generic discovery는 아직 보류되어 있다.
+`sec_structured_*` catalog는 SEC가 공식으로 공개한 broad SEC/XBRL feed다. 특정 watchlist symbol 전용 feed가 아니므로 `symbol`을 설정하지 않는다. 특정 종목의 SEC filing feed가 필요하면 사용자가 CIK 또는 ticker token을 명시하는 `sources.rss.sec.company_filings`를 쓴다. 운영자가 SEC `company_tickers.json` 파일을 로컬에 두고 `sec.ticker_cik_map_path`를 설정하면, Mimir는 ticker를 10자리 CIK로 바꾼 뒤 URL을 만든다. Generic live discovery는 여전히 보류지만, SEC mapping file refresh 자체는 `ticker_cik_map_refresh`로 opt-in 구현되어 있다.
 
 `catalogs`, `sec.company_filings`, `feeds`를 함께 쓰면 catalog feed, SEC EDGAR feed, manual feed 순서로 붙는다. 같은 `(url, symbol)` 쌍이 두 번 나오면 실패한다. 중복을 조용히 제거하면 운영자가 같은 feed를 두 경로로 설정했다는 사실을 놓칠 수 있기 때문이다. 같은 URL이라도 symbol이 다르면 서로 다른 종목 관계를 뜻하므로 허용한다.
 
 #### SEC EDGAR company filing feeds
 
-`sources.rss.sec.company_filings`는 SEC EDGAR Company Search가 제공하는 Atom feed URL을 설정에서 조립한다. 이 기능은 SEC 페이지를 크롤링하지 않고, SEC ticker mapping file을 resolver 단계에서 다운로드하지도 않는다. 사용자는 `cik` 또는 `ticker` 중 정확히 하나를 명시하고, Mimir가 `browse-edgar?action=getcompany&output=atom` URL을 만든다.
+`sources.rss.sec.company_filings`는 SEC EDGAR Company Search가 제공하는 Atom feed URL을 설정에서 조립한다. 이 기능은 SEC 페이지를 크롤링하지 않는다. 사용자는 `cik` 또는 `ticker` 중 정확히 하나를 명시하고, Mimir가 `browse-edgar?action=getcompany&output=atom` URL을 만든다.
 
-`sources.rss.sec.ticker_cik_map_path`를 설정하면 `ticker` 입력의 의미가 달라진다. Mimir는 지정한 로컬 JSON 파일을 SEC `company_tickers.json` 형태로 읽고, ticker를 10자리 CIK로 정규화한다. 이 파일은 SEC가 제공하지만, SEC는 파일의 정확성과 범위를 보장하지 않는다고 설명한다. 그래서 Mimir는 파일을 자동으로 다운로드하거나 stale 여부를 판단하지 않는다. 파일이 없거나 읽을 수 없거나 유효한 JSON object가 아니면 경로가 포함된 설정 오류로 실패한다. 개별 entry가 object가 아니거나 `ticker`/`cik_str` 값이 잘못되면 파일 경로와 entry key가 포함된 설정 오류로 실패한다. 같은 ticker가 서로 다른 CIK로 두 번 나오면 모호한 매핑으로 보고 실패한다. 파일을 정상적으로 읽은 뒤에도 요청한 ticker가 mapping에 없으면 `SEC ticker CIK map has no entry for ticker <ticker> in <path>`처럼 실제 lookup에 사용한 파일 경로를 포함해 실패한다. `collect`, `run`, `backfill` CLI에서는 이런 source build 오류를 raw traceback이 아니라 `[mimir] invalid sources.yaml:` 메시지로 보여준다.
+`sources.rss.sec.ticker_cik_map_path`를 설정하면 `ticker` 입력의 의미가 달라진다. Mimir는 지정한 로컬 JSON 파일을 SEC `company_tickers.json` 형태로 읽고, ticker를 10자리 CIK로 정규화한다. 이 파일은 SEC가 제공하지만, SEC는 파일의 정확성과 범위를 보장하지 않는다고 설명한다. 파일이 없거나 읽을 수 없거나 유효한 JSON object가 아니면 경로가 포함된 설정 오류로 실패한다. 개별 entry가 object가 아니거나 `ticker`/`cik_str` 값이 잘못되면 파일 경로와 entry key가 포함된 설정 오류로 실패한다. 같은 ticker가 서로 다른 CIK로 두 번 나오면 모호한 매핑으로 보고 실패한다. 파일을 정상적으로 읽은 뒤에도 요청한 ticker가 mapping에 없으면 `SEC ticker CIK map has no entry for ticker <ticker> in <path>`처럼 실제 lookup에 사용한 파일 경로를 포함해 실패한다. `collect`, `run`, `backfill` CLI에서는 이런 source build 오류를 raw traceback이 아니라 `[mimir] invalid sources.yaml:` 메시지로 보여준다.
+
+#### `ticker_cik_map_refresh`
+
+```yaml
+sources:
+  rss:
+    sec:
+      ticker_cik_map_path: "cache/company_tickers.json"
+      ticker_cik_map_refresh:
+        enabled: true
+        url: "https://www.sec.gov/files/company_tickers.json"
+        max_age_hours: 168
+```
+
+| 필드 | 기본값 | 의미 |
+|---|---|---|
+| `enabled` | `false` | refresh를 켤지 정한다. 기본 경로는 `false`라서 SEC mapping download 요청을 0회 보낸다 |
+| `url` | `https://www.sec.gov/files/company_tickers.json` | 가져올 SEC mapping file URL |
+| `max_age_hours` | `168` | 로컬 cache file이 이 시간보다 오래됐을 때만 refresh를 시도한다 |
+
+이 refresh는 RSS resolver 안이 아니라 **source build 직전 준비 단계**에서 실행된다. 그래서 resolver의 "로컬 파일만 읽고 네트워크는 하지 않는다" 계약은 그대로 유지된다.
+
+구현 동작은 아래와 같다.
+
+- `enabled: false`면 바로 반환한다. 표준 경로는 Tasks 1~2 이전과 같게 수동 파일 관리 + 네트워크 0회다.
+- 로컬 file이 있고 mtime이 `max_age_hours` 이내면 TTL gate가 작동해 HTTP 요청을 보내지 않는다.
+- stale file이면 저장된 `.etag` 값을 `If-None-Match`로 보내 조건부 GET을 시도한다.
+- `304 Not Modified`에 로컬 file이 있으면 file mtime을 현재 시각으로 touch해 다음 build가 같은 TTL 창 안에서 재요청하지 않게 한다.
+- `304 Not Modified`인데 `.etag`만 있고 실제 file이 없는 orphaned cache 상태면 warning만 남기고 계속 진행한다. collection 전체를 crash시키지 않는다.
+- `200` download는 temp sibling file에 먼저 쓰고, resolver가 쓰는 canonical loader로 JSON object/entry/ticker ambiguity를 같은 규칙으로 검증한다.
+- 검증을 통과한 temp file만 `os.replace()`로 atomically 채택한다.
+- 네트워크 실패, invalid JSON, non-object JSON, entry validation 실패는 모두 기존 cache를 유지하고 warning만 남긴다.
 
 | 필드 | 필수 | 기본값 | 의미 |
 |---|---|---|---|

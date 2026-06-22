@@ -35,6 +35,7 @@
 
 | Spec | 목적 |
 |---|---|
+| [Design spec: SEC ticker CIK map cache](../../superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md) | `docs/decisions/tech-spec/` 이전 설계 문서. off-by-default SEC mapping cache refresh, TTL, ETag, fair-access 경계를 정의 |
 | [R1i-SEC-CIK](sources/R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md) | 로컬 SEC `company_tickers.json`으로 ticker→10자리 CIK 변환 |
 | [R1j-SEC-CIK-ERRORS](sources/R1j-SEC-CIK-ERRORS_sec_ticker_cik_map_errors_tech_spec_2026_06_18.md) | mapping file 단위 오류를 path 포함 설정 오류로 정규화 |
 | [R1k-SEC-CIK-ENTRY-ERRORS](sources/R1k-SEC-CIK-ENTRY-ERRORS_sec_ticker_cik_map_entry_errors_tech_spec_2026_06_18.md) | mapping entry 오류에 파일 경로와 entry key 포함 |
@@ -46,4 +47,5 @@
 
 | Spec | 목적 |
 |---|---|
+| [Design spec: captured-date persistent index](../../superpowers/specs/2026-06-19-captured-date-persistent-index-design.md) | `docs/decisions/tech-spec/` 이전 설계 문서. NEWS `captured_at` 창 반복 스캔 완화를 위한 persistent index 방향을 정리 |
 | [C2a](storage/C2a_captured_news_window_cache_tech_spec_2026_06_18.md) | `DataReader`가 captured-date index를 메모리에 만들어 NEWS 반복 scan 완화 |

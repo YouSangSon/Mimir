@@ -1,7 +1,7 @@
 # Mimir 확장성 아키텍처 가이드
 
 > **상태**: 현재 구현 기준
-> **최종 업데이트**: 2026-06-18
+> **최종 업데이트**: 2026-06-23
 > **대상 독자**: 새 데이터 소스, 새 분석 시그널, 새 리포트 섹션을 추가하려는 개발자
 
 ---
@@ -71,6 +71,9 @@ sources:
       - { id: "sec_structured_all_xbrl" }
     sec:
       ticker_cik_map_path: company_tickers.json
+      ticker_cik_map_refresh:
+        enabled: true
+        max_age_hours: 168
       company_filings:
         - { ticker: "AAPL", symbol: "AAPL", forms: ["10-K", "10-Q", "8-K"] }
     feeds:
@@ -82,7 +85,7 @@ sources:
 
 RSS 확장은 세 경로를 가진다. `sources.rss.catalogs`는 검증된 정적 feed를 id로 고른다. `sources.rss.sec.company_filings`는 사용자가 명시한 CIK 또는 ticker와 form type에서 SEC EDGAR Atom feed URL을 조립한다. `sources.rss.feeds`는 운영자가 직접 아는 URL을 그대로 추가한다.
 
-RSS resolver는 이 설정을 해석하는 동안 네트워크를 호출하지 않는다. `sources.rss.sec.ticker_cik_map_path`가 있으면 사용자가 내려받아 둔 SEC `company_tickers.json` 로컬 파일만 읽는다. Provider live discovery, HTML scraping, URL pattern 추측은 source plugin이나 별도 증분 설계 대상이지 현재 resolver의 책임이 아니다.
+RSS resolver는 이 설정을 해석하는 동안 네트워크를 호출하지 않는다. `sources.rss.sec.ticker_cik_map_path`가 있으면 로컬 SEC `company_tickers.json` file을 읽고, `ticker_cik_map_refresh.enabled: true`일 때만 build 직전 best-effort refresh를 시도한다. 기본값은 disabled라서 표준 경로는 여전히 네트워크 0회다. Provider live discovery, HTML scraping, URL pattern 추측은 source plugin이나 별도 증분 설계 대상이지 현재 resolver의 책임이 아니다.
 
 ### 3.2 RSS feed catalog
 
@@ -103,9 +106,9 @@ Builder는 catalog selection을 기존 `RssFeed` 목록으로 확장한 뒤 manu
 
 SEC structured disclosure catalog id는 정적 공식 feed다. `sec_structured_usgaap`, `sec_structured_risk_return`, `sec_structured_inline_xbrl`, `sec_structured_all_xbrl`은 SEC가 공개한 broad SEC/XBRL feed를 그대로 가리킨다. 이 feed들은 특정 ticker나 watchlist symbol 전용 feed가 아니며, catalog resolver가 ticker→CIK lookup을 수행하지 않는다.
 
-`sources.rss.sec.company_filings[].ticker`는 SEC Company Search RSS의 ticker token을 쓰는 편의 입력이다. `sources.rss.sec.ticker_cik_map_path`를 설정하면 같은 ticker를 로컬 SEC mapping file에서 찾아 10자리 CIK로 바꾼다. 이 경로는 live download를 하지 않으며, 같은 ticker가 다른 CIK로 중복되면 실패한다.
+`sources.rss.sec.company_filings[].ticker`는 SEC Company Search RSS의 ticker token을 쓰는 편의 입력이다. `sources.rss.sec.ticker_cik_map_path`를 설정하면 같은 ticker를 로컬 SEC mapping file에서 찾아 10자리 CIK로 바꾼다. `ticker_cik_map_refresh`를 opt-in하면 build 전에 TTL gate + ETag 조건부 GET으로 이 file을 best-effort 갱신할 수 있다. `304`는 기존 file을 유지하고 TTL을 리셋하며, orphaned `304`는 warning만 남기고 넘어간다. invalid download는 canonical loader 검증에 실패하면 채택하지 않는다.
 
-SEC mapping file live download/cache, watchlist 기반 SEC feed 자동 생성, HTML RSS link crawling, vendor URL pattern inference는 아직 deferred item이다. 이 작업들은 provider 정책과 SEC fair-access 경계가 필요하므로 정적 catalog와 로컬 mapping file lookup과 분리한다.
+watchlist 기반 SEC feed 자동 생성, HTML RSS link crawling, vendor URL pattern inference는 아직 deferred item이다. 이 작업들은 provider 정책과 SEC fair-access 경계가 필요하므로 정적 catalog와 로컬 mapping file lookup과 분리한다.
 
 이 기능은 외부 source plugin을 대체하지 않는다. Catalog는 built-in RSS source의 입력 목록을 편하게 만드는 장치다. 새 protocol, 새 인증 방식, 내부 feed client가 필요하면 `mimir.sources` plugin 또는 새 내장 source를 추가해야 한다.
 
@@ -271,6 +274,5 @@ NEWS 파티션은 다른 원천 데이터처럼 `ts.date()` 기준으로 저장�
 |---|---|---|
 | Captured-date persistent index | 현재 구현은 실행 중 메모리 cache다. 저장 파일, rebuild command, stale-index fallback은 아직 필요하지 않다 | 엄밀한 설계와 측정 기반 unblock 기준은 [persistent index 설계문서](../../superpowers/specs/2026-06-19-captured-date-persistent-index-design.md)에 정리됨. NEWS가 수년치로 커지고 cache rebuild 병목이 측정되면 구현 |
 | Provider별 RSS live discovery | 정적 catalog는 검증된 feed id만 제공한다. Mimir가 vendor별 endpoint를 자동 탐색하거나 URL pattern을 추측하지는 않는다 | 필요하면 provider별 공식 문서, rate limit, ToS를 검토한 뒤 별도 discovery 설계 |
-| SEC mapping file live cache | 로컬 `company_tickers.json` lookup은 지원하지만 파일 다운로드, freshness 검증, cache 갱신은 하지 않는다 | 엄밀한 설계와 unblock 기준은 [SEC mapping cache 설계문서](../../superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md)에 정리됨. 운영 정책과 SEC fair-access 결정이 충족되면 구현 |
 
 이 문서는 현재 구현을 설명한다. 미래 설계가 확정되면 새 ADR 또는 증분 스펙에서 이 문서를 갱신한다.

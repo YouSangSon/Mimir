@@ -1,7 +1,7 @@
 # 분석 시그널 & 스코어링 레퍼런스
 
 > **상태**: 현재 구현 기준
-> **최종 업데이트**: 2026-06-19
+> **최종 업데이트**: 2026-06-23
 > **대상 독자**: 리포트의 ⭐별점·방향·confidence가 어떻게 산출되는지 알고 싶은 운영자, 새 시그널을 추가하는 개발자
 > **관련**: 확장 방법은 [extensibility 가이드](../../architecture/extensibility/README.md), 설정은 [sources.md](../config/sources.md)
 
@@ -23,7 +23,7 @@
 |---|---|---|---|---|
 | `price_momentum` | 방향성 | 1.0 | 0.6 (거래량 급증 시 0.85) | 14일 가격 모멘텀 |
 | `filing_event` | 항상 NEUTRAL | 0.8 | 0.6(중요)/0.4(일반) | 최근 3일 공시 활동 |
-| `news_volume` | 항상 NEUTRAL | 0.5 | — | 뉴스 언급량(활동) |
+| `news_volume` | 항상 NEUTRAL | 0.5 | 0.5 | 뉴스 언급량(활동) |
 | `macro_regime` | 방향성 | 0.3 | 0.4 | 60일 금리 추세 |
 | `llm_sentiment` | 방향성 | 0.8 | 볼륨 가중 | 헤드라인 감성(off-by-default) |
 
