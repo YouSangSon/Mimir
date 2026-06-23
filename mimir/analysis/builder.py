@@ -159,9 +159,18 @@ def _build_signals_from_specs(
                 spec.required_secret_name or spec.required_secret_attr,
             )
             continue
-        if spec.required_module and importlib.util.find_spec(spec.required_module) is None:
-            logger.warning("skipping analysis signal '%s': %s", spec.id, spec.missing_module_hint)
-            continue
+        if spec.required_module:
+            try:
+                module_spec = importlib.util.find_spec(spec.required_module)
+            except ModuleNotFoundError:
+                module_spec = None
+            if module_spec is None:
+                logger.warning(
+                    "skipping analysis signal '%s': %s",
+                    spec.id,
+                    spec.missing_module_hint,
+                )
+                continue
         signal = spec.factory(settings, config)
         if signal.id != spec.id:
             raise ValueError(f"signal spec id {spec.id!r} built signal id {signal.id!r}")

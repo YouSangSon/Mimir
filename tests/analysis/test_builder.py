@@ -298,6 +298,35 @@ def test_plugin_signal_id_mismatch_raises_value_error():
         _build_signals_from_specs(Settings.from_env({}), cfg, (spec,))
 
 
+def test_required_module_dotted_missing_parent_is_skipped_and_logged(
+    monkeypatch, caplog
+):
+    required_module = "missing_parent_package.missing_child_module"
+    spec = SignalSpec(
+        "plugin_quality",
+        lambda settings, cfg: _FakeSignal(),
+        required_module=required_module,
+        missing_module_hint="install missing-parent-package",
+    )
+    cfg = SourcesConfig(analysis_plugin_settings={"plugin_quality": {}})
+
+    def fake_find_spec(name):
+        if name == required_module:
+            raise ModuleNotFoundError("No module named 'missing_parent_package'")
+        return object()
+
+    monkeypatch.setattr("mimir.analysis.builder.importlib.util.find_spec", fake_find_spec)
+
+    with caplog.at_level(logging.WARNING):
+        signals = _build_signals_from_specs(Settings.from_env({}), cfg, (spec,))
+
+    assert signals == []
+    assert "plugin_quality" in " ".join(record.message for record in caplog.records)
+    assert "install missing-parent-package" in " ".join(
+        record.message for record in caplog.records
+    )
+
+
 def test_build_signals_passes_analysis_plugin_namespace_to_factory():
     class PluginConfig(BaseModel):
         model_config = ConfigDict(extra="forbid")
