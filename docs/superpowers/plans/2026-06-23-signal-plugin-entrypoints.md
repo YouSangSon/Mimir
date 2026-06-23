@@ -354,12 +354,7 @@ def test_default_path_does_not_read_signal_entry_points(monkeypatch):
 
     signals = build_signals()
 
-    assert _ids(signals) == [
-        "filing_event",
-        "news_volume",
-        "price_momentum",
-        "macro_regime",
-    ]
+    assert _ids(signals) == BASE_SIGNAL_IDS
 
 
 def test_build_signals_includes_configured_plugin_signals_after_builtins(monkeypatch):
@@ -484,6 +479,8 @@ Implementation requirements:
   - then append `LlmSentimentSignal` using the existing `_llm_sentiment_enabled()` branch.
 
 Keep the local import of `LlmSentimentSignal` unchanged so default path never imports `anthropic`. Also keep the default path from reading signal entry points when no `analysis.plugins` config exists.
+
+Implementation note: avoid logging unmatched `analysis.plugins` warnings while building built-in specs. Unmatched plugin config should be evaluated against the loaded plugin specs, not against `BUILTIN_SIGNAL_SPECS`.
 
 - [ ] **Step 5: Run GREEN builder tests**
 
