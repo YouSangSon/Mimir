@@ -256,5 +256,5 @@ Signal plugin code는 Mimir process 안에서 실행된다. Plugin은 `Settings`
 
 **버전**: v1.0
 **작성일**: 2026-06-23
-**상태**: Draft
+**상태**: Implemented
 **관련 문서**: `docs/architecture/improvement-catalog.md`, `docs/architecture/extensibility/README.md`, `docs/reference/config/sources.md`

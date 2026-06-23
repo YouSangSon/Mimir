@@ -41,6 +41,17 @@ LATEST_COMPLETED_IDS = (
     "DOCHEALTH",
     "CFG2",
 )
+LATEST_COMPLETED_TECH_SPECS = {
+    "AN2-LLM-CLASSIFIER-CARDINALITY": Path(
+        "docs/decisions/tech-spec/analysis/"
+        "AN2_LLM_classifier_cardinality_tech_spec_2026_06_23.md"
+    ),
+    "AN1-SIGNAL-PLUGIN-ENTRYPOINTS": Path(
+        "docs/decisions/tech-spec/analysis/"
+        "AN1_signal_plugin_entrypoints_tech_spec_2026_06_23.md"
+    ),
+}
+TECH_SPEC_STATUS_RE = re.compile(r"\*\*상태\*\*:?\s*(.+)")
 
 
 def _collected_test_count() -> int:
@@ -81,6 +92,14 @@ def test_improvement_catalog_summary_mentions_latest_completed_ids() -> None:
     for item_id in LATEST_COMPLETED_IDS:
         assert item_id in status_line
         assert item_id in conclusion
+
+
+def test_latest_completed_tech_specs_are_not_left_as_draft() -> None:
+    for item_id, path in LATEST_COMPLETED_TECH_SPECS.items():
+        text = path.read_text(encoding="utf-8")
+        status = TECH_SPEC_STATUS_RE.search(text)
+        assert status is not None, f"{item_id} has no status metadata"
+        assert status.group(1).strip() != "Draft", f"{item_id} is still Draft"
 
 
 def test_readmes_link_current_decision_and_config_docs() -> None:
