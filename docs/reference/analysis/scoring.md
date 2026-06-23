@@ -58,6 +58,7 @@
 - 세 조건(`llm_sentiment_enabled`+`ANTHROPIC_API_KEY`+`[llm]` extra)이 모두 맞을 때만 등록된다([sources.md](../config/sources.md) §6).
 - 헤드라인별 verdict의 confidence-가중 평균 부호(`mean_signed`)로 방향(±0.02 epsilon), `strength = min(|mean_signed|, 1.0)`.
 - confidence는 볼륨으로 다운웨이트: `volume_factor = min(n / 3, 1.0)`(`FULL_CONFIDENCE_VOLUME=3`) — 1건이면 1/3로 줄인다.
+- classifier가 입력 headline 수와 다른 개수의 verdict를 반환하면 warning 후 해당 symbol의 `llm_sentiment` 결과를 생략한다. 잘못된 batch를 부분 평균내지 않는다.
 
 ---
 

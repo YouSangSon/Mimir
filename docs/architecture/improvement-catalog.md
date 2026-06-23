@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/AN1-SIGNAL-PLUGIN-ENTRYPOINTS/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/CFG3-CONFIG-GUARDRAILS/COV1-CONTRACT-COVERAGE/I18N1-PARITY-GUARD/BF-PREFLIGHT 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/AN1-SIGNAL-PLUGIN-ENTRYPOINTS/AN2-LLM-CLASSIFIER-CARDINALITY/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/CFG3-CONFIG-GUARDRAILS/COV1-CONTRACT-COVERAGE/I18N1-PARITY-GUARD/BF-PREFLIGHT 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -31,6 +31,7 @@
 | **A3b** | 외부 source plugin entry point (`mimir.sources`) | 확장성 | A3 보류 항목 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-source-entry-points-design.md) |
 | **A3c** | 외부 source plugin 설정 namespace (`sources.plugins.<source_id>`) | 확장성 | A3b 보류 항목 | **✅ 구현 완료 (2026-06-17)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-17-plugin-settings-namespace-design.md) |
 | **AN1-SIGNAL-PLUGIN-ENTRYPOINTS** | 외부 analysis signal plugin entry point (`mimir.analysis_signals`) + 설정 namespace (`analysis.plugins.<signal_id>`) | 확장성 | B2 후속 seam 명문화 | **✅ 구현 완료 (2026-06-23)** | 코드 + 테스트 · [spec](../decisions/tech-spec/analysis/AN1_signal_plugin_entrypoints_tech_spec_2026_06_23.md) |
+| **AN2-LLM-CLASSIFIER-CARDINALITY** | LLM 감성 classifier verdict 수 검증 | 분석품질/견고성 | B2 구조화 출력 계약 | **✅ 구현 완료 (2026-06-23)** | 코드 + 테스트 · [spec](../decisions/tech-spec/analysis/AN2_LLM_classifier_cardinality_tech_spec_2026_06_23.md) |
 | **B1** | 시그널 백테스트·평가 하네스 (사후수익 적중률) | 분석심화 | 신규(최고가치) | **✅ 구현 완료 (Increment 4 + 리포트 합류)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-13-signal-backtest-design.md) |
 | **B2** | LLM 뉴스 감성 시그널 (news_volume 대체, 하이브리드) | 분석심화 | 로드맵 + 백로그 R1 | **✅ seam 구현 (Increment 5, off-by-default)** | 코드 + 테스트 |
 | **R1a** | 뉴스 mention alias matcher (`analysis.news.aliases`) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-mention-alias-design.md) |
@@ -140,6 +141,12 @@ B2는 LLM 시그널 seam을 만들었지만, 그 seam을 repo 밖 package로 확
 구현 후 외부 signal plugin은 `mimir.analysis_signals` entry point와 `analysis.plugins.<signal_id>` opt-in namespace를 함께 사용한다. 설정 block이 비어 있으면 기본 `build_signals()` 경로는 entry point를 읽지 않으므로, installed package만으로는 import도 실행도 일어나지 않는다. Built-in 시그널이 먼저 실행되고, 설정된 plugin 시그널은 뒤에 append된다.
 
 Plugin import가 깨지면 warning 후 skip한다. 반면 잘못된 object type, duplicate id, entry point/spec id mismatch, factory id mismatch는 loud failure다. 이 trust boundary는 source plugin과 동일하다. Signal plugin은 Mimir 프로세스 안에서 실행되고 sandbox가 없으므로, 설정·secret·저장 데이터 접근이 가능한 신뢰 코드로 취급해야 한다.
+
+### AN2-LLM-CLASSIFIER-CARDINALITY. LLM classifier cardinality guard — **구현 완료 (2026-06-23)**
+
+B2의 `HeadlineClassifier` 계약은 입력 headline마다 verdict 하나를 같은 순서로 반환하는 것이다. 그러나 구조화 출력 parser는 `verdicts`가 list인지까지만 검증하고, 입력 batch와 같은 길이인지는 런타임에서 확인해야 한다. 길이가 어긋난 batch를 평균내면 누락된 headline의 방향성을 숨기거나 존재하지 않는 headline을 score에 섞는 조용한 분석 오염이 된다.
+
+구현 후 `LlmSentimentSignal.evaluate()`는 classifier 호출 직후 `len(verdicts) == len(texts)`를 검증한다. 불일치하면 warning에 actual/expected 개수와 symbol을 남기고 해당 symbol의 `llm_sentiment`만 `None`으로 생략한다. 정상 batch의 aggregate 수식, cap warning, classifier exception 격리, off-by-default LLM gate는 유지된다. retry, 새 네트워크 호출, 저장 schema, cache, Anthropic SDK 경로는 추가하지 않는다.
 
 ### R1a. 뉴스 mention alias matcher — **구현 완료 (2026-06-16)**
 
@@ -368,6 +375,7 @@ A3 ───────── built-in source registry · SourceSpec constructi
 A3b ──────── external source plugin entry points · mimir.sources
 A3c ──────── source plugin settings namespace · sources.plugins.<source_id>
 AN1-SIGNAL-PLUGIN-ENTRYPOINTS ─ analysis signal plugin entry points · mimir.analysis_signals
+AN2-LLM-CLASSIFIER-CARDINALITY ─ llm_sentiment classifier batch length guard
 R1a ──────── news mention alias matcher · analysis.news.aliases
 R1b ──────── news captured window · DataReader.read_captured_window
 C2a-CAPTURED-NEWS-CACHE ─ captured news window in-memory cache
@@ -428,4 +436,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 등록된 source가 secret/package gate 때문에 fetch 전에 unavailable이어도 `ok=false` manifest를 남기고, 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, AN1-SIGNAL-PLUGIN-ENTRYPOINTS, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, COV1-CONTRACT-COVERAGE, I18N1-PARITY-GUARD, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery와 persistent partition/captured-date index다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, AN1-SIGNAL-PLUGIN-ENTRYPOINTS, AN2-LLM-CLASSIFIER-CARDINALITY, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, COV1-CONTRACT-COVERAGE, I18N1-PARITY-GUARD, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery와 persistent partition/captured-date index다.
