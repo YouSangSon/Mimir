@@ -1,4 +1,4 @@
-"""build_signals() gate — off-by-default LLM sentiment signal (INC5).
+"""build_signals() gate - off-by-default LLM sentiment signal (INC5).
 
 The gate is a three-condition AND: config flag + ANTHROPIC_API_KEY + anthropic
 installed (the package check is bypassed when a fake classifier is injected).
@@ -6,12 +6,23 @@ With no config/settings, build_signals() must return exactly today's 4 signals
 and must NOT import `anthropic`.
 """
 
+import logging
 import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from mimir.analysis.builder import build_signals
-from mimir.analysis.signals.base import SignalDirection
+import pytest
+from pydantic import BaseModel, ConfigDict
+
+from mimir.analysis.builder import (
+    BUILTIN_SIGNAL_SPECS,
+    SignalSpec,
+    _build_signals_from_specs,
+    _load_entry_point_signal_specs,
+    build_signals,
+    load_signal_specs,
+)
+from mimir.analysis.signals.base import SignalDirection, SignalResult
 from mimir.analysis.signals.llm_sentiment import HeadlineVerdict
 from mimir.analysis.signals.macro_regime import MacroRegimeSignal
 from mimir.core.source import Dataset, Market
@@ -31,6 +42,52 @@ class _FakeClassifier:
             HeadlineVerdict(direction=SignalDirection.NEUTRAL, confidence=0.0, rationale="")
             for _ in headlines
         ]
+
+
+class _FakeSignal:
+    id = "plugin_quality"
+
+    def evaluate(self, symbol, market, as_of, reader):
+        return SignalResult(
+            signal=self.id,
+            direction=SignalDirection.NEUTRAL,
+            strength=0.5,
+            confidence=0.5,
+            reason="plugin quality signal",
+        )
+
+
+class _OtherFakeSignal:
+    id = "plugin_macro_quality"
+
+    def evaluate(self, symbol, market, as_of, reader):
+        return None
+
+
+class _MismatchedSignal:
+    id = "plugin_quality"
+
+    def evaluate(self, symbol, market, as_of, reader):
+        return None
+
+
+class _FakeEntryPoint:
+    def __init__(self, name, value=None, error: Exception | None = None):
+        self.name = name
+        self._value = value
+        self._error = error
+
+    def load(self):
+        if self._error:
+            raise self._error
+        return self._value
+
+
+def _patch_signal_entry_points(monkeypatch, entry_points):
+    monkeypatch.setattr(
+        "mimir.analysis.builder.importlib.metadata.entry_points",
+        lambda group=None: entry_points if group == "mimir.analysis_signals" else [],
+    )
 
 
 def _ids(signals) -> set[str]:
@@ -82,6 +139,188 @@ def _reader(tmp_path: Path, records: list[Record]) -> DataReader:
     store = JsonlStore(root=tmp_path)
     store.append(records)
     return DataReader(store)
+
+
+def test_builtin_signal_specs_keep_existing_order():
+    assert [spec.id for spec in BUILTIN_SIGNAL_SPECS] == [
+        "filing_event",
+        "news_volume",
+        "price_momentum",
+        "macro_regime",
+    ]
+
+
+def test_load_entry_point_signal_specs_accepts_single_spec(monkeypatch):
+    spec = SignalSpec("plugin_quality", lambda settings, cfg: _FakeSignal())
+    _patch_signal_entry_points(monkeypatch, [_FakeEntryPoint("plugin_quality", spec)])
+
+    assert _load_entry_point_signal_specs() == (spec,)
+
+
+def test_load_entry_point_signal_specs_accepts_sequence(monkeypatch):
+    quality = SignalSpec("plugin_quality", lambda settings, cfg: _FakeSignal())
+    macro_quality = SignalSpec(
+        "plugin_macro_quality", lambda settings, cfg: _OtherFakeSignal()
+    )
+    _patch_signal_entry_points(
+        monkeypatch, [_FakeEntryPoint("plugin_bundle", (quality, macro_quality))]
+    )
+
+    assert _load_entry_point_signal_specs() == (quality, macro_quality)
+
+
+def test_entry_point_signal_specs_are_loaded_in_name_order(monkeypatch):
+    alpha = SignalSpec("alpha_signal", lambda settings, cfg: _FakeSignal())
+    zulu = SignalSpec("zulu_signal", lambda settings, cfg: _OtherFakeSignal())
+    _patch_signal_entry_points(
+        monkeypatch,
+        [_FakeEntryPoint("zulu_signal", zulu), _FakeEntryPoint("alpha_signal", alpha)],
+    )
+
+    assert [spec.id for spec in _load_entry_point_signal_specs()] == [
+        "alpha_signal",
+        "zulu_signal",
+    ]
+
+
+def test_load_signal_specs_appends_entry_point_signals(monkeypatch):
+    spec = SignalSpec("plugin_quality", lambda settings, cfg: _FakeSignal())
+    _patch_signal_entry_points(monkeypatch, [_FakeEntryPoint("plugin_quality", spec)])
+
+    signal_ids = [loaded.id for loaded in load_signal_specs()]
+
+    assert signal_ids == [
+        "filing_event",
+        "news_volume",
+        "price_momentum",
+        "macro_regime",
+        "plugin_quality",
+    ]
+
+
+def test_entry_point_signal_spec_id_must_match_entry_point_name(monkeypatch):
+    spec = SignalSpec("plugin_b", lambda settings, cfg: _FakeSignal())
+    _patch_signal_entry_points(monkeypatch, [_FakeEntryPoint("plugin_a", spec)])
+
+    with pytest.raises(
+        ValueError, match="entry point 'plugin_a' loaded signal spec 'plugin_b'"
+    ):
+        _load_entry_point_signal_specs()
+
+
+def test_broken_entry_point_signal_spec_is_skipped_and_logged(monkeypatch, caplog):
+    _patch_signal_entry_points(monkeypatch, [_FakeEntryPoint("broken", error=RuntimeError("boom"))])
+
+    with caplog.at_level(logging.WARNING):
+        assert _load_entry_point_signal_specs() == ()
+
+    assert "skipping analysis signal plugin 'broken'" in " ".join(
+        r.message for r in caplog.records
+    )
+
+
+def test_entry_point_signal_wrong_object_type_raises_value_error(monkeypatch):
+    _patch_signal_entry_points(monkeypatch, [_FakeEntryPoint("bad", object())])
+
+    with pytest.raises(ValueError, match="entry point 'bad' must load SignalSpec"):
+        _load_entry_point_signal_specs()
+
+
+def test_unconfigured_plugin_signal_is_not_built(monkeypatch):
+    spec = SignalSpec("plugin_quality", lambda settings, cfg: _FakeSignal())
+    _patch_signal_entry_points(monkeypatch, [_FakeEntryPoint("plugin_quality", spec)])
+
+    signals = build_signals()
+
+    assert "plugin_quality" not in _ids(signals)
+
+
+def test_default_path_does_not_read_signal_entry_points(monkeypatch):
+    def fail_entry_points(*args, **kwargs):
+        raise AssertionError("entry points should not be read without analysis.plugins config")
+
+    monkeypatch.setattr(
+        "mimir.analysis.builder.importlib.metadata.entry_points",
+        fail_entry_points,
+    )
+
+    signals = build_signals()
+
+    assert _ids(signals) == BASE_SIGNAL_IDS
+
+
+def test_build_signals_includes_configured_plugin_signals_after_builtins(monkeypatch):
+    spec = SignalSpec("plugin_quality", lambda settings, cfg: _FakeSignal())
+    _patch_signal_entry_points(monkeypatch, [_FakeEntryPoint("plugin_quality", spec)])
+    cfg = SourcesConfig(analysis_plugin_settings={"plugin_quality": {"enabled": True}})
+
+    signals = build_signals(cfg)
+
+    assert [signal.id for signal in signals] == [
+        "filing_event",
+        "news_volume",
+        "price_momentum",
+        "macro_regime",
+        "plugin_quality",
+    ]
+
+
+def test_entry_point_duplicate_builtin_signal_id_raises_value_error(monkeypatch):
+    spec = SignalSpec("news_volume", lambda settings, cfg: _FakeSignal())
+    _patch_signal_entry_points(monkeypatch, [_FakeEntryPoint("news_volume", spec)])
+
+    with pytest.raises(ValueError, match="duplicate signal id"):
+        build_signals(SourcesConfig(analysis_plugin_settings={"news_volume": {}}))
+
+
+def test_plugin_signal_id_mismatch_raises_value_error():
+    spec = SignalSpec("plugin_bad", lambda settings, cfg: _MismatchedSignal())
+    cfg = SourcesConfig(analysis_plugin_settings={"plugin_bad": {}})
+
+    with pytest.raises(
+        ValueError,
+        match="signal spec id 'plugin_bad' built signal id 'plugin_quality'",
+    ):
+        _build_signals_from_specs(Settings.from_env({}), cfg, (spec,))
+
+
+def test_build_signals_passes_analysis_plugin_namespace_to_factory():
+    class PluginConfig(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+        threshold: float
+
+    class ConfiguredSignal:
+        id = "plugin_quality"
+
+        def __init__(self, threshold: float):
+            self.threshold = threshold
+
+        def evaluate(self, symbol, market, as_of, reader):
+            return None
+
+    def build_plugin(settings, cfg):
+        plugin_cfg = cfg.parse_analysis_plugin_config("plugin_quality", PluginConfig)
+        return ConfiguredSignal(threshold=plugin_cfg.threshold)
+
+    cfg = SourcesConfig(analysis_plugin_settings={"plugin_quality": {"threshold": 0.7}})
+    signals = _build_signals_from_specs(
+        Settings.from_env({}), cfg, (SignalSpec("plugin_quality", build_plugin),)
+    )
+
+    assert len(signals) == 1
+    assert signals[0].threshold == 0.7
+
+
+def test_builder_warns_for_unmatched_analysis_plugin_config(caplog):
+    cfg = SourcesConfig(analysis_plugin_settings={"missing_signal": {"enabled": True}})
+
+    with caplog.at_level(logging.WARNING):
+        signals = _build_signals_from_specs(Settings.from_env({}), cfg, ())
+
+    assert signals == []
+    assert "analysis plugin config 'missing_signal' has no matching signal spec" in " ".join(
+        r.message for r in caplog.records
+    )
 
 
 def test_gate_off_by_default():
