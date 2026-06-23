@@ -106,7 +106,7 @@ if len(verdicts) != len(texts):
 
 ---
 
-**버전**: v1.0  
-**작성일**: 2026-06-23  
-**상태**: Draft  
+**버전**: v1.0
+**작성일**: 2026-06-23
+**상태**: Implemented
 **관련 문서**: [LLM seam 설계](../../../superpowers/specs/2026-06-13-llm-sentiment-seam-design.md), [analysis scoring](../../../reference/analysis/scoring.md)
