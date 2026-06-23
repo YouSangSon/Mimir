@@ -457,6 +457,62 @@ def test_analysis_macro_regime_rate_series_parses_from_config():
     assert cfg.macro_regime_rate_series == ["T10Y2Y"]
 
 
+def test_analysis_plugins_namespace_parses_mapping():
+    cfg = parse_sources_config(
+        {
+            "analysis": {
+                "plugins": {
+                    "acme_quality": {"threshold": 0.7, "symbols": ["AAPL"]},
+                }
+            }
+        }
+    )
+
+    assert cfg.analysis_plugin_settings == {
+        "acme_quality": {"threshold": 0.7, "symbols": ["AAPL"]}
+    }
+
+
+def test_analysis_plugins_namespace_rejects_non_mapping_plugin_config():
+    with pytest.raises(ValidationError):
+        parse_sources_config({"analysis": {"plugins": {"acme_quality": "enabled"}}})
+
+
+def test_analysis_plugin_config_returns_copy_and_empty_default():
+    cfg = SourcesConfig(analysis_plugin_settings={"acme_quality": {"threshold": 0.7}})
+
+    plugin_cfg = cfg.analysis_plugin_config("acme_quality")
+    plugin_cfg["threshold"] = 0.1
+
+    assert cfg.analysis_plugin_config("acme_quality") == {"threshold": 0.7}
+    assert cfg.analysis_plugin_config("missing") == {}
+
+
+def test_parse_analysis_plugin_config_validates_with_pydantic_model():
+    class AcmeSignalConfig(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+        threshold: float
+
+    cfg = SourcesConfig(analysis_plugin_settings={"acme_quality": {"threshold": 0.7}})
+
+    parsed = cfg.parse_analysis_plugin_config("acme_quality", AcmeSignalConfig)
+
+    assert parsed.threshold == 0.7
+
+
+def test_parse_analysis_plugin_config_rejects_plugin_schema_drift():
+    class AcmeSignalConfig(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+        threshold: float
+
+    cfg = SourcesConfig(
+        analysis_plugin_settings={"acme_quality": {"threshold": 0.7, "threshhold": 0.1}}
+    )
+
+    with pytest.raises(ValidationError):
+        cfg.parse_analysis_plugin_config("acme_quality", AcmeSignalConfig)
+
+
 def test_analysis_macro_regime_typo_raises_validation_error():
     with pytest.raises(ValidationError):
         parse_sources_config({"analysis": {"macro_regime": {"rate_seriez": ["T10Y2Y"]}}})

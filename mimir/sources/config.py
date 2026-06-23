@@ -46,6 +46,7 @@ class SourcesConfig(BaseModel):
     # anthropic package before it registers the signal.
     llm_sentiment_enabled: bool = False
     llm_sentiment_max_headlines: int = Field(default=50, ge=1, le=50)
+    analysis_plugin_settings: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
     def plugin_config(self, source_id: str) -> dict[str, Any]:
         """Return a copy of the plugin config block for ``source_id``."""
@@ -56,6 +57,16 @@ class SourcesConfig(BaseModel):
     ) -> PluginConfig:
         """Validate a plugin config block with the plugin-owned pydantic model."""
         return model.model_validate(self.plugin_config(source_id))
+
+    def analysis_plugin_config(self, signal_id: str) -> dict[str, Any]:
+        """Return a copy of the analysis plugin config block for ``signal_id``."""
+        return dict(self.analysis_plugin_settings.get(signal_id, {}))
+
+    def parse_analysis_plugin_config(
+        self, signal_id: str, model: type[PluginConfig]
+    ) -> PluginConfig:
+        """Validate an analysis plugin config block with the plugin-owned model."""
+        return model.model_validate(self.analysis_plugin_config(signal_id))
 
 
 class _FredBlock(BaseModel):
@@ -112,6 +123,7 @@ class _AnalysisBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
     macro_regime: _MacroRegimeBlock | None = None
     news: _NewsBlock | None = None
+    plugins: dict[str, dict[str, Any]] | None = None
 
 
 class _TopLevelSourcesConfig(BaseModel):
@@ -152,6 +164,9 @@ def _source_config_from_top_level(top_level: _TopLevelSourcesConfig) -> SourcesC
             block.rss.sec.ticker_cik_map_refresh if block.rss and block.rss.sec else None
         ),
         plugin_settings=block.plugins or {},
+        analysis_plugin_settings=(
+            top_level.analysis.plugins if top_level.analysis and top_level.analysis.plugins else {}
+        ),
         macro_regime_rate_series=(
             top_level.analysis.macro_regime.rate_series
             if top_level.analysis and top_level.analysis.macro_regime
