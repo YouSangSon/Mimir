@@ -287,6 +287,8 @@ def test_classifier_too_few_verdicts_returns_none(tmp_path: Path, caplog):
     assert classifier.calls == [["AAPL item 1", "AAPL item 2"]]
     assert any(
         "returned 1 verdicts for 2 headlines" in message
+        and "llm_sentiment" in message
+        and "AAPL" in message
         for message in caplog.messages
     )
 
@@ -308,6 +310,8 @@ def test_classifier_too_many_verdicts_returns_none(tmp_path: Path, caplog):
     assert classifier.calls == [["AAPL item 1"]]
     assert any(
         "returned 2 verdicts for 1 headlines" in message
+        and "llm_sentiment" in message
+        and "AAPL" in message
         for message in caplog.messages
     )
 
