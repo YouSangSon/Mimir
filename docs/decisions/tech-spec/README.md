@@ -16,6 +16,7 @@
 | Spec | 목적 |
 |---|---|
 | [AN1-SIGNAL-PLUGIN-ENTRYPOINTS](analysis/AN1_signal_plugin_entrypoints_tech_spec_2026_06_23.md) | `mimir.analysis_signals` entry point와 `analysis.plugins.<signal_id>` opt-in 계약을 고정 |
+| [AN2-LLM-CLASSIFIER-CARDINALITY](analysis/AN2_LLM_classifier_cardinality_tech_spec_2026_06_23.md) | LLM 감성 classifier가 headline 수와 다른 verdict batch를 반환하면 score에 넣지 않고 skip |
 
 ## config
 
