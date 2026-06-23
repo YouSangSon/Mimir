@@ -113,6 +113,7 @@ def _load_entry_point_signal_specs(
             )
             continue
         specs.extend(_signal_specs_from_entry_point(entry_point.name, loaded))
+    _validate_unique_signal_ids(specs)
     return tuple(specs)
 
 

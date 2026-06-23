@@ -169,6 +169,20 @@ def test_load_entry_point_signal_specs_accepts_sequence(monkeypatch):
     assert _load_entry_point_signal_specs() == (quality, macro_quality)
 
 
+def test_load_entry_point_signal_specs_rejects_duplicate_plugin_ids(monkeypatch):
+    quality = SignalSpec("plugin_quality", lambda settings, cfg: _FakeSignal())
+    _patch_signal_entry_points(
+        monkeypatch,
+        [
+            _FakeEntryPoint("plugin_quality", quality),
+            _FakeEntryPoint("plugin_quality", quality),
+        ],
+    )
+
+    with pytest.raises(ValueError, match="duplicate signal id"):
+        _load_entry_point_signal_specs()
+
+
 def test_entry_point_signal_specs_are_loaded_in_name_order(monkeypatch):
     alpha = SignalSpec("alpha_signal", lambda settings, cfg: _FakeSignal())
     zulu = SignalSpec("zulu_signal", lambda settings, cfg: _OtherFakeSignal())
