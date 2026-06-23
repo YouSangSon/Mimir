@@ -13,7 +13,7 @@ Mimir는 공개 데이터를 수집하고, 저장된 데이터로 인사이트�
 | 확장 지점 | 사용자가 바꾸는 것 | 코드 진입점 | 현재 상태 |
 |---|---|---|---|
 | 수집 소스 | `config/sources.yaml`, 새 `Source` 구현, 또는 `mimir.sources` plugin | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. RSS는 정적 feed catalog, SEC EDGAR company filing Atom feed 조립, optional `symbol`로 공식 feed와 종목 전용 feed를 표현한다. 새 내장 소스는 `SourceSpec` 한 줄로 등록. 외부 package는 entry point와 `sources.plugins.<source_id>` 설정 namespace로 source를 추가 |
-| 분석 시그널 | `config/sources.yaml`의 `analysis:` 또는 `build_signals()`에 시그널 추가 | `mimir/analysis/builder.py` | 기본 뉴스 alias, 사용자 alias, symbol-tagged RSS, macro rate-series는 설정으로 제어 가능. LLM 시그널은 off-by-default gate로 배선됨 |
+| 분석 시그널 | `config/sources.yaml`의 `analysis:` 또는 `mimir.analysis_signals` plugin | `mimir/analysis/builder.py` | 기본 뉴스 alias, 사용자 alias, symbol-tagged RSS, macro rate-series는 설정으로 제어 가능. 외부 signal plugin은 `analysis.plugins.<signal_id>` 아래에서 opt-in으로 켜며, built-in 뒤에 붙는다. LLM 시그널은 off-by-default gate로 배선됨 |
 | 출력 표면 | `daily_report`, `dashboard`, `digest` | `mimir/report/` | 일일 리포트와 대시보드가 인사이트·과거사례·평가를 표시한다. Scheduled workflow는 pipeline 성공 뒤 dashboard CLI를 실행해 `reports/dashboard.html`을 최신 운영 표면으로 publish한다 |
 
 ---
@@ -235,6 +235,37 @@ Symbol이 없는 RSS feed는 기존 key 형식인 `rss:{link}`를 유지한다. 
 거시 경제 시리즈 메타데이터는 `mimir/core/macro_series.py`가 관리한다. 이 모듈은 기본 FRED 시리즈, 기본 ECOS 시리즈, doctor freshness cadence, macro-regime rate-series 기본값을 함께 제공한다.
 
 `sources.fred.series`와 `sources.ecos.series`는 무엇을 수집할지 정한다. `analysis.macro_regime.rate_series`는 수집된 macro 데이터 중 어떤 시리즈를 정책금리나 벤치마크 금리로 해석할지 정한다. 이 둘을 분리해야 CPI 같은 물가지표를 수집하면서도 rate-regime 시그널에는 넣지 않을 수 있다.
+
+### 4.4 외부 analysis signal plugin 추가
+
+Mimir 밖의 Python package는 `mimir.analysis_signals` entry point로 분석 시그널을 추가할 수 있다. 이 seam은 Mimir repo를 수정하지 않고 실험 시그널이나 사내 전용 시그널을 배포할 때 쓴다.
+
+```toml
+[project.entry-points."mimir.analysis_signals"]
+acme_sentiment = "acme_mimir.signals:build_acme_sentiment_signal"
+```
+
+```yaml
+analysis:
+  plugins:
+    acme_sentiment:
+      model: "v1"
+      lookback_days: 20
+```
+
+`analysis.plugins.<signal_id>`는 opt-in namespace다. Package가 설치되어 있어도 이 설정 block이 비어 있으면 기본 `build_signals()` 경로는 entry point를 읽지 않는다. 따라서 외부 signal plugin은 설치만으로 실행되거나 import되지 않는다.
+
+Plugin factory는 entry point 이름과 같은 signal id를 반환해야 한다. 한 package가 여러 시그널을 제공할 때도 각 entry point는 자기 `signal_id` 하나만 소유한다. Built-in 시그널은 먼저 등록되고, 설정된 plugin 시그널은 그 뒤에 append된다.
+
+```python
+def build_acme_sentiment_signal(settings, cfg):
+    plugin_cfg = cfg.parse_analysis_plugin_config("acme_sentiment", AcmeSignalConfig)
+    return AcmeSentimentSignal(plugin_cfg)
+```
+
+Plugin import가 깨지면 builder는 warning을 남기고 그 plugin만 건너뛴다. 반대로 잘못된 object type, duplicate signal id, entry point 이름과 `SignalSpec.id` 불일치, factory가 다른 id를 돌려주는 경우는 loud failure로 처리한다. Signal 순서와 id는 score 해석과 운영 디버깅에 직접 쓰이므로 조용히 복구하지 않는다.
+
+이 trust boundary는 source plugin과 같다. Signal plugin 코드는 Mimir 프로세스 안에서 실행되고 sandbox가 없다. `Settings`, config, `DataReader`를 통한 저장 데이터 접근도 일반 API 그대로 가능하다. 따라서 신뢰한 package만 설치해야 하고, secret은 여전히 환경변수나 GitHub Secrets에 둬야 한다.
 
 ---
 

@@ -14,6 +14,7 @@ SEC_REFRESH_DESIGN_SPEC = Path(
 README_REQUIRED_LINKS = (
     "docs/architecture/improvement-catalog.md",
     "docs/decisions/tech-spec/README.md",
+    "docs/decisions/tech-spec/analysis/AN1_signal_plugin_entrypoints_tech_spec_2026_06_23.md",
     "docs/reference/cli.md",
     "docs/reference/config/watchlist.md",
     "docs/reference/analysis/scoring.md",
@@ -30,6 +31,7 @@ BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
 TABLE_RE = re.compile(r"\|\s*\*\*(?:Tests|테스트|测试)\*\*\s*\|\s*(\d+) passing")
 COLLECTED_RE = re.compile(r"(?:(\d+) tests collected|collected (\d+) items)")
 LATEST_COMPLETED_IDS = (
+    "AN1-SIGNAL-PLUGIN-ENTRYPOINTS",
     "C2a-CAPTURED-NEWS-CACHE",
     "R1n-SEC-CIK-CLI-PATH-CONTRACT",
     "R1m-SEC-CIK-MISSING-PATH",
@@ -85,6 +87,19 @@ def test_readmes_link_current_decision_and_config_docs() -> None:
         text = path.read_text(encoding="utf-8")
         for link in README_REQUIRED_LINKS:
             assert link in text, f"{path} missing {link}"
+
+
+def test_signal_plugin_docs_match_extension_contract() -> None:
+    docs = (
+        Path("docs/architecture/extensibility/README.md"),
+        Path("docs/reference/config/sources.md"),
+        Path("docs/architecture/improvement-catalog.md"),
+    )
+    for path in docs:
+        text = path.read_text(encoding="utf-8")
+        assert "mimir.analysis_signals" in text, f"{path} missing signal entry point"
+        assert "analysis.plugins" in text, f"{path} missing analysis plugin namespace"
+        assert "sandbox" in text.lower(), f"{path} missing trust boundary"
 
 
 def test_readme_links_all_reference_docs() -> None:

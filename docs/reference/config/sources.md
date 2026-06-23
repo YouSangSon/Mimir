@@ -136,6 +136,30 @@ analysis:
 
 예를 들어 `CPIAUCSL`은 수집할 수 있지만 기본 rate-series에는 없다. CPI는 물가지표이고, `MacroRegimeSignal`이 보는 정책금리 변화와 같은 의미로 해석하면 안 되기 때문이다.
 
+### 3.3 Analysis signal plugin settings
+
+외부 analysis signal plugin은 `mimir.analysis_signals` entry point로 등록한다. Signal plugin이 자체 설정을 필요로 하면 `analysis.plugins.<signal_id>` 아래에 둔다.
+
+```yaml
+analysis:
+  plugins:
+    acme_sentiment:
+      model: "v1"
+      lookback_days: 20
+```
+
+`analysis.plugins.<signal_id>`는 mapping이어야 한다. `signal_id`는 plugin이 등록한 entry point 이름과 같아야 하며, 기본 `build_signals()` 경로는 이 block이 비어 있으면 외부 plugin entry point를 읽지 않는다. 즉 installed package만으로 signal이 자동 실행되거나 import되지 않는다.
+
+| 필드 | 의미 |
+|---|---|
+| `analysis.plugins` | 외부 analysis signal plugin 전용 namespace |
+| `analysis.plugins.<signal_id>` | signal id별 설정 mapping |
+| block 내부 key | plugin package가 소유한 설정 schema |
+
+Mimir core는 plugin block이 mapping인지까지만 검증한다. 실제 필드 이름과 타입은 plugin factory가 `parse_analysis_plugin_config()`로 자기 pydantic 모델을 검증해야 한다. Core는 외부 plugin schema를 모른 채 namespace와 opt-in 계약만 고정한다.
+
+민감한 값은 이 YAML에 넣지 않는다. API key, token, password는 환경변수나 GitHub Secrets에 둔다. Signal plugin은 Mimir 프로세스 안에서 실행되고 sandbox가 없으므로, 신뢰한 package만 설치해야 한다.
+
 ---
 
 ## 4. `sources:` 블록

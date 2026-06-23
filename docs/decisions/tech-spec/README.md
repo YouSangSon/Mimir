@@ -11,6 +11,12 @@
 |---|---|
 | [BF-PREFLIGHT](backfill/BF-PREFLIGHT_backfill_preflight_manifest_tech_spec_2026_06_18.md) | 백필이 fetch 전에 실패해도 registered-but-unavailable source를 manifest에 기록 |
 
+## analysis
+
+| Spec | 목적 |
+|---|---|
+| [AN1-SIGNAL-PLUGIN-ENTRYPOINTS](analysis/AN1_signal_plugin_entrypoints_tech_spec_2026_06_23.md) | `mimir.analysis_signals` entry point와 `analysis.plugins.<signal_id>` opt-in 계약을 고정 |
+
 ## config
 
 | Spec | 목적 |
