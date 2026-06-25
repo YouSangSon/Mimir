@@ -366,6 +366,37 @@ def test_builder_warns_for_unmatched_analysis_plugin_config(caplog):
     )
 
 
+def test_builder_warns_when_analysis_plugin_namespace_targets_configurable_builtin_signal(
+    caplog,
+):
+    cfg = SourcesConfig(analysis_plugin_settings={"news_volume": {"enabled": True}})
+
+    with caplog.at_level(logging.WARNING):
+        signals = _build_signals_from_specs(Settings.from_env({}), cfg, ())
+
+    assert signals == []
+    messages = " ".join(r.message for r in caplog.records)
+    assert "analysis plugin config 'news_volume' targets built-in signal 'news_volume'" in messages
+    assert "use analysis.news instead" in messages
+    assert "has no matching signal spec" not in messages
+
+
+def test_builder_warns_when_analysis_plugin_namespace_targets_llm_sentiment(caplog):
+    cfg = SourcesConfig(analysis_plugin_settings={"llm_sentiment": {"enabled": True}})
+
+    with caplog.at_level(logging.WARNING):
+        signals = _build_signals_from_specs(Settings.from_env({}), cfg, ())
+
+    assert signals == []
+    messages = " ".join(r.message for r in caplog.records)
+    assert (
+        "analysis plugin config 'llm_sentiment' targets built-in signal 'llm_sentiment'"
+        in messages
+    )
+    assert "use llm_sentiment_enabled instead" in messages
+    assert "has no matching signal spec" not in messages
+
+
 def test_gate_off_by_default():
     # No config, no settings -> today's 4 signals, byte-identical pipeline.
     signals = build_signals()

@@ -53,6 +53,16 @@ BUILTIN_SIGNAL_SPECS: tuple[SignalSpec, ...] = (
     ),
 )
 
+BUILTIN_SIGNAL_CONFIG_HINTS = {
+    "news_volume": "analysis.news instead",
+    "macro_regime": "analysis.macro_regime instead",
+    "llm_sentiment": "llm_sentiment_enabled instead",
+}
+BUILTIN_ANALYSIS_SIGNAL_IDS = {
+    *(spec.id for spec in BUILTIN_SIGNAL_SPECS),
+    "llm_sentiment",
+}
+
 
 def _validate_unique_signal_ids(specs: Sequence[SignalSpec]) -> None:
     seen: set[str] = set()
@@ -130,7 +140,22 @@ def _warn_for_unmatched_analysis_plugin_settings(
 ) -> None:
     signal_ids = {spec.id for spec in specs}
     for signal_id in sorted(config.analysis_plugin_settings):
-        if signal_id not in signal_ids:
+        if signal_id in BUILTIN_ANALYSIS_SIGNAL_IDS:
+            if signal_id in BUILTIN_SIGNAL_CONFIG_HINTS:
+                logger.warning(
+                    "analysis plugin config '%s' targets built-in signal '%s'; use %s",
+                    signal_id,
+                    signal_id,
+                    BUILTIN_SIGNAL_CONFIG_HINTS[signal_id],
+                )
+            else:
+                logger.warning(
+                    "analysis plugin config '%s' targets built-in signal '%s'; "
+                    "built-in signals do not read analysis.plugins",
+                    signal_id,
+                    signal_id,
+                )
+        elif signal_id not in signal_ids:
             logger.warning(
                 "analysis plugin config '%s' has no matching signal spec",
                 signal_id,

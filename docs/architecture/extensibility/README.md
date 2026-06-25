@@ -255,6 +255,8 @@ analysis:
 
 `analysis.plugins.<signal_id>`는 opt-in namespace다. Package가 설치되어 있어도 이 설정 block이 비어 있으면 기본 `build_signals()` 경로는 entry point를 읽지 않는다. 따라서 외부 signal plugin은 설치만으로 실행되거나 import되지 않는다.
 
+`analysis.plugins`는 외부 analysis signal plugin 전용이다. Built-in signal은 이 namespace를 읽지 않으며, `news_volume`은 `analysis.news`, `macro_regime`은 `analysis.macro_regime`, LLM 감성 signal은 top-level `llm_sentiment_enabled`로 설정한다. `analysis.plugins.news_volume`처럼 built-in id를 넣으면 builder는 plugin typo가 아니라 namespace 오용으로 warning한다.
+
 Plugin factory는 entry point 이름과 같은 signal id를 반환해야 한다. 한 package가 여러 시그널을 제공할 때도 각 entry point는 자기 `signal_id` 하나만 소유한다. Built-in 시그널은 먼저 등록되고, 설정된 plugin 시그널은 그 뒤에 append된다.
 
 ```python

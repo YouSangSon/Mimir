@@ -150,6 +150,8 @@ analysis:
 
 `analysis.plugins.<signal_id>`는 mapping이어야 한다. `signal_id`는 plugin이 등록한 entry point 이름과 같아야 하며, 기본 `build_signals()` 경로는 이 block이 비어 있으면 외부 plugin entry point를 읽지 않는다. 즉 installed package만으로 signal이 자동 실행되거나 import되지 않는다.
 
+`analysis.plugins`는 외부 analysis signal plugin 전용 namespace다. Built-in signal은 이 namespace를 읽지 않는다. Built-in 설정은 각 signal의 문서화된 key를 사용한다: `news_volume`은 `analysis.news`, `macro_regime`은 `analysis.macro_regime`, LLM 감성 signal은 top-level `llm_sentiment_enabled`를 사용한다.
+
 | 필드 | 의미 |
 |---|---|
 | `analysis.plugins` | 외부 analysis signal plugin 전용 namespace |
