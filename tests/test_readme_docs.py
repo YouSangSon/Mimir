@@ -11,6 +11,10 @@ CLI_REFERENCE = Path("docs/reference/cli.md")
 SEC_REFRESH_DESIGN_SPEC = Path(
     "docs/superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md"
 )
+R1I_SEC_CIK_TECH_SPEC = Path(
+    "docs/decisions/tech-spec/sources/"
+    "R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md"
+)
 README_REQUIRED_LINKS = (
     "docs/architecture/improvement-catalog.md",
     "docs/decisions/tech-spec/README.md",
@@ -25,6 +29,13 @@ SEC_REFRESH_DOCS = (
     Path("docs/reference/config/sources.md"),
     Path("docs/architecture/extensibility/README.md"),
     SEC_REFRESH_DESIGN_SPEC,
+)
+R1I_SEC_CIK_STALE_REFRESH_PHRASES = (
+    "파일 다운로드와 cache 갱신은 하지 않으므로",
+    "Mimir는 mapping file을 자동으로 가져오지 않습니다",
+    "SEC mapping file live download",
+    "mapping file freshness 검증",
+    "mapping을 자동 download/cache로 만들면",
 )
 SEC_REFRESH_STALE_GUARD_DOCS = tuple(sorted(Path("docs").rglob("*.md")))
 BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
@@ -155,6 +166,17 @@ def test_sec_ticker_cik_refresh_docs_match_implemented_state() -> None:
         text = path.read_text(encoding="utf-8")
         for phrase in stale_phrases:
             assert phrase not in text, f"{path} still says: {phrase}"
+
+    text = R1I_SEC_CIK_TECH_SPEC.read_text(encoding="utf-8")
+
+    assert "ticker_cik_map_path" in text
+    assert "ticker_cik_map_refresh.enabled" in text
+    assert "ticker_cik_map_refresh.max_age_hours" in text
+    assert "resolver" in text
+    assert "SEC mapping download 요청을 0회" in text
+
+    for phrase in R1I_SEC_CIK_STALE_REFRESH_PHRASES:
+        assert phrase not in text, f"{R1I_SEC_CIK_TECH_SPEC} still says: {phrase}"
 
 
 def test_scoring_reference_documents_news_volume_confidence() -> None:
