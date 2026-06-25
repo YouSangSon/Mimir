@@ -14,6 +14,9 @@ SEC_REFRESH_DESIGN_SPEC = Path(
 LLM_SENTIMENT_SEAM_SPEC = Path(
     "docs/superpowers/specs/2026-06-13-llm-sentiment-seam-design.md"
 )
+ANALYSIS_DESIGN_SPEC = Path(
+    "docs/superpowers/specs/2026-05-31-analysis-design.md"
+)
 R1I_SEC_CIK_TECH_SPEC = Path(
     "docs/decisions/tech-spec/sources/"
     "R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md"
@@ -49,6 +52,14 @@ LLM_SENTIMENT_STALE_SPEC_PHRASES = (
     "cache=LlmSentimentCache",
     "data/llm_sentiment",
     "test_cache_hit_skips_llm_call",
+)
+S2_ANALYSIS_DESIGN_STALE_PHRASES = (
+    "Σ sign(dir)·strength·confidence·weight / Σ weight",
+    "max(|net|, attention)",
+    "LLM 시그널 → 하이브리드 후속",
+    "LLM은 나중에 시그널 하나로 추가",
+    "LLM은 같은 `Signal` 인터페이스를 구현하는 한 시그널로 후속 추가",
+    "후속 추가한다",
 )
 SEC_REFRESH_STALE_GUARD_DOCS = tuple(sorted(Path("docs").rglob("*.md")))
 BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
@@ -218,6 +229,70 @@ def test_llm_sentiment_seam_spec_matches_implemented_state() -> None:
 
     for phrase in LLM_SENTIMENT_STALE_SPEC_PHRASES:
         assert phrase not in text, f"{LLM_SENTIMENT_SEAM_SPEC} still says: {phrase}"
+
+
+def test_s2_analysis_design_spec_matches_current_scoring_model() -> None:
+    text = ANALYSIS_DESIGN_SPEC.read_text(encoding="utf-8")
+
+    assert "directional_weight = Σ weight  (방향 시그널만; bullish/bearish)" in text
+    assert "total_weight       = Σ weight  (모든 시그널)" in text
+    assert "net       = Σ sign(dir)·strength·confidence·weight / directional_weight" in text
+    assert "attention = Σ strength·confidence·weight / total_weight" in text
+    assert "stars     = clamp(round(1 + 4·|net|), 1, 5)" in text
+    assert "별점은 방향 확신" in text
+    assert "방향 없는 활동" in text
+    assert "attention" in text
+
+    for phrase in S2_ANALYSIS_DESIGN_STALE_PHRASES:
+        assert phrase not in text, f"{ANALYSIS_DESIGN_SPEC} still says: {phrase}"
+
+
+def _readme_s2_roadmap_row(path: Path) -> str:
+    rows = [
+        line
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.startswith("| **S2 Analysis & Scoring** |")
+    ]
+    assert len(rows) == 1, f"{path} should have exactly one S2 roadmap row"
+    return rows[0]
+
+
+def test_readme_s2_rows_match_current_llm_sentiment_state() -> None:
+    expectations = {
+        Path("README.md"): "Implemented (rules + off-by-default LLM seam:",
+        Path("README.ko.md"): "구현 완료 (규칙 기반 + off-by-default LLM seam:",
+        Path("README.zh.md"): "已实现（规则 + off-by-default LLM seam：",
+    }
+    stale_phrases = ("LLM to follow", "LLM 후속", "LLM 后续")
+    activation_requirements = (
+        "llm_sentiment_enabled",
+        "ANTHROPIC_API_KEY",
+        "[llm]",
+    )
+
+    for path, expected in expectations.items():
+        text = path.read_text(encoding="utf-8")
+        s2_row = _readme_s2_roadmap_row(path)
+        assert expected in s2_row
+        for requirement in activation_requirements:
+            assert requirement in s2_row, f"{path} S2 row missing {requirement}"
+        assert "off-by-default LLM seam" in s2_row, f"{path} S2 row missing LLM seam"
+        assert "only when" in s2_row or "때만" in s2_row or "仅在" in s2_row, (
+            f"{path} S2 row missing activation-condition wording"
+        )
+        assert "config flag" in s2_row or "설정 플래그" in s2_row or "配置开关" in s2_row, (
+            f"{path} S2 row missing config-flag wording"
+        )
+        assert (
+            "extra" in s2_row
+            or "extras" in s2_row
+            or "추가 설치" in s2_row
+            or "额外安装" in s2_row
+        ), (
+            f"{path} S2 row missing extra-install wording"
+        )
+        for phrase in stale_phrases:
+            assert phrase not in text, f"{path} still says: {phrase}"
 
 
 def test_scoring_reference_documents_news_volume_confidence() -> None:

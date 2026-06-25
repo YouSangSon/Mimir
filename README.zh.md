@@ -13,7 +13,7 @@
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-628%20passing%20%C2%B7%2098%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-630%20passing%20%C2%B7%2098%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -228,7 +228,7 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 
 | 项目 | 值 |
 | :--- | :--- |
-| **测试** | 628 passing（适配器以录制的 fixture 在无网络下验证） |
+| **测试** | 630 passing（适配器以录制的 fixture 在无网络下验证） |
 | **覆盖率** | `mimir/` 98%（门槛 80%） |
 | **lint/type** | ruff + mypy `--strict` clean |
 | **CI** | `.github/workflows/ci.yml` — 每次 push/PR 执行 lint·type·test·coverage |
@@ -242,7 +242,7 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 | 规格 | 内容 | 状态 |
 | :--- | :--- | :--- |
 | **S1 Collector** | 数据采集 & 存储（7 个数据源，git-as-DB，cron） | ✅ 完成 (Inc 1+2) |
-| **S2 Analysis & Scoring** | 规则驱动 → 混合 ⭐星级（方向性+确信度）洞见 | ✅ 已实现（规则驱动，LLM 后续） |
+| **S2 Analysis & Scoring** | 规则 + off-by-default LLM ⭐星级（方向性+确信度）洞见 | ✅ 已实现（规则 + off-by-default LLM seam：仅在配置开关 `llm_sentiment_enabled` + `ANTHROPIC_API_KEY` + `[llm]` 额外安装同时满足时激活） |
 | **S3 Delivery & Reporting** | 丰富的每日 HTML 报告 + 每小时/每日/每周/每月 Telegram 摘要 | ✅ 已实现 |
 | **S4 Historical / Event-Analog** | “过去发生类似情况时，哪些标的涨了/跌了” | ✅ 已实现 (event-study) |
 | **S5 Automated Trading** | 策略·成交·风险（先做纸面交易）。分析只发布信号，由执行引擎消费 | 未来 |
