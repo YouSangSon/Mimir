@@ -34,6 +34,7 @@
 | **AN2-LLM-CLASSIFIER-CARDINALITY** | LLM 감성 classifier verdict 수 검증 | 분석품질/견고성 | B2 구조화 출력 계약 | **✅ 구현 완료 (2026-06-23)** | 코드 + 테스트 · [spec](../decisions/tech-spec/analysis/AN2_LLM_classifier_cardinality_tech_spec_2026_06_23.md) |
 | **AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD** | `analysis.plugins`가 built-in signal id를 겨냥할 때 정확한 namespace warning | 운영/DX | AN1 plugin namespace 오용 방지 | **✅ 구현 완료 (2026-06-25)** | 코드 + 테스트 · [spec](../decisions/tech-spec/analysis/AN3_analysis_plugin_builtin_guard_tech_spec_2026_06_25.md) |
 | **AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION** | signal `evaluate()` 예외를 signal/symbol 단위로 격리 | 견고성/운영 | AN1 plugin blast radius 축소 | **✅ 구현 완료 (2026-06-25)** | 코드 + 테스트 · [spec](../decisions/tech-spec/analysis/AN4_analysis_engine_signal_isolation_tech_spec_2026_06_25.md) |
+| **AN5-ANALYSIS-SIGNAL-SPECS-INJECTION** | `build_signals(..., specs=...)` direct injection seam | 확장성/DX | AN1 entry point seam의 테스트·임베디드 사용성 | **📝 설계 완료 (2026-06-25)** | [spec](../decisions/tech-spec/analysis/AN5_analysis_signal_specs_injection_tech_spec_2026_06_25.md) |
 | **B1** | 시그널 백테스트·평가 하네스 (사후수익 적중률) | 분석심화 | 신규(최고가치) | **✅ 구현 완료 (Increment 4 + 리포트 합류)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-13-signal-backtest-design.md) |
 | **B2** | LLM 뉴스 감성 시그널 (news_volume 대체, 하이브리드) | 분석심화 | 로드맵 + 백로그 R1 | **✅ seam 구현 (Increment 5, off-by-default)** | 코드 + 테스트 |
 | **R1a** | 뉴스 mention alias matcher (`analysis.news.aliases`) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-mention-alias-design.md) |
@@ -161,6 +162,12 @@ AN1 이후 `analysis.plugins.<signal_id>`는 외부 analysis signal plugin 전�
 AN1 이후 built-in과 외부 plugin signal은 같은 `Signal.evaluate(symbol, market, as_of, reader)` protocol로 engine에 들어온다. 이전 engine은 한 signal의 런타임 예외가 같은 symbol의 나머지 signal, 다음 symbol, 최종 `replace_partition()`까지 모두 막을 수 있었다. Plugin 신뢰 경계는 in-process trusted code이지만, 단일 signal/symbol 실패가 전체 analysis run을 중단하는 것은 운영 blast radius가 컸다.
 
 구현 후 `AnalysisEngine.run()`은 각 signal 평가를 `Exception` 단위로 격리한다. 실패하면 `mimir.analysis.engine` logger가 signal id, watchlist market/symbol, traceback을 남기고 해당 결과만 생략한다. 같은 symbol의 다른 signal과 다음 symbol 평가는 계속되고, 모든 signal이 실패하거나 `None`이면 기존처럼 그 symbol의 insight는 생성하지 않는다. `KeyboardInterrupt`, `SystemExit` 같은 process-control 예외는 catch하지 않으며, retry/backoff, score formula, 저장 schema, plugin discovery 정책은 바꾸지 않는다.
+
+### AN5-ANALYSIS-SIGNAL-SPECS-INJECTION. Analysis signal direct specs injection — **설계 완료 (2026-06-25)**
+
+AN1의 entry point seam은 package 배포 단위에는 맞지만, 테스트·임베디드 호출자가 external signal specs를 주입하려면 private `_build_signals_from_specs()` helper에 의존해야 했다. Source builder 쪽 `build_sources(..., specs=...)`처럼 public injection seam이 있으면 packaging metadata 없이도 extension host가 결정론적으로 signal registry를 구성할 수 있다.
+
+설계는 `build_signals(..., specs=...)`를 추가하되, `specs`를 built-in replacement가 아닌 외부 plugin specs로만 해석한다. Built-in signal은 계속 먼저 생성되고, injected spec도 `analysis.plugins.<signal_id>` 설정이 있어야 build된다. `specs is None`이면 기존 entry point discovery를 유지하고, `specs`가 제공되면 entry point를 읽지 않는다.
 
 ### R1a. 뉴스 mention alias matcher — **구현 완료 (2026-06-16)**
 

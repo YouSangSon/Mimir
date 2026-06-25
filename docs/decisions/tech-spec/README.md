@@ -19,6 +19,7 @@
 | [AN2-LLM-CLASSIFIER-CARDINALITY](analysis/AN2_LLM_classifier_cardinality_tech_spec_2026_06_23.md) | LLM 감성 classifier가 headline 수와 다른 verdict batch를 반환하면 score에 넣지 않고 skip |
 | [AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD](analysis/AN3_analysis_plugin_builtin_guard_tech_spec_2026_06_25.md) | `analysis.plugins`가 built-in signal id를 겨냥할 때 외부 plugin typo와 구분되는 warning을 고정 |
 | [AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION](analysis/AN4_analysis_engine_signal_isolation_tech_spec_2026_06_25.md) | Signal 평가 예외를 해당 signal/symbol에서만 skip하고 analysis run을 계속 진행 |
+| [AN5-ANALYSIS-SIGNAL-SPECS-INJECTION](analysis/AN5_analysis_signal_specs_injection_tech_spec_2026_06_25.md) | `build_signals(..., specs=...)`로 entry point 없이 외부 signal specs를 직접 주입 |
 
 ## config
 
