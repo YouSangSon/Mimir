@@ -2,7 +2,7 @@
 
 > **스펙 ID**: R1c
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`DEFAULT_NEWS_ALIASES` + `analysis.news.use_default_aliases`). 388 테스트 · ruff · mypy · coverage gate 클린.
+> **상태**: ✅ 구현 완료 (`DEFAULT_NEWS_ALIASES` + `analysis.news.use_default_aliases`). 최신 검증은 README 테스트 배지와 docs health guard가 추적하며, ruff · mypy · coverage gate 클린 상태를 유지한다.
 > **선행**: [R1 News Mention Alias Matching](2026-06-16-news-mention-alias-design.md) · [R1b News Captured Window](2026-06-16-news-captured-window-design.md) · [확장성 카탈로그](../../architecture/improvement-catalog.md)
 
 ---

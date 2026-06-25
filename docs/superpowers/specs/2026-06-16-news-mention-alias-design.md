@@ -2,7 +2,7 @@
 
 > **스펙 ID**: R1
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`analysis.news.aliases` + shared `NewsMentionMatcher`). 364 테스트 · ruff · mypy · coverage gate 클린.
+> **상태**: ✅ 구현 완료 (`analysis.news.aliases` + shared `NewsMentionMatcher`). 최신 검증은 README 테스트 배지와 docs health guard가 추적하며, ruff · mypy · coverage gate 클린 상태를 유지한다. 후속 R1c에서 `DEFAULT_NEWS_ALIASES`와 `analysis.news.use_default_aliases`가 추가되었다.
 > **선행**: [S2 Analysis](2026-05-31-analysis-design.md) · [LLM 뉴스 감성 seam](2026-06-13-llm-sentiment-seam-design.md) · [확장성 카탈로그](../../architecture/improvement-catalog.md)
 
 ---
@@ -52,14 +52,15 @@ _mentions(record, "AAPL")
 - `analysis.news.aliases` 설정을 검증한다.
 - `NewsVolumeSignal`은 symbol과 alias를 모두 매칭어로 사용한다.
 - `LlmSentimentSignal`도 같은 alias matcher를 사용한다.
-- 설정이 없으면 기존 동작과 시그널 수를 유지한다.
+- 설정이 없을 때의 symbol-only 기본값은 R1 v1의 직접 생성 `NewsVolumeSignal()`과 `LlmSentimentSignal()`에만 해당한다.
+- 현재 `build_signals(SourcesConfig())`는 `use_default_news_aliases=True` 기본값으로 `DEFAULT_NEWS_ALIASES`를 병합하고, `analysis.news.use_default_aliases: false`로 opt-out할 수 있다.
 - 매칭은 저장된 `title`과 `summary`만 사용한다.
 - 잘못된 `analysis.news` 키는 조용히 무시하지 않고 실패한다.
 
 ### 비목표
 
 - 기사 본문 크롤링을 추가하지 않는다.
-- 기본 alias 사전을 코드에 넣지 않는다. v1은 사용자 설정만 지원한다.
+- R1 v1 자체는 기본 alias 사전을 코드에 넣지 않는다. 현재 전체 구현은 후속 R1c에서 보수적 `DEFAULT_NEWS_ALIASES`와 `analysis.news.use_default_aliases` opt-out을 추가했다.
 - alias를 watchlist 파일로 옮기지 않는다. 이 증분은 분석 해석 설정이므로 `sources.yaml`의 `analysis:` 블록에 둔다.
 - LLM 시그널을 기본으로 켜지 않는다.
 - 이미 저장된 뉴스 레코드를 마이그레이션하지 않는다.
@@ -87,7 +88,9 @@ analysis:
 | key | watchlist symbol. 예: `AAPL`, `"005930"` |
 | value | 제목과 요약에서 추가로 찾을 회사명 또는 표기 |
 
-설정을 생략하면 빈 alias map을 쓴다. 빈 alias map은 오늘의 symbol-only 동작과 같다.
+설정이 없을 때의 symbol-only 기본값은 직접 `NewsVolumeSignal()`이나 `LlmSentimentSignal()`을 만들 때, aliases를 넘기지 않는 경우에만 적용된다.
+
+하지만 현재 composed builder 경로는 다르다. `build_signals(SourcesConfig())`는 `SourcesConfig.news_aliases=None`와 `use_default_news_aliases=True`의 기본값 때문에 `_news_aliases(cfg)`를 통해 `DEFAULT_NEWS_ALIASES`를 병합한 alias map을 전달한다. `analysis.news.use_default_aliases: false`로 이 기본 alias를 끌 수 있다.
 
 ---
 
@@ -146,12 +149,14 @@ analysis:
       AAPL: ["Apple", "Apple Inc."]
 ```
 
-`build_signals()`는 같은 alias map을 두 뉴스 시그널에 전달한다.
+`_news_aliases(cfg)`는 `merge_news_aliases(cfg.news_aliases, include_defaults=cfg.use_default_news_aliases)`의 결과를 돌려준다. `build_signals()`는 같은 merged alias map을 두 뉴스 시그널에 전달한다.
 
 ```python
+aliases = _news_aliases(cfg)
+
 signals: list[Signal] = [
     FilingEventSignal(),
-    NewsVolumeSignal(aliases=cfg.news_aliases),
+    NewsVolumeSignal(aliases=aliases),
     PriceMomentumSignal(),
     MacroRegimeSignal(rate_series=cfg.macro_regime_rate_series),
 ]
@@ -161,7 +166,7 @@ if _llm_sentiment_enabled(...):
         LlmSentimentSignal(
             classifier=...,
             max_headlines=cfg.llm_sentiment_max_headlines,
-            aliases=cfg.news_aliases,
+            aliases=aliases,
         )
     )
 ```
@@ -178,9 +183,9 @@ LLM 시그널은 기존처럼 세 조건이 모두 맞을 때만 생성된다. a
 | alias 값이 string 하나임 | pydantic `ValidationError` |
 | `analysis.news.aliasez` 같은 오타 | pydantic `ValidationError` |
 | alias list에 빈 문자열이 있음 | matcher가 무시 |
-| 설정이 없음 | 기존 symbol-only 매칭 유지 |
+| 설정이 없음 | R1 v1의 직접 생성 signal은 symbol-only다. 현재 `build_signals(SourcesConfig())`는 `use_default_news_aliases=True` 기본값으로 `_news_aliases(cfg)`를 통해 `DEFAULT_NEWS_ALIASES`를 병합하며, `analysis.news.use_default_aliases: false`로 opt-out할 수 있다 |
 | `삼성전자` alias가 `삼성전자우` 안에 들어 있음 | 매칭하지 않음 |
-| alias가 너무 넓어서 false positive가 생김 | 사용자 설정 문제로 문서화. R1c의 기본 alias는 `use_default_aliases: false`로 끌 수 있음 |
+| alias가 너무 넓어서 false positive가 생김 | 사용자 설정 문제로 문서화. 후속 R1c 기본 alias도 `analysis.news.use_default_aliases: false`로 끌 수 있음 |
 
 ---
 
@@ -213,13 +218,14 @@ LLM 쪽은 fake classifier를 주입해 `LlmSentimentSignal`이 alias로 headlin
 
 ## 9. 수용 기준
 
-- [ ] `analysis.news.aliases`가 검증되고 `SourcesConfig.news_aliases`로 전달된다.
-- [ ] `NewsVolumeSignal`이 symbol과 alias를 모두 사용한다.
-- [ ] `LlmSentimentSignal`이 같은 alias matcher를 사용한다.
-- [ ] 설정이 없으면 기존 symbol-only 동작과 시그널 수가 유지된다.
-- [ ] 잘못된 alias 설정은 `ValidationError`로 실패한다.
-- [ ] `config/sources.yaml`, `docs/reference/config/sources.md`, 개선 백로그, 확장성 문서가 새 설정을 설명한다.
-- [ ] ruff, mypy, pytest, coverage 80% gate를 통과한다.
+- [x] `analysis.news.aliases`가 검증되고 `SourcesConfig.news_aliases`로 전달된다.
+- [x] `NewsVolumeSignal`이 symbol과 alias를 모두 사용한다.
+- [x] `LlmSentimentSignal`이 같은 alias matcher를 사용한다.
+- [x] 설정이 없을 때의 symbol-only 기본값은 R1 v1의 직접 생성 `NewsVolumeSignal()`과 `LlmSentimentSignal()`에만 해당한다. 현재 `build_signals()` 기본 경로는 후속 R1c의 보수적 기본 alias를 병합하지만 `analysis.news.use_default_aliases: false`로 끌 수 있다.
+- [x] 잘못된 alias 설정은 `ValidationError`로 실패한다.
+- [x] `config/sources.yaml`, `docs/reference/config/sources.md`, 개선 백로그, 확장성 문서가 새 설정을 설명한다.
+- [x] 후속 R1c에서 `DEFAULT_NEWS_ALIASES`와 `analysis.news.use_default_aliases` opt-out이 구현되었다.
+- [x] ruff, mypy, pytest, coverage 80% gate가 통과한다.
 
 ---
 
@@ -227,4 +233,4 @@ LLM 쪽은 fake classifier를 주입해 `LlmSentimentSignal`이 alias로 headlin
 
 Alias는 recall을 높이지만, 뉴스 방향성은 만들지 않는다. `news_volume`은 계속 NEUTRAL 시그널이다. 방향성은 off-by-default `llm_sentiment`가 맡는다.
 
-또한 R1 v1의 alias는 사용자가 관리한다. 기본 alias 사전을 넣으면 유지보수와 오매칭 책임이 프로젝트 코드로 들어오기 때문에 이 증분에서는 제외했다. 이후 R1c에서 기본 watchlist용 보수적 alias 데이터셋과 `analysis.news.use_default_aliases` opt-out을 별도 설계로 추가했다.
+R1 v1의 alias는 사용자가 관리했다. 이후 R1c에서 기본 watchlist용 보수적 `DEFAULT_NEWS_ALIASES`와 `analysis.news.use_default_aliases` opt-out을 추가했다. 남은 한계는 더 큰 watchlist를 위한 symbol metadata 기반 alias 후보 생성, 종목별 공식 feed, provider별 live endpoint discovery다.

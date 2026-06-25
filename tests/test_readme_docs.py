@@ -17,6 +17,12 @@ LLM_SENTIMENT_SEAM_SPEC = Path(
 ANALYSIS_DESIGN_SPEC = Path(
     "docs/superpowers/specs/2026-05-31-analysis-design.md"
 )
+NEWS_MENTION_ALIAS_SPEC = Path(
+    "docs/superpowers/specs/2026-06-16-news-mention-alias-design.md"
+)
+DEFAULT_NEWS_ALIASES_SPEC = Path(
+    "docs/superpowers/specs/2026-06-16-default-news-aliases-design.md"
+)
 R1I_SEC_CIK_TECH_SPEC = Path(
     "docs/decisions/tech-spec/sources/"
     "R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md"
@@ -257,6 +263,15 @@ def _readme_s2_roadmap_row(path: Path) -> str:
     return rows[0]
 
 
+def _markdown_section(text: str, heading: str) -> str:
+    start = text.index(heading)
+    rest = text[start + len(heading) :]
+    next_heading = rest.find("\n## ")
+    if next_heading == -1:
+        return rest
+    return rest[:next_heading]
+
+
 def test_readme_s2_rows_match_current_llm_sentiment_state() -> None:
     expectations = {
         Path("README.md"): "Implemented (rules + off-by-default LLM seam:",
@@ -293,6 +308,63 @@ def test_readme_s2_rows_match_current_llm_sentiment_state() -> None:
         )
         for phrase in stale_phrases:
             assert phrase not in text, f"{path} still says: {phrase}"
+
+
+def test_news_alias_specs_match_current_completion_state() -> None:
+    r1 = NEWS_MENTION_ALIAS_SPEC.read_text(encoding="utf-8")
+    r1c = DEFAULT_NEWS_ALIASES_SPEC.read_text(encoding="utf-8")
+
+    for path, text, stale_count in (
+        (NEWS_MENTION_ALIAS_SPEC, r1, "364 테스트"),
+        (DEFAULT_NEWS_ALIASES_SPEC, r1c, "388 테스트"),
+    ):
+        assert stale_count not in text, f"{path} still carries stale test count"
+        status_line = next(
+            line for line in text.splitlines() if line.startswith("> **상태**:")
+        )
+        assert "구현 완료" in status_line
+        assert "ruff" in status_line
+        assert "mypy" in status_line
+
+    acceptance = _markdown_section(r1, "## 9. 수용 기준")
+    settings = _markdown_section(r1, "## 4. 설정 설계")
+    builder = _markdown_section(r1, "## 6. 빌더 배선")
+
+    assert "- [ ]" not in acceptance
+    assert "기본 alias" in acceptance
+    assert "R1c" in acceptance
+    assert "빈 alias map" not in settings
+    assert "설정을 생략하면 빈 alias map을 쓴다" not in settings
+    assert "symbol-only" in settings
+    assert "_news_aliases(cfg)" in builder or "merge_news_aliases" in builder
+    assert "use_default_news_aliases=True" in r1
+    assert "SourcesConfig()" in r1
+    assert "설정이 없으면 기존 symbol-only 동작을 유지한다." not in r1
+    assert "설정이 없으면 기존 동작과 시그널 수를 유지한다." not in r1
+    assert "설정이 없음 | 기존 symbol-only 매칭 유지" not in r1
+    assert "설정이 없을 때의 symbol-only 기본값" in r1
+    assert "`NewsVolumeSignal()`과 `LlmSentimentSignal()`에만 해당한다." in r1
+    assert "`build_signals(SourcesConfig())`" in r1
+    assert "`_news_aliases(cfg)`" in r1
+    assert "`DEFAULT_NEWS_ALIASES`를 병합" in r1
+    assert "직접 `NewsVolumeSignal()`" in r1
+    assert "`LlmSentimentSignal()`을 만들 때" in r1
+    assert "build_signals(SourcesConfig())" in r1
+    assert "analysis.news.use_default_aliases: false" in r1
+
+    assert "NewsMentionMatcher" in r1
+    assert "analysis.news.aliases" in r1
+    assert "DEFAULT_NEWS_ALIASES" in r1
+    assert "analysis.news.use_default_aliases" in r1
+    assert "R1c" in r1
+    assert "symbol-only 기본값" in r1
+    assert "NewsVolumeSignal(aliases=cfg.news_aliases)" not in r1
+    assert "_news_aliases(cfg)" in r1 or "merge_news_aliases" in r1
+    assert "use_default_news_aliases=True" in r1 or "SourcesConfig()" in r1
+
+    assert "DEFAULT_NEWS_ALIASES" in r1c
+    assert "analysis.news.use_default_aliases" in r1c
+    assert "- [x] ruff, mypy, pytest, coverage 80% gate가 통과한다." in r1c
 
 
 def test_scoring_reference_documents_news_volume_confidence() -> None:
