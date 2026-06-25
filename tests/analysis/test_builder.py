@@ -397,6 +397,40 @@ def test_builder_warns_when_analysis_plugin_namespace_targets_llm_sentiment(capl
     assert "has no matching signal spec" not in messages
 
 
+def test_builder_warns_when_analysis_plugin_namespace_targets_macro_regime(caplog):
+    cfg = SourcesConfig(analysis_plugin_settings={"macro_regime": {"enabled": True}})
+
+    with caplog.at_level(logging.WARNING):
+        signals = _build_signals_from_specs(Settings.from_env({}), cfg, ())
+
+    assert signals == []
+    messages = " ".join(r.message for r in caplog.records)
+    assert (
+        "analysis plugin config 'macro_regime' targets built-in signal 'macro_regime'"
+        in messages
+    )
+    assert "use analysis.macro_regime instead" in messages
+    assert "has no matching signal spec" not in messages
+
+
+def test_builder_warns_when_analysis_plugin_namespace_targets_unconfigurable_builtin(
+    caplog,
+):
+    cfg = SourcesConfig(analysis_plugin_settings={"filing_event": {"enabled": True}})
+
+    with caplog.at_level(logging.WARNING):
+        signals = _build_signals_from_specs(Settings.from_env({}), cfg, ())
+
+    assert signals == []
+    messages = " ".join(r.message for r in caplog.records)
+    assert (
+        "analysis plugin config 'filing_event' targets built-in signal 'filing_event'"
+        in messages
+    )
+    assert "built-in signals do not read analysis.plugins" in messages
+    assert "has no matching signal spec" not in messages
+
+
 def test_gate_off_by_default():
     # No config, no settings -> today's 4 signals, byte-identical pipeline.
     signals = build_signals()
