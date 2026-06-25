@@ -11,6 +11,9 @@ CLI_REFERENCE = Path("docs/reference/cli.md")
 SEC_REFRESH_DESIGN_SPEC = Path(
     "docs/superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md"
 )
+LLM_SENTIMENT_SEAM_SPEC = Path(
+    "docs/superpowers/specs/2026-06-13-llm-sentiment-seam-design.md"
+)
 R1I_SEC_CIK_TECH_SPEC = Path(
     "docs/decisions/tech-spec/sources/"
     "R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md"
@@ -36,6 +39,16 @@ R1I_SEC_CIK_STALE_REFRESH_PHRASES = (
     "SEC mapping file live download",
     "mapping file freshness 검증",
     "mapping을 자동 download/cache로 만들면",
+)
+LLM_SENTIMENT_STALE_SPEC_PHRASES = (
+    "LLM 뉴스 감성 시그널을 지금 구현하지 않는다",
+    "실제 `LlmSentimentSignal` 코드를 작성",
+    "설계로만 존재",
+    "`build_signals()`는 **인자를 받지 않으며 어떤 게이트도 통과하지 않는다.**",
+    "`build_signals()`의 시그니처와 `analyze.py`의 호출부가 **미래에** 바뀐다",
+    "cache=LlmSentimentCache",
+    "data/llm_sentiment",
+    "test_cache_hit_skips_llm_call",
 )
 SEC_REFRESH_STALE_GUARD_DOCS = tuple(sorted(Path("docs").rglob("*.md")))
 BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
@@ -187,6 +200,18 @@ def test_sec_ticker_cik_refresh_docs_match_implemented_state() -> None:
 
     for phrase in R1I_SEC_CIK_STALE_REFRESH_PHRASES:
         assert phrase not in text, f"{R1I_SEC_CIK_TECH_SPEC} still says: {phrase}"
+
+
+def test_llm_sentiment_seam_spec_matches_implemented_state() -> None:
+    text = LLM_SENTIMENT_SEAM_SPEC.read_text(encoding="utf-8")
+
+    assert "`LlmSentimentSignal`은 구현되어" in text
+    assert "`build_signals(config, settings, *, classifier=...)`" in text
+    assert "현재 구현은 `LlmSentimentCache`나 `Dataset.LLM_SENTIMENT`를 제공하지 않는다" in text
+    assert "기본 경로의 LLM 호출은 0건" in text
+
+    for phrase in LLM_SENTIMENT_STALE_SPEC_PHRASES:
+        assert phrase not in text, f"{LLM_SENTIMENT_SEAM_SPEC} still says: {phrase}"
 
 
 def test_scoring_reference_documents_news_volume_confidence() -> None:
