@@ -208,7 +208,8 @@ def test_llm_sentiment_seam_spec_matches_implemented_state() -> None:
     assert "`LlmSentimentSignal`은 구현되어" in text
     assert "`build_signals(config, settings, *, classifier=...)`" in text
     assert "현재 구현은 `LlmSentimentCache`나 `Dataset.LLM_SENTIMENT`를 제공하지 않는다" in text
-    assert "기본 경로의 LLM 호출은 0건" in text
+    assert "기본 경로의 LLM 호출은 0건이고, `anthropic`도 import하지 않는다" in text
+    assert "`HeadlineClassifier` Protocol fake를 주입해 네트워크·key 없이 검증" in text
 
     for phrase in LLM_SENTIMENT_STALE_SPEC_PHRASES:
         assert phrase not in text, f"{LLM_SENTIMENT_SEAM_SPEC} still says: {phrase}"
