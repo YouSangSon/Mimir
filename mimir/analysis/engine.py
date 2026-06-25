@@ -5,7 +5,7 @@ from datetime import UTC, date, datetime
 
 from mimir.analysis.schema import Insight, to_record
 from mimir.analysis.scorer import score
-from mimir.analysis.signals.base import Signal
+from mimir.analysis.signals.base import Signal, SignalResult
 from mimir.core.source import Dataset, Market
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.reader import DataReader
@@ -47,8 +47,19 @@ class AnalysisEngine:
                             symbol,
                         )
                         continue
-                    if result is not None:
-                        results.append(result)
+                    if result is None:
+                        continue
+                    if not isinstance(result, SignalResult):
+                        logger.error(
+                            "analysis signal '%s' returned invalid result type %s "
+                            "for %s/%s; skipping",
+                            _signal_id(sig),
+                            type(result).__name__,
+                            key,
+                            symbol,
+                        )
+                        continue
+                    results.append(result)
                 if not results:
                     continue
                 sc = score(results)

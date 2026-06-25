@@ -13,7 +13,7 @@
 
 각 시그널은 `(symbol, market, as_of)`에 대해 `SignalResult | None`을 낸다. `SignalResult`는 `direction`(bullish/bearish/neutral), `strength`(0..1), `confidence`(0..1), `weight`(곱셈자, ≥0), `reason`을 담는다. `scorer.score()`가 한 symbol의 여러 `SignalResult`를 하나의 `InsightScore`(direction, ⭐stars 1..5, confidence, attention)로 합친다.
 
-Signal 평가 중 `Exception`이 발생하면 `AnalysisEngine`은 signal id, market/symbol과 traceback을 log에 남기고 해당 signal 결과만 생략한다. 같은 symbol의 다른 signal과 다음 symbol 평가는 계속된다. 모든 signal이 실패하거나 `None`이면 기존처럼 그 symbol의 insight는 생성하지 않는다.
+Signal 평가 중 `Exception`이 발생하면 `AnalysisEngine`은 signal id, market/symbol과 traceback을 log에 남기고 해당 signal 결과만 생략한다. Signal 평가가 `None`도 `SignalResult`도 아닌 값을 반환하면 `AnalysisEngine`은 signal id, market/symbol, 반환 타입을 error log에 남기고 해당 signal 결과만 생략한다. 반환값을 coercion하지 않으며, 같은 symbol의 다른 signal과 다음 symbol 평가는 계속된다. 모든 signal이 실패하거나 `None`이면 기존처럼 그 symbol의 insight는 생성하지 않는다.
 
 핵심 원칙: **별점은 *방향 확신*을 뜻한다.** 방향 없는 활동(공시·뉴스량)은 stars를 올리지 못하고 `attention`으로만 드러난다.
 

@@ -129,5 +129,5 @@ GREEN은 malformed result를 error log 후 skip하고 정상 result 또는 stale
 
 **버전**: v1.0
 **작성일**: 2026-06-25
-**상태**: Draft
+**상태**: Implemented
 **관련 문서**: [AN4 analysis engine signal isolation](AN4_analysis_engine_signal_isolation_tech_spec_2026_06_25.md), [AN5 analysis signal specs injection](AN5_analysis_signal_specs_injection_tech_spec_2026_06_25.md), [analysis scoring reference](../../../reference/analysis/scoring.md)
