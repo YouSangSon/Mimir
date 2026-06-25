@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/AN1-SIGNAL-PLUGIN-ENTRYPOINTS/AN2-LLM-CLASSIFIER-CARDINALITY/AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD/AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION/AN5-ANALYSIS-SIGNAL-SPECS-INJECTION/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/CFG3-CONFIG-GUARDRAILS/COV1-CONTRACT-COVERAGE/I18N1-PARITY-GUARD/BF-PREFLIGHT 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/AN1-SIGNAL-PLUGIN-ENTRYPOINTS/AN2-LLM-CLASSIFIER-CARDINALITY/AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD/AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION/AN5-ANALYSIS-SIGNAL-SPECS-INJECTION/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/CFG3-CONFIG-GUARDRAILS/COV1-CONTRACT-COVERAGE/I18N1-PARITY-GUARD/BF-PREFLIGHT 구현 완료 + AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY 설계 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -35,6 +35,7 @@
 | **AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD** | `analysis.plugins`가 built-in signal id를 겨냥할 때 정확한 namespace warning | 운영/DX | AN1 plugin namespace 오용 방지 | **✅ 구현 완료 (2026-06-25)** | 코드 + 테스트 · [spec](../decisions/tech-spec/analysis/AN3_analysis_plugin_builtin_guard_tech_spec_2026_06_25.md) |
 | **AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION** | signal `evaluate()` 예외를 signal/symbol 단위로 격리 | 견고성/운영 | AN1 plugin blast radius 축소 | **✅ 구현 완료 (2026-06-25)** | 코드 + 테스트 · [spec](../decisions/tech-spec/analysis/AN4_analysis_engine_signal_isolation_tech_spec_2026_06_25.md) |
 | **AN5-ANALYSIS-SIGNAL-SPECS-INJECTION** | `build_signals(..., specs=...)` direct injection seam | 확장성/DX | AN1 entry point seam의 테스트·임베디드 사용성 | **✅ 구현 완료 (2026-06-25)** | 코드 + 테스트 · [spec](../decisions/tech-spec/analysis/AN5_analysis_signal_specs_injection_tech_spec_2026_06_25.md) |
+| **AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY** | 잘못된 `Signal.evaluate()` 반환 타입을 scoring 전에 log+skip | 견고성/운영 | AN4/AN5 이후 plugin 반환 계약 blast radius 축소 | **📐 설계 완료 (2026-06-25)** | [spec](../decisions/tech-spec/analysis/AN6_analysis_signal_result_boundary_tech_spec_2026_06_25.md) |
 | **B1** | 시그널 백테스트·평가 하네스 (사후수익 적중률) | 분석심화 | 신규(최고가치) | **✅ 구현 완료 (Increment 4 + 리포트 합류)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-13-signal-backtest-design.md) |
 | **B2** | LLM 뉴스 감성 시그널 (news_volume 대체, 하이브리드) | 분석심화 | 로드맵 + 백로그 R1 | **✅ seam 구현 (Increment 5, off-by-default)** | 코드 + 테스트 |
 | **R1a** | 뉴스 mention alias matcher (`analysis.news.aliases`) | 분석품질 | 백로그 R1 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-news-mention-alias-design.md) |
@@ -168,6 +169,12 @@ AN1 이후 built-in과 외부 plugin signal은 같은 `Signal.evaluate(symbol, m
 AN1의 entry point seam은 package 배포 단위에는 맞지만, 테스트·임베디드 호출자가 external signal specs를 주입하려면 private `_build_signals_from_specs()` helper에 의존해야 했다. Source builder 쪽 `build_sources(..., specs=...)`처럼 public injection seam이 있으면 packaging metadata 없이도 extension host가 결정론적으로 signal registry를 구성할 수 있다.
 
 구현 후 `build_signals(..., specs=...)`는 entry point packaging 없이 external signal specs를 직접 주입하는 public seam이다. `specs`는 built-in replacement가 아니라 외부 plugin specs로만 해석한다. Built-in signal은 계속 먼저 생성되고, configured injected plugin signal만 그 뒤에 append된다. Injected spec도 `analysis.plugins.<signal_id>` 설정이 있어야 build되며, `specs is None`이면 기존 entry point discovery를 유지하고, `specs`가 제공되면 entry point를 읽지 않는다. Built-in id와 injected id가 중복되면 `ValueError`로 실패한다.
+
+### AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY. Analysis signal result boundary — **설계 완료 (2026-06-25)**
+
+AN4는 `Signal.evaluate()` 예외를 signal/symbol 단위로 격리했지만, Python `Protocol` annotation은 반환 타입을 런타임에서 강제하지 않는다. 외부 plugin이 `dict`, `str`, 임의 객체처럼 `None`도 `SignalResult`도 아닌 값을 반환하면 engine은 현재 그 값을 `score()`에 넘기고 scoring 단계에서 run을 중단할 수 있다.
+
+설계된 AN6는 engine과 scorer 사이에 runtime boundary를 둔다. 반환값이 `None`이면 기존처럼 생략하고, `SignalResult`면 기존처럼 score에 넣고, 그 외 타입이면 signal id·watchlist market/symbol·반환 타입을 error log에 남긴 뒤 해당 signal 결과만 생략한다. Coercion, sandbox, scoring formula, plugin discovery, 저장 schema, retry/network 정책은 바꾸지 않는다.
 
 ### R1a. 뉴스 mention alias matcher — **구현 완료 (2026-06-16)**
 
@@ -400,6 +407,7 @@ AN2-LLM-CLASSIFIER-CARDINALITY ─ llm_sentiment classifier batch length guard
 AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD ─ analysis.plugins built-in signal namespace warning
 AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION ─ analysis signal evaluate exception isolation
 AN5-ANALYSIS-SIGNAL-SPECS-INJECTION ─ build_signals direct SignalSpec injection
+AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY ─ analysis signal invalid result type boundary
 R1a ──────── news mention alias matcher · analysis.news.aliases
 R1b ──────── news captured window · DataReader.read_captured_window
 C2a-CAPTURED-NEWS-CACHE ─ captured news window in-memory cache
@@ -460,4 +468,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 등록된 source가 secret/package gate 때문에 fetch 전에 unavailable이어도 `ok=false` manifest를 남기고, 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, AN1-SIGNAL-PLUGIN-ENTRYPOINTS, AN2-LLM-CLASSIFIER-CARDINALITY, AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD, AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION, AN5-ANALYSIS-SIGNAL-SPECS-INJECTION, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, COV1-CONTRACT-COVERAGE, I18N1-PARITY-GUARD, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery와 persistent partition/captured-date index다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, AN1-SIGNAL-PLUGIN-ENTRYPOINTS, AN2-LLM-CLASSIFIER-CARDINALITY, AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD, AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION, AN5-ANALYSIS-SIGNAL-SPECS-INJECTION, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, COV1-CONTRACT-COVERAGE, I18N1-PARITY-GUARD, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY는 다음 runtime hardening slice로 설계됐다. 남은 신규 아키텍처 부채는 generic provider RSS discovery와 persistent partition/captured-date index다.

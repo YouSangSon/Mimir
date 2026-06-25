@@ -20,6 +20,7 @@
 | [AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD](analysis/AN3_analysis_plugin_builtin_guard_tech_spec_2026_06_25.md) | `analysis.plugins`가 built-in signal id를 겨냥할 때 외부 plugin typo와 구분되는 warning을 고정 |
 | [AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION](analysis/AN4_analysis_engine_signal_isolation_tech_spec_2026_06_25.md) | Signal 평가 예외를 해당 signal/symbol에서만 skip하고 analysis run을 계속 진행 |
 | [AN5-ANALYSIS-SIGNAL-SPECS-INJECTION](analysis/AN5_analysis_signal_specs_injection_tech_spec_2026_06_25.md) | `build_signals(..., specs=...)`로 entry point 없이 외부 signal specs를 직접 주입 |
+| [AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY](analysis/AN6_analysis_signal_result_boundary_tech_spec_2026_06_25.md) | `Signal.evaluate()`가 잘못된 반환 타입을 내도 scoring 전에 log+skip |
 
 ## config
 
