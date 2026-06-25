@@ -1,7 +1,7 @@
 # 분석 시그널 & 스코어링 레퍼런스
 
 > **상태**: 현재 구현 기준
-> **최종 업데이트**: 2026-06-23
+> **최종 업데이트**: 2026-06-25
 > **대상 독자**: 리포트의 ⭐별점·방향·confidence가 어떻게 산출되는지 알고 싶은 운영자, 새 시그널을 추가하는 개발자
 > **관련**: 확장 방법은 [extensibility 가이드](../../architecture/extensibility/README.md), 설정은 [sources.md](../config/sources.md)
 
@@ -12,6 +12,8 @@
 ## 1. 한눈에 보기
 
 각 시그널은 `(symbol, market, as_of)`에 대해 `SignalResult | None`을 낸다. `SignalResult`는 `direction`(bullish/bearish/neutral), `strength`(0..1), `confidence`(0..1), `weight`(곱셈자, ≥0), `reason`을 담는다. `scorer.score()`가 한 symbol의 여러 `SignalResult`를 하나의 `InsightScore`(direction, ⭐stars 1..5, confidence, attention)로 합친다.
+
+Signal 평가 중 `Exception`이 발생하면 `AnalysisEngine`은 signal id, market/symbol과 traceback을 log에 남기고 해당 signal 결과만 생략한다. 같은 symbol의 다른 signal과 다음 symbol 평가는 계속된다. 모든 signal이 실패하거나 `None`이면 기존처럼 그 symbol의 insight는 생성하지 않는다.
 
 핵심 원칙: **별점은 *방향 확신*을 뜻한다.** 방향 없는 활동(공시·뉴스량)은 stars를 올리지 못하고 `attention`으로만 드러난다.
 

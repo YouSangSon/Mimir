@@ -42,6 +42,7 @@ BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
 TABLE_RE = re.compile(r"\|\s*\*\*(?:Tests|테스트|测试)\*\*\s*\|\s*(\d+) passing")
 COLLECTED_RE = re.compile(r"(?:(\d+) tests collected|collected (\d+) items)")
 LATEST_COMPLETED_IDS = (
+    "AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION",
     "AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD",
     "AN2-LLM-CLASSIFIER-CARDINALITY",
     "AN1-SIGNAL-PLUGIN-ENTRYPOINTS",
@@ -54,6 +55,10 @@ LATEST_COMPLETED_IDS = (
     "CFG2",
 )
 LATEST_COMPLETED_TECH_SPECS = {
+    "AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION": Path(
+        "docs/decisions/tech-spec/analysis/"
+        "AN4_analysis_engine_signal_isolation_tech_spec_2026_06_25.md"
+    ),
     "AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD": Path(
         "docs/decisions/tech-spec/analysis/"
         "AN3_analysis_plugin_builtin_guard_tech_spec_2026_06_25.md"

@@ -80,7 +80,7 @@ for sig in self._signals:
         logger.exception(
             "analysis signal '%s' failed for %s/%s; skipping",
             _signal_id(sig),
-            market.value,
+            key,
             symbol,
         )
         continue
@@ -88,7 +88,7 @@ for sig in self._signals:
         results.append(result)
 ```
 
-`logger.exception`은 traceback을 자동으로 남긴다. `market.value`는 log text를 `us/AAPL`, `kr/005930`처럼 사람이 읽기 쉽게 만든다.
+`logger.exception`은 traceback을 자동으로 남긴다. 기존 watchlist key를 쓰면 log text가 `us/AAPL`, `kr/005930`처럼 사람이 읽기 쉽고 설정 입력과도 맞는다.
 
 ## 테스트
 
@@ -115,5 +115,5 @@ RED는 현재 engine이 첫 예외에서 abort하므로 두 신규 테스트가 
 
 **버전**: v1.0
 **작성일**: 2026-06-25
-**상태**: Draft
+**상태**: Implemented
 **관련 문서**: [AN1 signal plugin entry points](AN1_signal_plugin_entrypoints_tech_spec_2026_06_23.md), [AN2 LLM classifier cardinality](AN2_LLM_classifier_cardinality_tech_spec_2026_06_23.md), [analysis scoring reference](../../../reference/analysis/scoring.md)

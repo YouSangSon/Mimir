@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import UTC, date, datetime
 
 from mimir.analysis.schema import Insight, to_record
@@ -10,6 +11,11 @@ from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.reader import DataReader
 
 MARKET_BY_KEY = {"us": Market.US, "kr": Market.KR}
+logger = logging.getLogger(__name__)
+
+
+def _signal_id(signal: Signal) -> str:
+    return getattr(signal, "id", signal.__class__.__name__)
 
 
 class AnalysisEngine:
@@ -31,7 +37,16 @@ class AnalysisEngine:
             for symbol in watchlist.get(key, []):
                 results = []
                 for sig in self._signals:
-                    result = sig.evaluate(symbol, market, as_of, self._reader)
+                    try:
+                        result = sig.evaluate(symbol, market, as_of, self._reader)
+                    except Exception:
+                        logger.exception(
+                            "analysis signal '%s' failed for %s/%s; skipping",
+                            _signal_id(sig),
+                            key,
+                            symbol,
+                        )
+                        continue
                     if result is not None:
                         results.append(result)
                 if not results:
