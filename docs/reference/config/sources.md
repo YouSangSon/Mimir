@@ -152,6 +152,8 @@ analysis:
 
 `analysis.plugins`는 외부 analysis signal plugin 전용 namespace다. Built-in signal은 이 namespace를 읽지 않는다. Built-in 설정은 각 signal의 문서화된 key를 사용한다: `news_volume`은 `analysis.news`, `macro_regime`은 `analysis.macro_regime`, LLM 감성 signal은 top-level `llm_sentiment_enabled`를 사용한다.
 
+테스트나 임베디드 호출자는 `build_signals(..., specs=(SignalSpec(...),))`로 외부 plugin specs를 직접 주입할 수 있다. 이 경우 entry point discovery는 건너뛰지만, 주입된 spec도 `analysis.plugins.<signal_id>` 설정이 있어야 build된다. `specs`는 built-in replacement가 아니라 외부 plugin spec 목록이다.
+
 | 필드 | 의미 |
 |---|---|
 | `analysis.plugins` | 외부 analysis signal plugin 전용 namespace |

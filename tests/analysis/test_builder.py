@@ -279,6 +279,79 @@ def test_build_signals_includes_configured_plugin_signals_after_builtins(monkeyp
     ]
 
 
+def test_build_signals_accepts_injected_plugin_specs_after_builtins(monkeypatch):
+    def fail_entry_points(*args, **kwargs):
+        raise AssertionError("entry points should not be read when specs are injected")
+
+    monkeypatch.setattr(
+        "mimir.analysis.builder.importlib.metadata.entry_points",
+        fail_entry_points,
+    )
+    spec = SignalSpec("plugin_quality", lambda settings, cfg: _FakeSignal())
+    cfg = SourcesConfig(analysis_plugin_settings={"plugin_quality": {"enabled": True}})
+
+    signals = build_signals(cfg, specs=(spec,))
+
+    assert [signal.id for signal in signals] == [
+        "filing_event",
+        "news_volume",
+        "price_momentum",
+        "macro_regime",
+        "plugin_quality",
+    ]
+
+
+def test_build_signals_with_injected_specs_does_not_read_entry_points(monkeypatch):
+    def fail_entry_points(*args, **kwargs):
+        raise AssertionError("entry points should not be read when specs are injected")
+
+    monkeypatch.setattr(
+        "mimir.analysis.builder.importlib.metadata.entry_points",
+        fail_entry_points,
+    )
+    spec = SignalSpec("plugin_quality", lambda settings, cfg: _FakeSignal())
+    cfg = SourcesConfig(analysis_plugin_settings={"plugin_quality": {"enabled": True}})
+
+    signals = build_signals(cfg, specs=(spec,))
+
+    assert "plugin_quality" in _ids(signals)
+
+
+def test_build_signals_injected_specs_still_require_analysis_plugin_config(monkeypatch):
+    def fail_entry_points(*args, **kwargs):
+        raise AssertionError("entry points should not be read when specs are injected")
+
+    monkeypatch.setattr(
+        "mimir.analysis.builder.importlib.metadata.entry_points",
+        fail_entry_points,
+    )
+    spec = SignalSpec("plugin_quality", lambda settings, cfg: _FakeSignal())
+
+    signals = build_signals(specs=(spec,))
+
+    assert _ids(signals) == BASE_SIGNAL_IDS
+
+
+def test_build_signals_injected_duplicate_builtin_signal_id_raises():
+    spec = SignalSpec("news_volume", lambda settings, cfg: _FakeSignal())
+    cfg = SourcesConfig(analysis_plugin_settings={"news_volume": {}})
+
+    with pytest.raises(ValueError, match="duplicate signal id"):
+        build_signals(cfg, specs=(spec,))
+
+
+def test_build_signals_empty_injected_specs_warns_for_unmatched_plugin_config(caplog):
+    cfg = SourcesConfig(analysis_plugin_settings={"missing_signal": {"enabled": True}})
+
+    with caplog.at_level(logging.WARNING):
+        signals = build_signals(cfg, specs=())
+
+    assert _ids(signals) == BASE_SIGNAL_IDS
+    assert "analysis plugin config 'missing_signal' has no matching signal spec" in " ".join(
+        r.message for r in caplog.records
+    )
+
+
 def test_entry_point_duplicate_builtin_signal_id_raises_value_error(monkeypatch):
     spec = SignalSpec("news_volume", lambda settings, cfg: _FakeSignal())
     _patch_signal_entry_points(monkeypatch, [_FakeEntryPoint("news_volume", spec)])

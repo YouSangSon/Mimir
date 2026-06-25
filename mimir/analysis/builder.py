@@ -208,6 +208,7 @@ def build_signals(
     settings: Settings | None = None,
     *,
     classifier: HeadlineClassifier | None = None,
+    specs: Sequence[SignalSpec] | None = None,
 ) -> list[Signal]:
     """Build the analysis signal set.
 
@@ -226,8 +227,11 @@ def build_signals(
         build_unconfigured=True,
         warn_unmatched=False,
     )
-    if cfg.analysis_plugin_settings:
-        plugin_specs = _load_entry_point_signal_specs()
+    if specs is None:
+        plugin_specs = _load_entry_point_signal_specs() if cfg.analysis_plugin_settings else ()
+    else:
+        plugin_specs = tuple(specs)
+    if cfg.analysis_plugin_settings or plugin_specs:
         _validate_unique_signal_ids((*BUILTIN_SIGNAL_SPECS, *plugin_specs))
         signals.extend(_build_signals_from_specs(settings, cfg, plugin_specs))
     if _llm_sentiment_enabled(cfg, settings, classifier):

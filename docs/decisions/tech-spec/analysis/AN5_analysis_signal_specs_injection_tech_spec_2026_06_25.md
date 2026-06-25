@@ -127,5 +127,5 @@ GREEN은 public builder API가 private helper 없이 동일한 plugin opt-in sem
 
 **버전**: v1.0
 **작성일**: 2026-06-25
-**상태**: Draft
+**상태**: Implemented
 **관련 문서**: [AN1 signal plugin entry points](AN1_signal_plugin_entrypoints_tech_spec_2026_06_23.md), [AN3 analysis plugin built-in guard](AN3_analysis_plugin_builtin_guard_tech_spec_2026_06_25.md), [extensibility guide](../../../architecture/extensibility/README.md)
