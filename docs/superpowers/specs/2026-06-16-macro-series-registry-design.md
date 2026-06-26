@@ -2,7 +2,7 @@
 
 > **스펙 ID**: A2
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`mimir/core/macro_series.py` + `analysis.macro_regime.rate_series`). 현재 364 테스트 · ruff · mypy · coverage gate 클린.
+> **상태**: ✅ 구현 완료 (`mimir/core/macro_series.py` + `analysis.macro_regime.rate_series`). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [설정 기반 소스 확장성](2026-06-13-config-driven-extensibility-design.md) · [데이터 닥터](2026-06-13-data-doctor-design.md) · [확장성 카탈로그](../../architecture/improvement-catalog.md)
 
 ---
@@ -199,3 +199,5 @@ flowchart TD
 A2는 macro series metadata만 다뤘다. 새 소스를 추가할 때 `mimir/core/builder.py`에 분기를 추가해야 하는 문제는 이 증분 밖으로 분리했다.
 
 이 남은 문제는 A3에서 `BUILTIN_SOURCE_SPECS`와 `SourceSpec`으로 구현 완료됐다. Python entry-point 기반 외부 source plugin은 이후 A3b에서 `mimir.sources` entry point로 구현됐다.
+
+현재 구현에서는 A2의 registry가 `DEFAULT_MACRO_RATE_SERIES`, `default_fred_series()`, `default_ecos_series_specs()`, `default_macro_rate_series()`, `macro_series_cadences()`를 제공한다. A3는 `BUILTIN_SOURCE_SPECS`와 `SourceSpec`으로 built-in source 생성을 정리했고, A3b는 `mimir.sources` entry point로 외부 source plugin을 붙였다. 따라서 이 문서는 A2의 registry 경계를 설명하고, source construction/plugin 확장은 후속 A3/A3b 문서가 담당한다.

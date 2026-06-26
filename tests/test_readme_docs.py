@@ -32,6 +32,15 @@ TYPED_PAYLOAD_SPEC = Path(
 DATA_DOCTOR_SPEC = Path(
     "docs/superpowers/specs/2026-06-13-data-doctor-design.md"
 )
+MACRO_SERIES_REGISTRY_SPEC = Path(
+    "docs/superpowers/specs/2026-06-16-macro-series-registry-design.md"
+)
+DECLARATIVE_SOURCE_REGISTRATION_SPEC = Path(
+    "docs/superpowers/specs/2026-06-16-declarative-source-registration-design.md"
+)
+SOURCE_ENTRY_POINTS_SPEC = Path(
+    "docs/superpowers/specs/2026-06-16-source-entry-points-design.md"
+)
 R1I_SEC_CIK_TECH_SPEC = Path(
     "docs/decisions/tech-spec/sources/"
     "R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md"
@@ -432,6 +441,63 @@ def test_foundation_design_specs_match_current_completion_state() -> None:
     assert "render_doctor_html" in inc3
     assert "dashboard" in inc3
     assert "doctor --strict" in inc3
+
+
+def test_source_extensibility_design_specs_match_current_completion_state() -> None:
+    specs = {
+        MACRO_SERIES_REGISTRY_SPEC: (
+            "## 8. 수용 기준",
+            ("현재 364 테스트", "coverage gate 클린"),
+        ),
+        DECLARATIVE_SOURCE_REGISTRATION_SPEC: (
+            "## 8. 수용 기준",
+            ("현재 364 테스트", "coverage gate 클린"),
+        ),
+        SOURCE_ENTRY_POINTS_SPEC: (
+            "## 6. 수용 기준",
+            ("397 테스트", "coverage gate 클린"),
+        ),
+    }
+
+    texts = {path: path.read_text(encoding="utf-8") for path in specs}
+
+    for path, (acceptance_heading, stale_phrases) in specs.items():
+        text = texts[path]
+        status = _status_line(text)
+        acceptance = _markdown_section(text, acceptance_heading)
+
+        assert "구현 완료" in status
+        assert "최신 검증은 README 테스트 배지와 docs health guard가 추적" in status
+        assert "- [ ]" not in acceptance, f"{path} still has unchecked acceptance"
+        for phrase in stale_phrases:
+            assert phrase not in text, f"{path} still says: {phrase}"
+
+    a2 = texts[MACRO_SERIES_REGISTRY_SPEC]
+    assert "`mimir/core/macro_series.py`" in a2
+    assert "`DEFAULT_MACRO_RATE_SERIES`" in a2
+    assert "`default_fred_series()`" in a2
+    assert "`default_ecos_series_specs()`" in a2
+    assert "`macro_series_cadences()`" in a2
+    assert "`analysis.macro_regime.rate_series`" in a2
+    assert "A3" in a2
+    assert "A3b" in a2
+
+    a3 = texts[DECLARATIVE_SOURCE_REGISTRATION_SPEC]
+    assert "`SourceSpec`" in a3
+    assert "`BUILTIN_SOURCE_SPECS`" in a3
+    assert "`required_secret_attr`" in a3
+    assert "`required_module`" in a3
+    assert "`meta`" in a3
+    assert "`sources.plugins.<source_id>`" in a3
+    assert "doctor expected coverage" in a3
+
+    a3b = texts[SOURCE_ENTRY_POINTS_SPEC]
+    assert "`SOURCE_ENTRY_POINT_GROUP = \"mimir.sources\"`" in a3b
+    assert "`_load_entry_point_source_specs()`" in a3b
+    assert "`load_source_specs()`" in a3b
+    assert "`build_sources(..., specs=...)`" in a3b
+    assert "`sources.plugins.<source_id>`" in a3b
+    assert "sandbox" in a3b.lower()
 
 
 def test_scoring_reference_documents_news_volume_confidence() -> None:
