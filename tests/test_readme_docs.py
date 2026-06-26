@@ -80,6 +80,18 @@ PLUGIN_SETTINGS_NAMESPACE_SPEC = Path(
 SEC_RSS_TICKER_INPUT_SPEC = Path(
     "docs/superpowers/specs/2026-06-18-sec-rss-ticker-input-design.md"
 )
+DOCTOR_HTML_REPORT_SPEC = Path(
+    "docs/superpowers/specs/2026-06-18-doctor-html-report-design.md"
+)
+SEC_EDGAR_RSS_PROVIDER_SPEC = Path(
+    "docs/superpowers/specs/2026-06-17-sec-edgar-rss-provider-design.md"
+)
+SEC_STRUCTURED_RSS_CATALOG_SPEC = Path(
+    "docs/superpowers/specs/2026-06-18-sec-structured-rss-catalog-design.md"
+)
+SCHEDULED_DASHBOARD_PUBLICATION_SPEC = Path(
+    "docs/superpowers/specs/2026-06-17-scheduled-dashboard-publication-design.md"
+)
 R1I_SEC_CIK_TECH_SPEC = Path(
     "docs/decisions/tech-spec/sources/"
     "R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md"
@@ -819,6 +831,108 @@ def test_ops_config_design_specs_match_current_completion_state() -> None:
                 "`duplicate RSS feed`",
                 "네트워크를 호출하지 않는다",
                 "`ticker_cik_map_refresh`",
+            ),
+        ),
+    }
+
+    texts = {path: path.read_text(encoding="utf-8") for path in specs}
+
+    for path, (acceptance_heading, stale_phrases, required_phrases) in specs.items():
+        text = texts[path]
+        status = _status_line(text)
+        acceptance = _markdown_section(text, acceptance_heading)
+
+        assert "구현 완료" in status
+        assert "최신 검증은 README 테스트 배지와 docs health guard가 추적" in status
+        assert "- [ ]" not in acceptance, f"{path} still has unchecked acceptance"
+        for phrase in stale_phrases:
+            assert phrase not in text, f"{path} still says: {phrase}"
+        for phrase in required_phrases:
+            assert phrase in text, f"{path} missing current truth: {phrase}"
+
+
+def test_ops_rss_visibility_design_specs_match_current_completion_state() -> None:
+    specs = {
+        DOCTOR_HTML_REPORT_SPEC: (
+            "## 6. 수용 기준",
+            ("coverage gate", "diff-check가 통과한다"),
+            (
+                "`mimir/report/doctor_html.py`",
+                "`render_doctor_html()`",
+                "`mimir doctor --html <path>`",
+                "`--lang en|ko|zh`",
+                "`Finding.scope`",
+                "`Finding.message`",
+                "`Finding.severity`",
+                "`doctor_cli.main()`",
+            ),
+        ),
+        SEC_EDGAR_RSS_PROVIDER_SPEC: (
+            "## 10. 수용 기준",
+            (
+                "uv run pytest tests/sources/test_rss_catalog.py "
+                "tests/sources/test_config.py tests/sources/test_rss.py "
+                "tests/core/test_builder.py -q",
+                "uv run ruff check .",
+                "uv run mypy mimir",
+                "uv run pytest -q",
+            ),
+            (
+                "`SecCompanyFilingFeed`",
+                "`sources.rss.sec.company_filings`",
+                "`resolve_sec_company_filing_feeds()`",
+                "`resolve_rss_feeds()`",
+                "`RssSource(user_agent=settings.sec_user_agent)`",
+                "`MIMIR_SEC_USER_AGENT`",
+                "`User-Agent`",
+                "`browse-edgar`",
+                "`duplicate RSS feed`",
+                "네트워크를 호출하지 않는다",
+            ),
+        ),
+        SEC_STRUCTURED_RSS_CATALOG_SPEC: (
+            "## 9. 수용 기준",
+            (
+                "uv run pytest tests/sources/test_rss_catalog.py "
+                "tests/sources/test_config.py -q",
+                "uv run ruff check .",
+                "uv run mypy mimir",
+                "uv run pytest -q",
+                "git diff --check",
+            ),
+            (
+                "`RSS_CATALOG`",
+                "`RssCatalogSelection`",
+                "`resolve_rss_catalogs()`",
+                "`resolve_rss_feeds()`",
+                "`sec_structured_usgaap`",
+                "`sec_structured_risk_return`",
+                "`sec_structured_inline_xbrl`",
+                "`sec_structured_all_xbrl`",
+                "broad SEC/XBRL feed",
+                "symbol-specific feed가 아니다",
+                "네트워크를 호출하지 않는다",
+            ),
+        ),
+        SCHEDULED_DASHBOARD_PUBLICATION_SPEC: (
+            "## 7. 수용 기준",
+            (
+                "uv run pytest tests/test_workflows.py -q",
+                "uv run ruff check .",
+                "uv run mypy mimir",
+                "uv run pytest -q",
+            ),
+            (
+                "`PIPELINE_WORKFLOW`",
+                "`test_reusable_pipeline_publishes_dashboard_before_commit()`",
+                "`test_reusable_pipeline_does_not_add_doctor_hard_gate()`",
+                "`Run dashboard`",
+                "`python -m mimir.dashboard --data-root data --reports-root reports`",
+                "`Run pipeline`",
+                "`Commit data + reports`",
+                "`mimir.doctor`",
+                "`--strict`",
+                "publish-first",
             ),
         ),
     }

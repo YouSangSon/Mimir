@@ -1,7 +1,7 @@
 # R1f-SEC. SEC EDGAR RSS Provider — 설계
 
 > **스펙 ID**: R1f-SEC
-> **상태**: 구현 완료
+> **상태**: ✅ 구현 완료 (`SecCompanyFilingFeed` + SEC Company Search Atom resolver). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **작성일**: 2026-06-17
 > **선행**: [정적 RSS feed catalog](2026-06-17-rss-feed-catalog-design.md) · [발전 카탈로그](../../architecture/improvement-catalog.md) · [개선 백로그](../../IMPROVEMENTS.md)
 
@@ -108,6 +108,8 @@ flowchart TD
   E --> F[RssSource.fetch]
 ```
 
+현재 model은 `SecCompanyFilingFeed`이며 설정 경로는 `sources.rss.sec.company_filings`다. Resolver는 `resolve_sec_company_filing_feeds()`를 통해 SEC company filing entries를 `RssFeed` 목록으로 확장하고, 최종 조립은 `resolve_rss_feeds()`가 catalog/manual feed와 같은 중복 정책으로 처리한다.
+
 새 모델은 `mimir/sources/rss_catalog.py`에 둔다. R1e의 catalog resolver가 이미 RSS feed 확장을 소유하므로, SEC provider resolver도 같은 모듈 안에서 관리한다. 별도 source를 만들지 않는 이유는 결과가 여전히 RSS feed 목록이고, fetch 정책은 기존 `RssSource`가 담당하기 때문이다.
 
 ---
@@ -134,7 +136,9 @@ SEC 요청은 기존 `RssSource.fetch()`에서만 발생한다. R1f-SEC는 설�
 
 SEC fair-access 정책 때문에 사용자는 `MIMIR_SEC_USER_AGENT`에 contact email을 포함해야 한다. 이 요구는 기존 `SecEdgarSource`에도 이미 있다. R1f-SEC는 같은 SEC 도메인을 쓰므로 config reference에서 User-Agent 책임을 다시 설명한다.
 
-구현은 `RssSource(user_agent=settings.sec_user_agent)` 형태로 builder를 배선한다. 테스트는 SEC RSS fetch 요청에 `User-Agent` header가 실제로 붙는지 검증한다.
+Fetch 시점의 SEC RSS 요청은 `RssSource(user_agent=settings.sec_user_agent)`가 담당하며, `MIMIR_SEC_USER_AGENT` 값이 `User-Agent` header로 전달된다.
+
+테스트는 SEC RSS fetch 요청에 `User-Agent` header가 실제로 붙는지 검증한다.
 
 ---
 
@@ -164,8 +168,7 @@ README 3개 언어는 이번 증분에서 수정하지 않는다. 사용자 quic
 - [x] 파싱과 resolver는 네트워크를 호출하지 않는다.
 - [x] `RssSource.fetch()`가 builder에서 받은 `MIMIR_SEC_USER_AGENT` 값을 `User-Agent` header로 보낸다.
 - [x] Config reference, extensibility docs, improvement catalog, backlog가 새 경계와 보류 범위를 설명한다.
-- [x] `uv run pytest tests/sources/test_rss_catalog.py tests/sources/test_config.py tests/sources/test_rss.py tests/core/test_builder.py -q`가 통과한다.
-- [x] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

@@ -2,7 +2,7 @@
 
 > **스펙 ID**: DCHTML
 > **작성일**: 2026-06-18
-> **상태**: 구현 완료 · 검증 완료
+> **상태**: ✅ 구현 완료 (`mimir doctor --html` + `render_doctor_html()` standalone report). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [데이터 닥터 설계](2026-06-13-data-doctor-design.md) · [발전 카탈로그](../../architecture/improvement-catalog.md)
 
 ---
@@ -63,16 +63,7 @@ Text 출력은 터미널에서 빠르게 보기 좋다. JSON 출력은 자동화
 
 ### 4.1 독립 renderer를 둔다
 
-새 파일 `mimir/report/doctor_html.py`를 추가한다.
-
-```python
-def render_doctor_html(
-    report: DoctorReport,
-    out_path: Path,
-    lang: str = DEFAULT_LANG,
-) -> None:
-    ...
-```
+현재 구현 파일은 `mimir/report/doctor_html.py`이고 공개 renderer는 `render_doctor_html()`이다. `doctor_cli.main()`은 `--html`이 있을 때 같은 `DoctorReport`를 이 renderer에 넘긴다.
 
 이 함수는 `render_status_html()`처럼 parent directory를 만들고 파일을 덮어쓴다. 입력은 이미 계산된 `DoctorReport`다. 파일을 쓰는 것 외에는 데이터 저장소나 네트워크에 접근하지 않는다.
 
@@ -118,12 +109,7 @@ Severity 값은 `Finding.severity`의 raw value를 그대로 보여주지 않고
 
 ### 4.4 CLI 계약
 
-`mimir doctor`에 두 옵션을 추가한다.
-
-```text
---html PATH
---lang {en,ko,zh}
-```
+현재 CLI 계약은 `mimir doctor --html <path>`와 `--lang en|ko|zh`다.
 
 `--html`이 없으면 기존 동작과 같다. `--html`이 있으면 stdout은 기존 `--format`에 따라 그대로 출력하고, 같은 report를 HTML 파일로도 쓴다.
 
@@ -166,7 +152,7 @@ RED 단계에서는 `mimir.report.doctor_html` import가 실패하고, CLI parse
 - [x] HTML은 `Finding.scope`, `Finding.message`, dataset, severity 표시를 escape한다.
 - [x] `Finding.message` 본문은 번역하지 않고 사실 문자열로 유지한다.
 - [x] README 3종과 C1/DCHTML 문서가 CLI 계약을 설명한다.
-- [x] ruff, mypy, pytest, coverage gate, diff-check가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 
