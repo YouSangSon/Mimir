@@ -792,7 +792,15 @@ def test_ops_config_design_specs_match_current_completion_state() -> None:
         ),
         SEC_RSS_TICKER_INPUT_SPEC: (
             "## 8. 수용 기준",
-            ("478 tests", "diff check 통과"),
+            (
+                "478 tests",
+                "diff check 통과",
+                "uv run pytest tests/sources/test_rss_catalog.py "
+                "tests/sources/test_config.py tests/core/test_builder.py -q",
+                "uv run ruff check .",
+                "uv run mypy mimir",
+                "uv run pytest -q",
+            ),
             (
                 "`SecCompanyFilingFeed`",
                 "`ticker`",

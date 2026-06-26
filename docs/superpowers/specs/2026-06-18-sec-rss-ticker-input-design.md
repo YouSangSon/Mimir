@@ -1,6 +1,6 @@
 # R1h-SEC-TICKER. SEC RSS Ticker Input Design
 
-> **상태**: ✅ 구현 완료. 최신 검증은 README 테스트 배지와 docs health guard가 추적한다. ruff · mypy 검증 완료.
+> **상태**: ✅ 구현 완료 (`SecCompanyFilingFeed.ticker` + SEC Company Search Atom URL expansion). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **작성일**: 2026-06-18
 > **범위**: `sources.rss.sec.company_filings`에서 CIK 대신 ticker token을 입력할 수 있게 한다. 별도 SEC ticker map 다운로드, resolver-time network lookup, watchlist-wide feed generation은 제외한다.
 
@@ -41,6 +41,8 @@ curl -fsSL -A 'Mimir research contact@example.com' \
 - `forms`, `count`, `owner`, `symbol`, duplicate `(url, symbol)` 정책은 기존과 동일하게 유지한다.
 - Resolver는 네트워크를 호출하지 않는다.
 - Config reference와 architecture docs는 `ticker`가 convenience input이며 CIK 직접 지정이 더 deterministic한 path임을 설명한다.
+
+R1i/R1j follow-up note: `ticker_cik_map_refresh`와 local SEC mapping file cache path는 off-by-default로 추가되었지만, `resolve_sec_company_filing_feeds()`와 `resolve_rss_feeds()`의 no-network resolver boundary는 그대로 유지된다. 이번 spec의 현재-truth는 `ticker_cik_map_refresh`를 입력 계약 밖으로 두는 것이다.
 
 ---
 
@@ -126,8 +128,7 @@ CIK input은 기존 zero-padded URL을 그대로 만든다.
 - [x] duplicate `(url, symbol)` 검증은 ticker-generated feed에도 적용된다.
 - [x] Config parser와 builder tests가 새 계약을 검증한다.
 - [x] User docs와 architecture docs가 no-network boundary와 남은 deferred 범위를 설명한다.
-- [x] `uv run pytest tests/sources/test_rss_catalog.py tests/sources/test_config.py tests/core/test_builder.py -q`가 통과한다.
-- [x] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 
