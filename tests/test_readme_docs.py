@@ -41,6 +41,15 @@ DECLARATIVE_SOURCE_REGISTRATION_SPEC = Path(
 SOURCE_ENTRY_POINTS_SPEC = Path(
     "docs/superpowers/specs/2026-06-16-source-entry-points-design.md"
 )
+MACRO_REVISION_POLICY_SPEC = Path(
+    "docs/superpowers/specs/2026-06-16-macro-revision-policy-design.md"
+)
+BACKFILL_MANIFEST_SPEC = Path(
+    "docs/superpowers/specs/2026-06-16-backfill-manifest-design.md"
+)
+BACKFILL_PREFLIGHT_MANIFEST_SPEC = Path(
+    "docs/superpowers/specs/2026-06-18-backfill-preflight-manifest-design.md"
+)
 R1I_SEC_CIK_TECH_SPEC = Path(
     "docs/decisions/tech-spec/sources/"
     "R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md"
@@ -498,6 +507,70 @@ def test_source_extensibility_design_specs_match_current_completion_state() -> N
     assert "`build_sources(..., specs=...)`" in a3b
     assert "`sources.plugins.<source_id>`" in a3b
     assert "sandbox" in a3b.lower()
+
+
+def test_storage_backfill_design_specs_match_current_completion_state() -> None:
+    specs = {
+        MACRO_REVISION_POLICY_SPEC: (
+            "## 7. 수용 기준",
+            ("407 테스트", "coverage gate 클린"),
+        ),
+        BACKFILL_MANIFEST_SPEC: (
+            "## 6. 수용 기준",
+            (
+                "368 테스트",
+                "coverage gate 클린",
+                "secret/package gate 때문에 사용할 수 없는 경우에는 현재처럼",
+            ),
+        ),
+        BACKFILL_PREFLIGHT_MANIFEST_SPEC: (
+            "## 6. 수용 기준",
+            ("499 테스트", "coverage gate 클린"),
+        ),
+    }
+
+    texts = {path: path.read_text(encoding="utf-8") for path in specs}
+
+    for path, (acceptance_heading, stale_phrases) in specs.items():
+        text = texts[path]
+        status = _status_line(text)
+        acceptance = _markdown_section(text, acceptance_heading)
+
+        assert "구현 완료" in status
+        assert "최신 검증은 README 테스트 배지와 docs health guard가 추적" in status
+        assert "- [ ]" not in acceptance, f"{path} still has unchecked acceptance"
+        for phrase in stale_phrases:
+            assert phrase not in text, f"{path} still says: {phrase}"
+
+    macro = texts[MACRO_REVISION_POLICY_SPEC]
+    assert "`append_overwrite_enabled(dataset)`" in macro
+    assert "`OVERWRITE_ON_APPEND_DATASETS`" in macro
+    assert "`Dataset.MACRO`" in macro
+    assert "`JsonlStore.append(overwrite=True)`" in macro
+    assert "`_same_stored_record()`" in macro
+    assert "`captured_at`" in macro
+    assert "first-write-wins" in macro
+    assert "last-write-wins" in macro
+
+    manifest = texts[BACKFILL_MANIFEST_SPEC]
+    assert "`Manifest(root=data_root)`" in manifest
+    assert "`SourceResult`" in manifest
+    assert "`_write_failure_manifest()`" in manifest
+    assert "`append_overwrite_enabled(source.meta.dataset)`" in manifest
+    assert "BF-PREFLIGHT" in manifest
+    assert "registered-unavailable" in manifest
+    assert "unknown source id" in manifest
+
+    preflight = texts[BACKFILL_PREFLIGHT_MANIFEST_SPEC]
+    assert "`SourceSpec(meta=...)`" in preflight
+    assert "`load_source_specs()`" in preflight
+    assert "`build_sources(settings, runtime.source_config, specs=specs)`" in preflight
+    assert "`_preflight_unavailable_error()`" in preflight
+    assert "`_write_failure_manifest()`" in preflight
+    assert "`STOOQ_API_KEY is not set`" in preflight
+    assert "`package not installed (pip install -e '.[kr]')`" in preflight
+    assert "unknown source id" in preflight
+    assert "manifest 없이 argument error" in preflight
 
 
 def test_scoring_reference_documents_news_volume_confidence() -> None:

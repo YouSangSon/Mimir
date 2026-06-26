@@ -2,7 +2,7 @@
 
 > **스펙 ID**: BF-PREFLIGHT
 > **작성일**: 2026-06-18
-> **상태**: ✅ 구현 완료 (`backfill` registered-unavailable preflight failure manifest). 499 테스트 · ruff · mypy · coverage gate 클린.
+> **상태**: ✅ 구현 완료 (`backfill` registered-unavailable preflight failure manifest). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [Backfill Manifest Recording](2026-06-16-backfill-manifest-design.md) · [개선 백로그](../../IMPROVEMENTS.md) · [발전 카탈로그](../../architecture/improvement-catalog.md)
 
 ---
@@ -120,8 +120,11 @@ def build_sources(
 ```python
 manifest = Manifest(root=data_root)
 specs = load_source_specs()
-sources = {s.meta.id: s for s in build_sources(settings, config, specs=specs)}
+built_sources = build_sources(settings, runtime.source_config, specs=specs)
+sources = {s.meta.id: s for s in built_sources}
 ```
+
+현재 호출 형태는 `load_source_specs()`로 spec 목록을 가져온 뒤 `build_sources(settings, runtime.source_config, specs=specs)`에 같은 목록을 넘기는 구조다.
 
 source id가 build 결과에 없으면 `spec.meta`를 찾는다.
 
@@ -130,6 +133,8 @@ source id가 build 결과에 없으면 `spec.meta`를 찾는다.
 - `fetched`, `stored`, `invalid`는 0을 유지한다.
 - manifest write가 실패하면 warning만 남기고 원래 `SystemExit`를 다시 올린다.
 - meta가 없으면 기존처럼 manifest 없이 `SystemExit`만 올린다.
+
+현재 구현은 `_source_spec_for_id()`로 requested id의 `SourceSpec`를 찾고, `_preflight_unavailable_error()`로 비밀값 없는 원인을 만든 뒤 `_write_failure_manifest()`를 호출한다. 이 경로는 `SourceSpec(meta=...)`가 있는 registered source에서만 manifest를 쓴다. `SourceSpec.meta`가 없는 plugin이나 진짜 unknown source id는 신뢰 가능한 cadence가 없으므로 manifest 없이 argument error로 남는다.
 
 ### 4.4 실패 기록 helper를 공유한다
 
@@ -205,3 +210,5 @@ RED 단계에서는 첫 테스트가 실패해야 한다. 현재 구현은 sourc
 ## 7. 남는 한계
 
 plugin source가 `SourceSpec(meta=...)`를 제공하지 않으면 preflight failure manifest를 쓸 수 없다. 이 경우에는 기존처럼 `SystemExit`만 남는다. 임의 cadence를 넣는 것보다 이 제한을 명시하는 편이 manifest 신뢰성을 지킨다.
+
+이 제한은 현재 구현에서도 유지된다. 즉, unknown source id와 `SourceSpec(meta=...)`가 없는 plugin unavailable은 manifest 없이 argument error로 남는다.
