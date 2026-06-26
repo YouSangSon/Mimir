@@ -59,6 +59,15 @@ SYMBOL_TAGGED_RSS_FEEDS_SPEC = Path(
 RSS_FEED_CATALOG_SPEC = Path(
     "docs/superpowers/specs/2026-06-17-rss-feed-catalog-design.md"
 )
+CLI_ENTRYPOINTS_SPEC = Path(
+    "docs/superpowers/specs/2026-06-18-cli-entrypoints-design.md"
+)
+DOTENV_CLI_AUTOLOAD_SPEC = Path(
+    "docs/superpowers/specs/2026-06-18-dotenv-cli-autoload-design.md"
+)
+SOURCES_CONFIG_CLI_VALIDATION_SPEC = Path(
+    "docs/superpowers/specs/2026-06-18-sources-config-cli-validation-design.md"
+)
 R1I_SEC_CIK_TECH_SPEC = Path(
     "docs/decisions/tech-spec/sources/"
     "R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md"
@@ -651,6 +660,74 @@ def test_news_rss_design_specs_match_current_completion_state() -> None:
     assert "네트워크를 호출하지 않는다" in catalog
     assert "HTML scraping" in catalog
     assert "vendor URL" in catalog
+
+
+def test_cli_config_design_specs_match_current_completion_state() -> None:
+    specs = {
+        CLI_ENTRYPOINTS_SPEC: (
+            "## 8. 수용 기준",
+            ("484 tests", "97% coverage", "coverage gate"),
+            (
+                "`mimir/cli.py`",
+                "`COMMANDS`",
+                "`_help_text()`",
+                "`mimir <command>`",
+                "`[project.scripts]`",
+                '`mimir = "mimir.cli:main"`',
+                '`mimir.doctor = "mimir.doctor.doctor_cli:main"`',
+                "`mimir.collect`",
+                "`python -m mimir.collect`",
+                "`[mimir] unknown command:`",
+            ),
+        ),
+        DOTENV_CLI_AUTOLOAD_SPEC: (
+            "## 8. 수용 기준",
+            ("492 tests", "98% coverage", "coverage gate"),
+            (
+                "`Settings.from_env(env=None)`",
+                "`load_dotenv(find_dotenv(usecwd=True), override=False)`",
+                "`env={...}`",
+                "`override=False`",
+                "`run_collect`",
+                "`run_pipeline`",
+                "`run_deliver`",
+                "`run_backfill`",
+                "`Settings.from_env(env)`",
+            ),
+        ),
+        SOURCES_CONFIG_CLI_VALIDATION_SPEC: (
+            "## 8. 수용 기준",
+            ("495 tests", "98% coverage", "coverage gate"),
+            (
+                "`load_validated_sources_config()`",
+                "`parse_runtime_sources_config()`",
+                "`RuntimeSourcesConfig`",
+                "`_resolve_sources_config_paths()`",
+                "`report_invalid_sources()`",
+                "`[mimir] invalid sources.yaml:`",
+                "`SourcesConfigError`",
+                "`collect`, `run`, `backfill`, `analyze`, `deliver`, `dashboard`, `doctor`",
+                "`history`는 `sources.yaml`을 읽지 않는다",
+                "`doctor_cli.main()`",
+                "HTML 파일을 쓰기 전",
+            ),
+        ),
+    }
+
+    texts = {path: path.read_text(encoding="utf-8") for path in specs}
+
+    for path, (acceptance_heading, stale_phrases, required_phrases) in specs.items():
+        text = texts[path]
+        status = _status_line(text)
+        acceptance = _markdown_section(text, acceptance_heading)
+
+        assert "구현 완료" in status
+        assert "최신 검증은 README 테스트 배지와 docs health guard가 추적" in status
+        assert "- [ ]" not in acceptance, f"{path} still has unchecked acceptance"
+        for phrase in stale_phrases:
+            assert phrase not in text, f"{path} still says: {phrase}"
+        for phrase in required_phrases:
+            assert phrase in text, f"{path} missing current truth: {phrase}"
 
 
 def test_scoring_reference_documents_news_volume_confidence() -> None:

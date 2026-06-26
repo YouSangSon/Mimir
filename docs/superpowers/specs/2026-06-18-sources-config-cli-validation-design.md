@@ -1,6 +1,6 @@
 # Sources Config CLI Validation Design
 
-> **상태**: 구현 완료. 495 tests · 98% coverage · ruff · mypy · diff-check 통과.
+> **상태**: ✅ 구현 완료 (`load_validated_sources_config()` + CLI-friendly `sources.yaml` validation). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **작성일**: 2026-06-18
 > **범위**: `sources.yaml`을 읽는 CLI가 잘못된 설정을 같은 형식으로 보고하게 한다. 라이브러리 함수가 내부 pydantic 오류를 그대로 드러내는 기존 디버깅 경로는 유지한다.
 
@@ -67,11 +67,15 @@ mimir dashboard --config-dir config
 
 ## 5. 구현 설계
 
-`mimir.config`에 CLI용 검증 helper를 둔다.
+`mimir.config`에 CLI용 검증 helper가 있다.
 
-- `load_validated_sources_config(config_dir) -> tuple[dict[str, Any], SourcesConfig]`
+- `load_validated_sources_config(config_dir) -> RuntimeSourcesConfig`
 - helper는 `load_sources_config(config_dir)`로 raw dict를 읽고, `parse_sources_config(raw)`로 검증한다.
-- `ValidationError`는 helper에서 삼키지 않는다. CLI `main()`이 `except ValidationError`로 잡아 `report_invalid_sources()`를 반환한다.
+- `RuntimeSourcesConfig`는 raw config와 parsed `SourcesConfig`를 함께 반환한다.
+- `parse_runtime_sources_config()`는 raw dict를 parsed config와 묶어 CLI가 필요한 값을 명확히 나누게 한다.
+- `_resolve_sources_config_paths()`는 CLI가 읽은 config file 경로 정보를 오류 보고에 넘긴다.
+- `SourcesConfigError`는 helper에서 삼키지 않는다. CLI `main()`이 좁은 범위에서 잡아 `report_invalid_sources()`를 반환한다.
+- 출력은 `[mimir] invalid sources.yaml:` prefix를 쓴다.
 
 CLI별 사용 방식은 다음과 같다.
 
@@ -83,8 +87,16 @@ CLI별 사용 방식은 다음과 같다.
 | `analyze` | parsed `SourcesConfig` | helper의 parsed config를 `run_analyze()`에 전달 |
 | `deliver` | raw dict의 `lang` | helper로 검증 후 raw dict에서 `lang`을 읽음 |
 | `dashboard` | raw dict의 `lang` | helper로 검증 후 raw dict에서 `lang`을 읽음 |
+| `doctor` | raw dict와 parsed config | `doctor_cli.main()`이 data checks 및 HTML 파일을 쓰기 전 검증 |
+| `history` | 없음 | `history`는 `sources.yaml`을 읽지 않는다 |
 
-이 방식은 downstream `ValidationError` 오분류를 막기 위해 `try` 범위를 계속 좁게 유지한다. `run_*` 호출은 `try` 바깥에 둔다.
+현재 CLI 표면 중 `collect`, `run`, `backfill`, `analyze`, `deliver`, `dashboard`,
+`doctor`는 malformed `sources.yaml`을 같은 friendly message로 보고한다.
+`history`는 `sources.yaml`을 읽지 않는다. 이 방식은 downstream `ValidationError`를
+`sources.yaml` 오류로 오분류하지 않도록 config parsing `try` 범위를 좁게 유지한다.
+`run_*` 호출은 `try` 바깥에 둔다.
+
+검증 대상 CLI는 `collect`, `run`, `backfill`, `analyze`, `deliver`, `dashboard`, `doctor`이다.
 
 ---
 
@@ -115,4 +127,4 @@ CLI별 사용 방식은 다음과 같다.
 - [x] `mimir dashboard`가 malformed `sources.yaml`에 대해 같은 메시지와 exit code를 반환한다.
 - [x] downstream `ValidationError`가 `sources.yaml` 오류로 오분류되지 않는다.
 - [x] `uv run pytest tests/test_analyze.py tests/test_deliver.py tests/test_dashboard_cli.py tests/test_run.py tests/test_backfill.py tests/test_collect.py -q`가 통과한다.
-- [x] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`, coverage gate, `git diff --check`가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.

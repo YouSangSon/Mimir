@@ -1,6 +1,6 @@
 # D1. CLI Entrypoints Design
 
-> **상태**: 구현 완료. 484 tests · 97% coverage · ruff · mypy · diff-check 통과.
+> **상태**: ✅ 구현 완료 (`mimir/cli.py` + `[project.scripts]` console scripts). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **작성일**: 2026-06-18
 > **범위**: package install 후 `mimir` 통합 명령과 README에 문서화된 `mimir.collect` 계열 console script를 제공한다. 기존 `python -m mimir.X` 실행 경로는 유지한다.
 
@@ -60,7 +60,9 @@ python -m mimir.dashboard --reports-root reports
 
 ## 5. 구현 설계
 
-새 모듈 `mimir/cli.py`를 추가한다.
+현재 구현은 `mimir/cli.py`에 있다. `COMMANDS`는 통합 CLI가 지원하는
+subcommand와 기존 module-level `main(argv)` 함수를 연결하고, `_help_text()`는
+`mimir <command>` 사용법과 사용 가능한 command 목록을 만든다.
 
 ```python
 COMMANDS = {
@@ -83,14 +85,25 @@ COMMANDS = {
 3. subcommand가 없으면 `stderr`에 오류와 도움말을 출력하고 `2`를 반환한다.
 4. 기존 module `main()`에 나머지 인자를 넘기고 그 반환값을 그대로 반환한다.
 
-`pyproject.toml`에는 아래 script를 추가한다.
+unknown command는 stderr에 `[mimir] unknown command:` prefix와 도움말을 쓰고 exit
+code `2`를 반환한다.
+
+`pyproject.toml`의 `[project.scripts]`에는 아래 script가 등록되어 있다.
 
 ```toml
 [project.scripts]
 mimir = "mimir.cli:main"
 "mimir.collect" = "mimir.collect:main"
 ...
+"mimir.doctor" = "mimir.doctor.doctor_cli:main"
 ```
+
+따라서 설치 후에는 `mimir collect` 같은 `mimir <command>` 경로와 `mimir.collect`
+같은 dotted aliases를 모두 쓸 수 있다. 기존 `python -m mimir.collect` module
+fallback도 유지한다.
+
+현재 script truth anchors는 `mimir = "mimir.cli:main"`과
+`mimir.doctor = "mimir.doctor.doctor_cli:main"`이다.
 
 ---
 
@@ -124,6 +137,6 @@ mimir = "mimir.cli:main"
 - [x] `mimir collect --cadence daily` 형태가 기존 `mimir.collect.main()`으로 위임된다.
 - [x] `mimir.collect` 등 README의 dotted command가 package script로 등록된다.
 - [x] 기존 `python -m mimir.X` 실행 경로가 유지된다.
-- [x] README 3개 언어의 CLI 설명과 개발 test count가 현재 검증 결과와 맞다.
+- [x] README 3개 언어의 CLI 설명은 현재 CLI 계약과 맞고, test count는 README 테스트 배지와 docs health guard가 추적한다.
 - [x] `uv run pytest tests/test_cli.py tests/test_pyproject_scripts.py -q`가 통과한다.
-- [x] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`, coverage gate가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
