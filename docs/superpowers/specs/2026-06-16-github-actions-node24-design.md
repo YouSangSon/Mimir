@@ -9,7 +9,7 @@
 
 ## 1. 한눈에 보기
 
-GitHub Actions는 2026-06-16부터 JavaScript action의 기본 런타임을 Node24로 옮기기 시작했다. 현재 workflow는 `actions/checkout@v4`와 `actions/setup-python@v5`를 쓴다. 두 버전은 Node20 세대라 deprecation 경고나 이후 제거 일정에 걸릴 수 있다.
+GitHub Actions는 2026-06-16부터 JavaScript action의 기본 런타임을 Node24로 옮기기 시작했다. 이 설계 작성 당시 workflow는 `actions/checkout@v4`와 `actions/setup-python@v5`를 썼다. 두 버전은 Node20 세대라 deprecation 경고나 이후 제거 일정에 걸릴 수 있다.
 
 D2는 workflow를 Node24 호환 major로 올린다. 동시에 테스트를 추가해 다음에 workflow가 다시 Node20 세대 action으로 내려가는 일을 막는다.
 

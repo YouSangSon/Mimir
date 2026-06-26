@@ -746,7 +746,12 @@ def test_ops_config_design_specs_match_current_completion_state() -> None:
     specs = {
         GITHUB_ACTIONS_NODE24_SPEC: (
             "## 6. 수용 기준",
-            ("365 테스트", "coverage gate 클린"),
+            (
+                "365 테스트",
+                "coverage gate 클린",
+                "현재 workflow는 `actions/checkout@v4`와 "
+                "`actions/setup-python@v5`를 쓴다",
+            ),
             (
                 "`actions/checkout@v6`",
                 "`actions/setup-python@v6`",
