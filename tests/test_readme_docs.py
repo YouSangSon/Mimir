@@ -68,6 +68,18 @@ DOTENV_CLI_AUTOLOAD_SPEC = Path(
 SOURCES_CONFIG_CLI_VALIDATION_SPEC = Path(
     "docs/superpowers/specs/2026-06-18-sources-config-cli-validation-design.md"
 )
+GITHUB_ACTIONS_NODE24_SPEC = Path(
+    "docs/superpowers/specs/2026-06-16-github-actions-node24-design.md"
+)
+PYKRX_RETRY_POLICY_SPEC = Path(
+    "docs/superpowers/specs/2026-06-16-pykrx-retry-policy-design.md"
+)
+PLUGIN_SETTINGS_NAMESPACE_SPEC = Path(
+    "docs/superpowers/specs/2026-06-17-plugin-settings-namespace-design.md"
+)
+SEC_RSS_TICKER_INPUT_SPEC = Path(
+    "docs/superpowers/specs/2026-06-18-sec-rss-ticker-input-design.md"
+)
 R1I_SEC_CIK_TECH_SPEC = Path(
     "docs/decisions/tech-spec/sources/"
     "R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md"
@@ -710,6 +722,88 @@ def test_cli_config_design_specs_match_current_completion_state() -> None:
                 "`history`는 `sources.yaml`을 읽지 않는다",
                 "`doctor_cli.main()`",
                 "HTML 파일을 쓰기 전",
+            ),
+        ),
+    }
+
+    texts = {path: path.read_text(encoding="utf-8") for path in specs}
+
+    for path, (acceptance_heading, stale_phrases, required_phrases) in specs.items():
+        text = texts[path]
+        status = _status_line(text)
+        acceptance = _markdown_section(text, acceptance_heading)
+
+        assert "구현 완료" in status
+        assert "최신 검증은 README 테스트 배지와 docs health guard가 추적" in status
+        assert "- [ ]" not in acceptance, f"{path} still has unchecked acceptance"
+        for phrase in stale_phrases:
+            assert phrase not in text, f"{path} still says: {phrase}"
+        for phrase in required_phrases:
+            assert phrase in text, f"{path} missing current truth: {phrase}"
+
+
+def test_ops_config_design_specs_match_current_completion_state() -> None:
+    specs = {
+        GITHUB_ACTIONS_NODE24_SPEC: (
+            "## 6. 수용 기준",
+            ("365 테스트", "coverage gate 클린"),
+            (
+                "`actions/checkout@v6`",
+                "`actions/setup-python@v6`",
+                "`.github/workflows/ci.yml`",
+                "`.github/workflows/_pipeline.yml`",
+                "`tests/test_workflows.py`",
+                "`EXPECTED_WORKFLOW_ACTION_MAJORS`",
+                "`ACTION_USES_RE`",
+            ),
+        ),
+        PYKRX_RETRY_POLICY_SPEC: (
+            "## 6. 수용 기준",
+            ("368 테스트", "coverage gate 클린"),
+            (
+                "`PykrxSource`",
+                "`DEFAULT_MAX_RETRIES = 2`",
+                "`DEFAULT_BACKOFF = 0.5`",
+                "`max_retries`",
+                "`backoff`",
+                "`sleep`",
+                "`_fetch_ohlcv()`",
+                "`Throttle.wait()`",
+                "`FetchError`",
+                "`pykrx OHLCV failed after`",
+                "manifest",
+            ),
+        ),
+        PLUGIN_SETTINGS_NAMESPACE_SPEC: (
+            "## 7. 수용 기준",
+            ("424 테스트", "coverage gate 클린"),
+            (
+                "`sources.plugins.<source_id>`",
+                "`SourcesConfig.plugin_settings`",
+                "`plugin_config()`",
+                "`parse_plugin_config()`",
+                "`_SourcesBlock.plugins`",
+                "`dict[str, dict[str, Any]]`",
+                "`build_sources()`",
+                "`source plugin config`",
+                "`sources.plugins.rss`",
+                "`sources.plugins.sec_edgar`",
+            ),
+        ),
+        SEC_RSS_TICKER_INPUT_SPEC: (
+            "## 8. 수용 기준",
+            ("478 tests", "diff check 통과"),
+            (
+                "`SecCompanyFilingFeed`",
+                "`ticker`",
+                "`cik`",
+                "`_normalize_ticker()`",
+                "`CIK=AAPL`",
+                "`resolve_sec_company_filing_feeds()`",
+                "`resolve_rss_feeds()`",
+                "`duplicate RSS feed`",
+                "네트워크를 호출하지 않는다",
+                "`ticker_cik_map_refresh`",
             ),
         ),
     }

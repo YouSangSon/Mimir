@@ -1,6 +1,6 @@
 # R1h-SEC-TICKER. SEC RSS Ticker Input Design
 
-> **상태**: 구현 완료. 478 tests · ruff · mypy · diff check 통과.
+> **상태**: ✅ 구현 완료. 최신 검증은 README 테스트 배지와 docs health guard가 추적한다. ruff · mypy 검증 완료.
 > **작성일**: 2026-06-18
 > **범위**: `sources.rss.sec.company_filings`에서 CIK 대신 ticker token을 입력할 수 있게 한다. 별도 SEC ticker map 다운로드, resolver-time network lookup, watchlist-wide feed generation은 제외한다.
 
@@ -11,6 +11,8 @@
 R1f-SEC는 사용자가 CIK를 알 때 SEC Company Search Atom feed URL을 조립한다. 이 방식은 안전하지만 운영자가 매번 ticker를 CIK로 바꿔야 한다.
 
 이번 증분은 `sources.rss.sec.company_filings[]` 항목에 `ticker`를 추가한다. 사용자는 `cik` 또는 `ticker` 중 하나만 입력한다. Mimir는 SEC Company Search Atom URL의 `CIK=` query parameter에 해당 값을 deterministic하게 넣고, 실제 feed fetch는 기존 `RssSource.fetch()`에 맡긴다.
+
+구현은 `_normalize_ticker()`로 입력을 정규화하고, `SecCompanyFilingFeed`를 `resolve_sec_company_filing_feeds()`와 `resolve_rss_feeds()`의 기존 흐름에 연결한다.
 
 ---
 
@@ -48,6 +50,7 @@ curl -fsSL -A 'Mimir research contact@example.com' \
 |---|---|
 | SEC mapping file live fetch | resolver-time network dependency와 fair-access 부담을 만든다. |
 | SEC mapping snapshot 내장 | 빠르게 stale해지고 정확성/범위가 보장되지 않는다. |
+| `ticker_cik_map_refresh` 추가 | 이번 증분은 입력 계약만 바꾸며 별도 refresh 설정을 도입하지 않는다. |
 | ambiguous ticker 자동 해소 | SEC mapping 정확성이 보장되지 않으므로 제품 정책 없이 자동 결정을 하지 않는다. |
 | watchlist 전체 자동 feed 생성 | 요청 수와 사용자 의도를 바꾼다. |
 | SEC 외 provider discovery | provider별 ToS와 HTML 구조 검토가 필요하다. |

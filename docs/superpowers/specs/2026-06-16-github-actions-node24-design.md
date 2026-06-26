@@ -2,7 +2,7 @@
 
 > **스펙 ID**: D2
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`checkout@v6` + `setup-python@v6` + workflow guard). 365 테스트 · ruff · mypy · coverage gate 클린.
+> **상태**: ✅ 구현 완료 (`actions/checkout@v6` + `actions/setup-python@v6` + workflow guard). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [개선 백로그](../../IMPROVEMENTS.md) · [발전 카탈로그](../../architecture/improvement-catalog.md)
 
 ---
@@ -23,12 +23,12 @@ GitHub 공식 changelog는 Node20의 EOL(수명 종료) 뒤 GitHub Actions runne
 
 ### 2.2 현재 workflow 상태
 
-현재 repository의 직접 JavaScript action 사용은 두 곳이다.
+현재 repository의 직접 JavaScript action 사용은 두 곳이며, 둘 다 Node24 호환 major를 쓴다.
 
-| 파일 | 현재 checkout | 현재 setup-python |
+| 파일 | checkout | setup-python |
 |---|---|---|
-| `.github/workflows/ci.yml` | `actions/checkout@v4` | `actions/setup-python@v5` |
-| `.github/workflows/_pipeline.yml` | `actions/checkout@v4` | `actions/setup-python@v5` |
+| `.github/workflows/ci.yml` | `actions/checkout@v6` | `actions/setup-python@v6` |
+| `.github/workflows/_pipeline.yml` | `actions/checkout@v6` | `actions/setup-python@v6` |
 
 `collect-hourly.yml`, `collect-daily.yml`, `collect-weekly.yml`, `collect-monthly.yml`는 reusable workflow만 호출한다. 따라서 직접 수정 대상은 `ci.yml`과 `_pipeline.yml`이다.
 
@@ -70,6 +70,8 @@ Major tag를 유지한다. 기존 workflow도 `@v4`, `@v5`처럼 major tag를 �
 
 테스트는 파일별 계약을 고정한다.
 
+`EXPECTED_WORKFLOW_ACTION_MAJORS`는 workflow 파일별로 기대하는 action major를 명시한다.
+
 ```python
 EXPECTED_WORKFLOW_ACTION_MAJORS = {
     Path(".github/workflows/ci.yml"): {
@@ -84,6 +86,8 @@ EXPECTED_WORKFLOW_ACTION_MAJORS = {
 ```
 
 각 workflow에 대상 action이 모두 있어야 하고, major tag가 기대값과 같아야 한다. 이 테스트는 YAML parser에 의존하지 않는다. GitHub Actions의 `on:` 키가 일부 YAML parser에서 boolean으로 해석될 수 있기 때문이다.
+
+`ACTION_USES_RE`는 대상 action의 `uses:` 줄을 찾아 major tag만 비교한다.
 
 ---
 
@@ -104,4 +108,4 @@ EXPECTED_WORKFLOW_ACTION_MAJORS = {
 - [x] `.github/workflows/_pipeline.yml`이 `actions/checkout@v6`와 `actions/setup-python@v6`를 사용한다.
 - [x] `tests/test_workflows.py`가 workflow action major를 검증한다.
 - [x] D2 문서 상태가 구현 완료로 갱신된다.
-- [x] ruff, mypy, pytest, coverage gate가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
