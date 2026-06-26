@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC3 (카탈로그 C1)
 > **작성일**: 2026-06-13
-> **상태**: ✅ 구현 완료 (Increment 3, MVP §9.1–§9.5 · 179 테스트 · ruff·mypy strict 클린). §6.3 HTML/i18n + 워크플로 연결은 후속.
+> **상태**: ✅ 구현 완료 (Increment 3 doctor MVP + 후속 HTML/i18n/dashboard 통합). 최신 검증은 README 테스트 배지와 docs health guard가 추적하며, ruff · mypy · coverage gate 클린 상태를 유지한다. scheduled workflow의 `mimir.doctor --strict` hard gate는 의도적으로 추가하지 않았다.
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S1 Collector](2026-05-31-collector-design.md)
 
 ---
@@ -302,21 +302,23 @@ if __name__ == "__main__":
 
 ## 8. 수용 기준 (Acceptance)
 
-- [ ] **신선 데이터** 합성 트리(모든 기대 데이터셋 최신 파티션 존재) + 고정 `now` → 모든 `Finding`이 OK, `exit_code == 0`.
-- [ ] **정체 데이터**: `prices` 최신이 6 영업일 전 → CRITICAL(`stale`), `exit_code == 1`.
-- [ ] **누락**: 기대 데이터셋 `macro` 파티션 전무 → CRITICAL(`missing`).
-- [ ] **빈 파티션**: 최신 `prices` 파티션 존재하나 0건 → CRITICAL(`empty`).
-- [ ] **짧은 파티션**: 최신 레코드 수가 최근 중앙값의 30% 미만 → WARN(`short`); 파티션 < 3개면 점검 건너뛰고 INFO.
-- [ ] **워치리스트 커버리지**: 워치리스트에 `XYZ` 추가했으나 `prices`에 전무 → CRITICAL(`missing`, "수집된 적 없음").
-- [ ] **영업일 오탐 방지**: 금요일 종가가 최신, `now`=월요일 → DAILY 나이 = 1 영업일 → OK(오탐 없음).
-- [ ] **매크로 cadence 이질성**: `CPIAUCSL`(MONTHLY 등록) 최신이 20일 전 → **OK**(DAILY 규칙이라면 CRITICAL일 상황) — 매일 오탐하지 않음을 회귀로 고정.
-- [ ] **미등록 매크로 시리즈**: 테이블에 없는 새 시리즈는 `DEFAULT_MACRO_CADENCE`(MONTHLY)로 평가 + 존재 사실 INFO.
-- [ ] **키 부재 ≠ 점검 소실**: 기대 집합이 `build_sources`가 아니라 명시 상수에서 옴을 단언 — FRED 키 없이도 `macro` 부재가 CRITICAL로 잡힘.
-- [ ] **스키마**: `prices` 페이로드에 `close` 누락 → WARN(`schema`, 누락 키 명시).
-- [ ] **읽기 전용**: 닥터 실행 전후 `data/` 바이트 동일(쓰기 0) — 테스트로 단언.
-- [ ] **출력**: `--format json`이 유효 `DoctorReport` JSON; `--html`이 3언어 라벨로 섹션 렌더.
-- [ ] **CLI 종료코드**: CRITICAL → 1, WARN → 0, `--strict` 시 WARN → 1.
-- [ ] 네트워크 호출 0 · ruff · mypy strict 클린 · 커버리지 ≥ 80%.
+- [x] **신선 데이터** 합성 트리(모든 기대 데이터셋 최신 파티션 존재) + 고정 `now` → 모든 `Finding`이 OK, `exit_code == 0`.
+- [x] **정체 데이터**: `prices` 최신이 6 영업일 전 → CRITICAL(`stale`), `exit_code == 1`.
+- [x] **누락**: 기대 데이터셋 `macro` 파티션 전무 → CRITICAL(`missing`).
+- [x] **빈 파티션**: 최신 `prices` 파티션 존재하나 0건 → CRITICAL(`empty`).
+- [x] **짧은 파티션**: 최신 레코드 수가 최근 중앙값의 30% 미만 → WARN(`short`); 파티션 < 3개면 점검 건너뛰고 INFO.
+- [x] **워치리스트 커버리지**: 워치리스트에 `XYZ` 추가했으나 `prices`에 전무 → CRITICAL(`missing`, "수집된 적 없음").
+- [x] **영업일 오탐 방지**: 금요일 종가가 최신, `now`=월요일 → DAILY 나이 = 1 영업일 → OK(오탐 없음).
+- [x] **매크로 cadence 이질성**: `CPIAUCSL`(MONTHLY 등록) 최신이 20일 전 → OK. doctor는 `macro_series_cadences()`를 사용한다.
+- [x] **미등록 매크로 시리즈**: 테이블에 없는 새 시리즈는 `DEFAULT_MACRO_CADENCE`(MONTHLY)로 평가 + 존재 사실 INFO.
+- [x] **키 부재 ≠ 점검 소실**: 기대 집합이 `build_sources`가 아니라 명시 상수에서 옴을 단언한다. FRED 키 없이도 `macro` 부재가 CRITICAL로 잡힌다.
+- [x] **스키마**: INC2 이후 typed `Record.payload` union이 storage boundary에서 payload schema drift를 실패시키므로 doctor의 얕은 key-existence check는 제거되었다.
+- [x] **읽기 전용**: 닥터 실행 전후 `data/` 바이트 동일(쓰기 0)을 테스트로 단언한다.
+- [x] **출력**: `--format json`이 유효 `DoctorReport` JSON을 출력하고, `--html`은 `render_doctor_html`로 3언어 라벨 섹션을 렌더한다.
+- [x] **Dashboard 통합**: `mimir.dashboard`는 doctor report를 읽기 전용으로 생성해 health 섹션에 포함한다.
+- [x] **CLI 종료코드**: CRITICAL → 1, WARN → 0, `--strict` 시 WARN → 1.
+- [x] scheduled workflow에는 `python -m mimir.doctor --strict` hard gate를 추가하지 않았다. 기존 collect failure gate와 dashboard publication flow를 유지한다.
+- [x] 네트워크 호출 0 · ruff · mypy strict 클린 · 커버리지 ≥ 80%.
 
 ### 8.1 테스트 계획 (합성 `data/` 트리, 무네트워크)
 

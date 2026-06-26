@@ -23,6 +23,15 @@ NEWS_MENTION_ALIAS_SPEC = Path(
 DEFAULT_NEWS_ALIASES_SPEC = Path(
     "docs/superpowers/specs/2026-06-16-default-news-aliases-design.md"
 )
+CONFIG_DRIVEN_EXTENSIBILITY_SPEC = Path(
+    "docs/superpowers/specs/2026-06-13-config-driven-extensibility-design.md"
+)
+TYPED_PAYLOAD_SPEC = Path(
+    "docs/superpowers/specs/2026-06-13-typed-payload-design.md"
+)
+DATA_DOCTOR_SPEC = Path(
+    "docs/superpowers/specs/2026-06-13-data-doctor-design.md"
+)
 R1I_SEC_CIK_TECH_SPEC = Path(
     "docs/decisions/tech-spec/sources/"
     "R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md"
@@ -365,6 +374,58 @@ def test_news_alias_specs_match_current_completion_state() -> None:
     assert "DEFAULT_NEWS_ALIASES" in r1c
     assert "analysis.news.use_default_aliases" in r1c
     assert "- [x] ruff, mypy, pytest, coverage 80% gate가 통과한다." in r1c
+
+
+def _status_line(text: str) -> str:
+    return next(line for line in text.splitlines() if line.startswith("> **상태**:"))
+
+
+def test_foundation_design_specs_match_current_completion_state() -> None:
+    specs = {
+        CONFIG_DRIVEN_EXTENSIBILITY_SPEC: (
+            "## 6. 수용 기준 (Acceptance)",
+            ("144 테스트", "122개 기존 테스트"),
+        ),
+        TYPED_PAYLOAD_SPEC: (
+            "## 7. 수용 기준 (Acceptance)",
+            ("293 테스트", "97% 커버리지"),
+        ),
+        DATA_DOCTOR_SPEC: (
+            "## 8. 수용 기준 (Acceptance)",
+            ("179 테스트",),
+        ),
+    }
+
+    texts = {path: path.read_text(encoding="utf-8") for path in specs}
+
+    for path, (acceptance_heading, stale_phrases) in specs.items():
+        text = texts[path]
+        status = _status_line(text)
+        acceptance = _markdown_section(text, acceptance_heading)
+
+        assert "구현 완료" in status
+        assert "최신 검증은 README 테스트 배지와 docs health guard가 추적" in status
+        assert "- [ ]" not in acceptance, f"{path} still has unchecked acceptance"
+        for phrase in stale_phrases:
+            assert phrase not in text, f"{path} still says: {phrase}"
+
+    inc1 = texts[CONFIG_DRIVEN_EXTENSIBILITY_SPEC]
+    assert "A2" in inc1
+    assert "A3" in inc1
+    assert "disabled_ids" in inc1
+
+    inc2 = texts[TYPED_PAYLOAD_SPEC]
+    assert "`Record.payload` 유니온화" in inc2
+    assert "`RawRecord.payload`는 `dict[str, Any]` 유지" in inc2
+    assert "Dataset.EVALUATION" in inc2
+    assert "BucketStat" in inc2
+
+    inc3 = texts[DATA_DOCTOR_SPEC]
+    assert "typed `Record.payload`" in inc3
+    assert "storage boundary" in inc3
+    assert "render_doctor_html" in inc3
+    assert "dashboard" in inc3
+    assert "doctor --strict" in inc3
 
 
 def test_scoring_reference_documents_news_volume_confidence() -> None:

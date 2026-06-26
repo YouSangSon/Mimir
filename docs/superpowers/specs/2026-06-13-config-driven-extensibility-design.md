@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC1 (확장성 카탈로그 A1)
 > **작성일**: 2026-06-13
-> **상태**: ✅ 구현 완료 (feat/config-driven-extensibility · 144 테스트 · ruff·mypy strict 클린)
+> **상태**: ✅ 구현 완료 (feat/config-driven-extensibility). 최신 검증은 README 테스트 배지와 docs health guard가 추적하며, ruff · mypy · coverage gate 클린 상태를 유지한다. 후속 A2/A3/A3b에서 macro series registry, 선언적 source registry, source entry points가 추가됐다.
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S1 Collector](2026-05-31-collector-design.md) · [ADR-0001](../../architecture/adr/0001-incremental-extensibility-and-deferral.md)
 
 ---
@@ -115,13 +115,14 @@ def build_sources(settings: Settings, config: SourcesConfig | None = None) -> li
 
 ## 6. 수용 기준 (Acceptance)
 
-- [ ] `config/sources.yaml`에 `sources.fred.series` 추가 시 FRED가 그 시리즈를 수집(통합 테스트, `responses` mock).
-- [ ] `sources:` 블록 부재 시 FRED/ECOS/RSS가 정확히 `DEFAULT_*`로 동작(회귀 테스트 — 불변식 1).
-- [ ] `idempotency_key`가 설정 경로와 무관하게 동일 포맷(불변식 2).
-- [ ] 잘못된 설정(`fred.series: "x"`, `ecos.series` 필드 누락)이 명확한 에러로 실패(불변식 4).
-- [ ] `run_backfill`이 설정 시리즈를 사용.
-- [ ] `config/sources.yaml`에 주석 달린 예시 + README(×3 언어) + `.env.example` 갱신.
-- [ ] 122개 기존 테스트 전부 통과 · ruff · mypy strict 클린 · 커버리지 ≥ 80%.
+- [x] `config/sources.yaml`에 `sources.fred.series` 추가 시 FRED가 그 시리즈를 수집한다.
+- [x] `sources:` 블록 부재 시 FRED/ECOS/RSS가 정확히 `DEFAULT_*`로 동작한다.
+- [x] `idempotency_key`가 설정 경로와 무관하게 동일 포맷을 유지한다.
+- [x] 잘못된 설정(`fred.series: "x"`, `ecos.series` 필드 누락)이 명확한 `invalid sources.yaml` 계열 에러로 실패한다.
+- [x] `run_backfill`이 설정 시리즈를 사용한다.
+- [x] `config/sources.yaml` 예시, README 3개 언어, `.env.example`, reference docs가 설정 기반 소스 확장을 설명한다.
+- [x] 빈 리스트는 parse layer에서 `None`과 구분되지만 source 생성자는 기존 `DEFAULT_*` fallback을 유지한다. 소스 비활성화는 `disabled_ids`가 담당한다.
+- [x] 최신 전체 검증은 README 테스트 배지와 docs health guard가 추적하며 ruff, mypy, pytest, coverage 80% gate가 통과한다.
 
 ---
 
