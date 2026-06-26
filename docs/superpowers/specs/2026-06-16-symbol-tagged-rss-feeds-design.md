@@ -2,7 +2,7 @@
 
 > **스펙 ID**: R1d
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`sources.rss.feeds[].symbol` + record-symbol 뉴스 매칭). 415 테스트 · ruff · mypy · coverage gate 클린.
+> **상태**: ✅ 구현 완료 (`RssFeed.symbol` + record-symbol 뉴스 매칭). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [R1a News Mention Alias](2026-06-16-news-mention-alias-design.md) · [R1b News Captured Window](2026-06-16-news-captured-window-design.md) · [R1c Default News Aliases](2026-06-16-default-news-aliases-design.md) · [개선 백로그](../../IMPROVEMENTS.md)
 
 ---
@@ -78,6 +78,8 @@ class RssFeed(BaseModel):
 
 이 변경은 기존 설정과 호환된다. 기존 feed 항목은 `symbol`을 생략하므로 지금처럼 일반 뉴스 feed로 동작한다.
 
+현재 구현에서 `RssFeed.symbol`은 `mimir/sources/rss.py`의 pydantic model 필드다. Validator는 공백을 제거하고 빈 문자열이면 `ValueError("RSS feed symbol must not be blank")`로 실패한다. `extra="forbid"` 때문에 `symbl` 같은 오타 field도 조용히 무시되지 않는다.
+
 ### 4.2 RawRecord symbol과 idempotency key
 
 `RssSource.fetch()`는 feed symbol을 `RawRecord.symbol`에 넣는다.
@@ -91,6 +93,8 @@ symbol 없는 feed는 기존 key를 유지한다. symbol 있는 feed만 symbol�
 
 이 정책은 같은 URL이 `AAPL` feed와 `MSFT` feed에 동시에 나타나는 상황을 보존한다. 두 record는 다른 symbol을 가진 별도 mention이다.
 
+현재 `RssSource.fetch()`는 symbol-tagged feed에서 `RawRecord.symbol`을 feed symbol로 채운다. Symbol 없는 feed는 기존 `rss:{link}` key를 유지하고, symbol 있는 feed는 `rss:{symbol}:{link}` key를 쓴다. Payload schema에는 symbol을 추가하지 않고 record envelope symbol만 사용한다.
+
 ### 4.3 NewsMentionMatcher 우선순위
 
 `NewsMentionMatcher.mentions(record, symbol)`는 먼저 envelope symbol을 본다.
@@ -103,6 +107,8 @@ if record.symbol == symbol:
 그 다음 기존처럼 제목과 요약에서 symbol·alias를 찾는다.
 
 이 순서는 symbol-tagged feed를 명시적인 사용자 의도로 취급한다. 텍스트 matcher는 일반 RSS feed와 alias 기반 보완을 계속 담당한다.
+
+현재 `NewsMentionMatcher`는 코드상 `record.symbol == symbol`을 먼저 확인한 뒤 제목·요약의 symbol/alias term을 검사한다. `NewsVolumeSignal`과 `LlmSentimentSignal`은 같은 matcher를 사용하므로 symbol-tagged RSS feed는 무료 뉴스량 시그널과 opt-in LLM 감성 시그널 모두에 적용된다.
 
 ---
 

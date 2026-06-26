@@ -2,7 +2,7 @@
 
 > **스펙 ID**: R1b
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`DataReader.read_captured_window` + 뉴스 시그널 captured window). 377 테스트 · ruff · mypy · coverage gate 클린.
+> **상태**: ✅ 구현 완료 (`DataReader.read_captured_window` + in-memory captured-date index + 뉴스 시그널 captured window). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [S2 Analysis](2026-05-31-analysis-design.md) · [News Mention Alias Matching](2026-06-16-news-mention-alias-design.md) · [확장성 카탈로그](../../architecture/improvement-catalog.md)
 
 ---
@@ -86,19 +86,15 @@ def read_captured_window(
 
 이 메서드는 `rec.captured_at.date()`로 `since`와 `until`을 비교한다. `symbol` 필터는 기존 `read()`와 같은 의미를 가진다.
 
-### 4.2 파티션 프루닝은 의도적으로 쓰지 않는다
+### 4.2 현재 구현은 in-memory captured-date index를 쓴다
 
-현재 저장 파티션은 `rec.ts.date()` 기준이다. `captured_at` 기준으로 날짜를 자르면서 `read_window(since, until)`을 쓰면, 발행일이 윈도우 밖인 레코드를 읽기 전에 놓친다.
+저장 파티션은 여전히 `rec.ts.date()` 기준이다. `captured_at` 기준으로 날짜를 자르면서 `read_window(since, until)`을 쓰면, 발행일이 윈도우 밖인 레코드를 읽기 전에 놓친다.
 
-따라서 v1은 `JsonlStore.read_all(dataset)`으로 전체 dataset을 읽은 뒤 `captured_at.date()`를 필터링한다.
+현재 구현은 `DataReader.read_captured_window()`가 `_captured_date_index()`를 통해 dataset별 in-memory index를 만든다. 첫 호출은 `JsonlStore.read_all(dataset)`으로 전체 dataset을 읽고 `captured_at.date()`별 bucket을 만든다. 같은 `DataReader`의 다음 captured window 호출은 이 index를 재사용한다.
 
-```python
-for rec in self._store.read_all(dataset):
-    day = rec.captured_at.date()
-    ...
-```
+Cache key는 `JsonlStore.revision`이다. 같은 store 객체에 record가 append되거나 `replace_partition()`이 실행되면 revision이 바뀌고, 다음 `read_captured_window()` 호출이 index를 다시 만든다. Index rebuild 때는 `mimir.storage.reader` DEBUG log에 `captured-date index rebuilt`와 함께 record 수, day 수, elapsed time을 남긴다.
 
-뉴스 데이터가 커지면 `captured_at` 인덱스나 보조 파티션을 설계한다. 지금은 정확한 replay semantics가 성능 최적화보다 중요하다.
+이 index는 on-disk index가 아니다. 저장 구조, JSONL partition, `idempotency_key`, migration 경로는 바꾸지 않는다. 큰 NEWS 데이터에서 scan 비용이 의미 있게 보이면 별도 persistent index 설계로 넘어간다.
 
 ### 4.3 뉴스 시그널만 새 API를 사용한다
 
@@ -118,6 +114,8 @@ reader.read_captured_window(
 ```python
 reader.read_captured_window(Dataset.NEWS, since=as_of, until=as_of)
 ```
+
+현재 코드에서 `NewsVolumeSignal`은 today와 baseline 모두 `DataReader.read_captured_window()`를 호출한다. `LlmSentimentSignal`도 classifier 호출 전에 같은 captured window로 mention 후보를 고른다.
 
 다른 시그널은 기존 `read()`를 유지한다. 가격, 공시, 거시 신호는 이벤트 날짜 기준 분석이 자연스럽기 때문이다.
 
@@ -174,6 +172,6 @@ fake classifier를 사용해 네트워크와 실제 LLM 호출 없이 headline �
 
 ## 8. 남는 한계
 
-`read_captured_window()`는 `captured_at` 기준 파티션 프루닝을 하지 않는다. 뉴스 데이터가 수년치로 커지면 전체 NEWS scan이 비용이 될 수 있다.
+`read_captured_window()`는 captured-date on-disk index를 만들지 않는다. 현재는 첫 captured window 호출에서 in-memory index를 만들고 `JsonlStore.revision`이 바뀔 때까지 재사용한다.
 
 그 시점에는 보조 인덱스나 captured-date 파티션을 별도로 설계해야 한다. 이번 증분은 저장 구조를 유지하면서 replay 정확성을 먼저 고정한다.

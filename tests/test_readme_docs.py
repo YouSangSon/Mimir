@@ -50,6 +50,15 @@ BACKFILL_MANIFEST_SPEC = Path(
 BACKFILL_PREFLIGHT_MANIFEST_SPEC = Path(
     "docs/superpowers/specs/2026-06-18-backfill-preflight-manifest-design.md"
 )
+NEWS_CAPTURED_WINDOW_SPEC = Path(
+    "docs/superpowers/specs/2026-06-16-news-captured-window-design.md"
+)
+SYMBOL_TAGGED_RSS_FEEDS_SPEC = Path(
+    "docs/superpowers/specs/2026-06-16-symbol-tagged-rss-feeds-design.md"
+)
+RSS_FEED_CATALOG_SPEC = Path(
+    "docs/superpowers/specs/2026-06-17-rss-feed-catalog-design.md"
+)
 R1I_SEC_CIK_TECH_SPEC = Path(
     "docs/decisions/tech-spec/sources/"
     "R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md"
@@ -571,6 +580,77 @@ def test_storage_backfill_design_specs_match_current_completion_state() -> None:
     assert "`package not installed (pip install -e '.[kr]')`" in preflight
     assert "unknown source id" in preflight
     assert "manifest 없이 argument error" in preflight
+
+
+def test_news_rss_design_specs_match_current_completion_state() -> None:
+    specs = {
+        NEWS_CAPTURED_WINDOW_SPEC: (
+            "## 7. 수용 기준",
+            ("377 테스트", "coverage gate 클린"),
+        ),
+        SYMBOL_TAGGED_RSS_FEEDS_SPEC: (
+            "## 7. 수용 기준",
+            ("415 테스트", "coverage gate 클린"),
+        ),
+        RSS_FEED_CATALOG_SPEC: (
+            "## 13. 수용 기준",
+            ("438 tests", "coverage gate 통과"),
+        ),
+    }
+
+    texts = {path: path.read_text(encoding="utf-8") for path in specs}
+
+    for path, (acceptance_heading, stale_phrases) in specs.items():
+        text = texts[path]
+        status = _status_line(text)
+        acceptance = _markdown_section(text, acceptance_heading)
+
+        assert "구현 완료" in status
+        assert "최신 검증은 README 테스트 배지와 docs health guard가 추적" in status
+        assert "- [ ]" not in acceptance, f"{path} still has unchecked acceptance"
+        for phrase in stale_phrases:
+            assert phrase not in text, f"{path} still says: {phrase}"
+
+    captured = texts[NEWS_CAPTURED_WINDOW_SPEC]
+    assert "`DataReader.read_captured_window()`" in captured
+    assert "`captured_at.date()`" in captured
+    assert "`_captured_date_index()`" in captured
+    assert "`JsonlStore.read_all(dataset)`" in captured
+    assert "`JsonlStore.revision`" in captured
+    assert "captured-date index rebuilt" in captured
+    assert "`NewsVolumeSignal`" in captured
+    assert "`LlmSentimentSignal`" in captured
+    assert "저장 파티션" in captured
+    assert "on-disk index" in captured
+
+    symbol_tagged = texts[SYMBOL_TAGGED_RSS_FEEDS_SPEC]
+    assert "`sources.rss.feeds[].symbol`" in symbol_tagged
+    assert "`RssFeed.symbol`" in symbol_tagged
+    assert "`RawRecord.symbol`" in symbol_tagged
+    assert "`rss:{link}`" in symbol_tagged
+    assert "`rss:{symbol}:{link}`" in symbol_tagged
+    assert "`NewsMentionMatcher`" in symbol_tagged
+    assert "`record.symbol == symbol`" in symbol_tagged
+    assert "`NewsVolumeSignal`" in symbol_tagged
+    assert "`LlmSentimentSignal`" in symbol_tagged
+
+    catalog = texts[RSS_FEED_CATALOG_SPEC]
+    assert "`RssCatalogSelection`" in catalog
+    assert "`RSS_CATALOG`" in catalog
+    assert "`resolve_rss_catalogs()`" in catalog
+    assert "`resolve_rss_feeds()`" in catalog
+    assert "`sec_press_releases`" in catalog
+    assert "`sec_structured_usgaap`" in catalog
+    assert "`sec_structured_risk_return`" in catalog
+    assert "`sec_structured_inline_xbrl`" in catalog
+    assert "`sec_structured_all_xbrl`" in catalog
+    assert "`sources.rss.sec.company_filings`" in catalog
+    assert "`ticker_cik_map_refresh`" in catalog
+    assert "`MIMIR_SEC_USER_AGENT`" in catalog
+    assert "`catalogs`, `sec.company_filings`, `feeds`" in catalog
+    assert "네트워크를 호출하지 않는다" in catalog
+    assert "HTML scraping" in catalog
+    assert "vendor URL" in catalog
 
 
 def test_scoring_reference_documents_news_volume_confidence() -> None:
