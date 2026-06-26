@@ -392,7 +392,13 @@ def test_foundation_design_specs_match_current_completion_state() -> None:
         ),
         DATA_DOCTOR_SPEC: (
             "## 8. 수용 기준 (Acceptance)",
-            ("179 테스트",),
+            (
+                "179 테스트",
+                "페이로드 스키마 이상 — 키 존재만 (얕게)",
+                "EXPECTED_PAYLOAD_KEYS",
+                "키 누락 → WARN(`schema`)",
+                "prices 페이로드에 `close` 없음 | WARN",
+            ),
         ),
     }
 
