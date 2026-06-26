@@ -125,11 +125,14 @@ class _SourcesBlock(BaseModel):
 
 `build_sources()`는 `BUILTIN_SOURCE_SPECS`와 entry point source specs를 합친 뒤 plugin config key를 검사한다.
 
+이 경고 문구는 `source plugin config`로 시작한다.
+
 | 상황 | 처리 |
 |---|---|
 | `sources.plugins.acme_news`가 있고 `SourceSpec("acme_news", ...)`도 있음 | warning 없음 |
 | `sources.plugins.acme_news`가 있는데 plugin이 설치되지 않았거나 load 실패 | warning |
-| `sources.plugins.rss`, `sources.plugins.sec_edgar`처럼 built-in source id를 사용 | warning |
+| `sources.plugins.rss`가 configurable built-in `rss`를 가리키는 경우 | warning: `source plugin config`로 시작하고 `sources.rss`를 사용하라고 안내한다. |
+| `sources.plugins.sec_edgar`가 built-in source namespace를 가리키는 경우 | warning: `source plugin config`로 시작하고 built-in sources do not read `sources.plugins`라고 안내한다. |
 
 Warning은 설정을 fail-fast로 막지 않는다. Plugin이 선택 설치일 수 있기 때문이다. 다만 사용자는 typo나 미설치 plugin을 로그에서 볼 수 있다.
 

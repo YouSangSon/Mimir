@@ -787,7 +787,9 @@ def test_ops_config_design_specs_match_current_completion_state() -> None:
                 "`build_sources()`",
                 "`source plugin config`",
                 "`sources.plugins.rss`",
+                "`sources.rss`",
                 "`sources.plugins.sec_edgar`",
+                "built-in sources do not read `sources.plugins`",
             ),
         ),
         SEC_RSS_TICKER_INPUT_SPEC: (
