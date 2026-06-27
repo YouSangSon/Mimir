@@ -11,9 +11,9 @@ record decisions, commit locally, then reorder the backlog.
 
 ## Current Loop
 
-`ENTRYPOINT-CAST-TYPE-CLEANUP`
+`RSS-PROVIDER-POLICY-RECHECK`
 
-- Plan: `docs/superpowers/plans/2026-06-28-entrypoint-cast-type-cleanup.md`
+- Plan: `docs/superpowers/plans/2026-06-28-rss-provider-policy-recheck.md`
 - Backlog: `BACKLOG.md`
 - Work log: `WORKLOG.md`
 - Decisions: `DECISIONS.md`
