@@ -13,6 +13,29 @@ INCREMENTAL_EXTENSIBILITY_ADR = Path(
     "docs/architecture/adr/0001-incremental-extensibility-and-deferral.md"
 )
 CLI_REFERENCE = Path("docs/reference/cli.md")
+ROOT_STATE_DOCS = {
+    Path("PLAN.md"): (
+        "docs/superpowers/plans/",
+        "BACKLOG.md",
+        "WORKLOG.md",
+        "DECISIONS.md",
+    ),
+    Path("BACKLOG.md"): (
+        "docs/IMPROVEMENTS.md",
+        "docs/architecture/improvement-catalog.md",
+        "PROJECT-STATE-ENTRYPOINTS",
+    ),
+    Path("WORKLOG.md"): (
+        "PROJECT-STATE-ENTRYPOINTS",
+        "docs/superpowers/plans/2026-06-28-project-state-entrypoints.md",
+        "uv run pytest",
+    ),
+    Path("DECISIONS.md"): (
+        "PROJECT-STATE-ENTRYPOINTS",
+        "docs/decisions/tech-spec/README.md",
+        "https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency",
+    ),
+}
 SEC_REFRESH_DESIGN_SPEC = Path(
     "docs/superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md"
 )
@@ -347,6 +370,14 @@ def test_readmes_link_current_decision_and_config_docs() -> None:
         text = path.read_text(encoding="utf-8")
         for link in README_REQUIRED_LINKS:
             assert link in text, f"{path} missing {link}"
+
+
+def test_root_project_state_entrypoints_link_canonical_sources() -> None:
+    for path, required_fragments in ROOT_STATE_DOCS.items():
+        assert path.exists(), f"{path} is missing"
+        text = path.read_text(encoding="utf-8")
+        for fragment in required_fragments:
+            assert fragment in text, f"{path} missing {fragment}"
 
 
 def test_signal_plugin_docs_match_extension_contract() -> None:
