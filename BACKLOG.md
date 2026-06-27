@@ -19,11 +19,15 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. Run a fresh docs/implementation consistency scan after the deferred-item
-   rechecks and queue the next evidence-backed cleanup.
+1. Recheck the R1o SEC watchlist filing feeds Draft spec against current source
+   contracts and either plan the smallest implementation slice or keep it Draft
+   with evidence.
 
 ## Done
 
+- `DOCS-IMPLEMENTATION-CONSISTENCY-SCAN` — live improvement-catalog rows no
+  longer pin stale static test counts; current verification belongs to the
+  README test badge and docs health guard.
 - `D3-TRANSLATION-DEFERRAL-RECHECK` — broad internal spec/roadmap translation
   stays deferred because root README x3 are trilingual while detailed project
   docs remain Korean-first; any future translation should be a bounded

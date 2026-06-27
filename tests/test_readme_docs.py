@@ -356,6 +356,15 @@ def test_readme_and_architecture_health_metadata_use_current_contract() -> None:
     assert "mypy --strict clean" not in anti_discovery
 
 
+def test_improvement_catalog_does_not_pin_static_test_counts() -> None:
+    catalog = IMPROVEMENT_CATALOG.read_text(encoding="utf-8")
+    summary = _markdown_section(catalog, "## 1. 한눈에 보기")
+
+    assert not re.search(r"코드 \+ 테스트\(\d+\)", summary)
+    assert not re.search(r"\b\d+\s*(?:tests|테스트)\b", summary)
+    assert "README 테스트 배지와 docs health guard" in catalog
+
+
 def test_architecture_roadmap_testing_metadata_uses_current_contract() -> None:
     text = ROADMAP.read_text(encoding="utf-8")
     cross_cutting = _markdown_section(text, "## 5. 횡단 관심사 (모든 스펙에 적용)")

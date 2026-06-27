@@ -3,6 +3,22 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-06-28 — DOCS-IMPLEMENTATION-CONSISTENCY-SCAN
+
+Decision: remove fixed historical test counts from the live improvement catalog.
+
+Reason:
+
+- The catalog summary is a current-state navigation surface, not a worklog.
+- Fixed counts such as `코드 + 테스트(144)` became stale as the suite grew.
+- README badges and `tests/test_readme_docs.py` already provide the current
+  collected test count contract.
+
+Rejected:
+
+- Updating the fixed numbers to today's count. That would recreate the same
+  drift risk on the next test addition.
+
 ## 2026-06-28 — D3-TRANSLATION-DEFERRAL-RECHECK
 
 Decision: keep broad internal spec/roadmap translation deferred.

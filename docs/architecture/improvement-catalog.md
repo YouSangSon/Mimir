@@ -24,8 +24,8 @@
 
 | ID | 항목 | 차원 | 추적성 | 결정 | 산출물 |
 |---|---|---|---|---|---|
-| **A1** | 설정 기반 시리즈·피드 (FRED/ECOS series, RSS feeds) | 확장성 | 백로그 + README 약속 | **✅ 구현 완료 (Increment 1)** | 코드 + 테스트(144) |
-| **A4** | 데이터셋별 타입드 페이로드 스키마 (`dict[str,Any]` 제거) | 견고성 | 신규 | **✅ 구현 완료 (Increment 2)** | 코드 + 테스트(293) · [spec](../superpowers/specs/2026-06-13-typed-payload-design.md) |
+| **A1** | 설정 기반 시리즈·피드 (FRED/ECOS series, RSS feeds) | 확장성 | 백로그 + README 약속 | **✅ 구현 완료 (Increment 1)** | 코드 + 테스트 |
+| **A4** | 데이터셋별 타입드 페이로드 스키마 (`dict[str,Any]` 제거) | 견고성 | 신규 | **✅ 구현 완료 (Increment 2)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-13-typed-payload-design.md) |
 | **A2** | 시리즈 식별자 단일 진실원 (macro_regime ↔ 어댑터) | 확장성 | 백로그 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-macro-series-registry-design.md) |
 | **A3** | 선언적 소스 등록 (`SourceSpec` built-in table) | 아키텍처 | README 약속(부분) | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-declarative-source-registration-design.md) |
 | **A3b** | 외부 source plugin entry point (`mimir.sources`) | 확장성 | A3 보류 항목 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-source-entry-points-design.md) |
@@ -58,7 +58,7 @@
 | **H1** | 재생성 데이터 stale 제거 + pipeline scorecard 갱신 | 견고성/운영 | B1 후속 + 리뷰 발견 | **✅ 구현 완료 (2026-06-16 hardening)** | `replace_partition`, `run_evaluate`, daily report scorecard |
 | **BF-MANIFEST** | 백필 실행 manifest 기록 | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | backfill success/failure run log |
 | **BF-PREFLIGHT** | 백필 preflight failure manifest | 견고성/운영 | README + BF-MANIFEST 후속 | **✅ 구현 완료 (2026-06-18)** | registered unavailable source run log |
-| **C1** | 데이터 신선도·품질 닥터 (`mimir doctor`) | 운영 | "무음 실패 금지" 약속 | **✅ 구현 완료 (Increment 3)** | 코드 + 테스트(179) |
+| **C1** | 데이터 신선도·품질 닥터 (`mimir doctor`) | 운영 | "무음 실패 금지" 약속 | **✅ 구현 완료 (Increment 3)** | 코드 + 테스트 |
 | **DCHTML** | Doctor standalone HTML report | 운영가시성 | C1 선택 후속 수용 기준 | **✅ 구현 완료 (2026-06-18)** | HTML renderer + CLI + docs · [spec](../superpowers/specs/2026-06-18-doctor-html-report-design.md) |
 | **DOCHEALTH** | README health metadata drift guard | 운영/DX | README 품질 badge 계약 | **✅ 구현 완료 (2026-06-18)** | README 수치 동기화 + 문서 회귀 테스트 · [spec](../decisions/tech-spec/docs/DOCHEALTH_readme_doc_health_tech_spec_2026_06_18.md) |
 | **OPS1** | Scheduled dashboard publication (`reports/dashboard.html`) | 운영가시성 | README + 현행 spec | **✅ 구현 완료 (2026-06-17)** | workflow + 테스트 + docs · [spec](../superpowers/specs/2026-06-17-scheduled-dashboard-publication-design.md) |

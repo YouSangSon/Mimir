@@ -1,5 +1,57 @@
 # Work Log
 
+## 2026-06-28 — DOCS-IMPLEMENTATION-CONSISTENCY-SCAN
+
+Goal: run a fresh docs/implementation consistency scan after the deferred-item
+rechecks and queue the next evidence-backed cleanup.
+
+Plan: `docs/superpowers/plans/2026-06-28-docs-implementation-consistency-scan.md`
+
+Research:
+
+- README EN/KO/ZH links to key architecture and reference docs are present and
+  the target files exist.
+- Old fixed test counts remain only in historical worklog/plan material except
+  for three live improvement-catalog summary rows.
+- `docs/architecture/improvement-catalog.md` already says latest verification is
+  tracked by the README test badge and docs health guard, so row-level static
+  test counts are redundant.
+
+TDD:
+
+- RED: `uv run pytest tests/test_readme_docs.py::test_improvement_catalog_does_not_pin_static_test_counts -q`
+  failed on `코드 + 테스트(144)` in the live catalog summary.
+
+Verification:
+
+- `uv run pytest tests/test_readme_docs.py::test_improvement_catalog_does_not_pin_static_test_counts -q` — 1 passed
+- `uv run pytest tests/test_readme_docs.py -q` — 34 passed
+- `uv run pytest --collect-only -q | tail -1` — 658 tests collected
+- `uv run pytest -q` — 658 passed
+- `uv run ruff check .` — passed
+- `uv run mypy mimir` — passed
+- `git diff --check` — passed
+- Secrets scan on touched files found only existing placeholder/config wording,
+  GitHub Secrets wording, and worklog review-gate text.
+
+Agent card:
+
+- Owner: Codex
+- State: review -> commit
+- Merge gate: focused docs guard, docs suite, collect-only count, full pytest,
+  ruff, mypy, diff-check, secrets scan, and review pass.
+
+Review:
+
+- Quality reviewer found no Critical or Important issues. Its Minor note about
+  replacing pending worklog wording was addressed before commit.
+
+Result:
+
+- Static historical test counts were removed from the live improvement-catalog
+  summary rows.
+- `BACKLOG.md` now queues the R1o SEC watchlist filing feeds Draft spec recheck.
+
 ## 2026-06-28 — D3-TRANSLATION-DEFERRAL-RECHECK
 
 Goal: recheck the D3 internal spec/roadmap translation deferral against the
