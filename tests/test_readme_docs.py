@@ -168,6 +168,16 @@ COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_TERMS = re.compile(
     r"|커버리지|diff[- ]check|uv\s+run|git\s+diff",
     re.IGNORECASE,
 )
+COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_COMMANDS = re.compile(
+    r"(?<![\w.-])uv\s+run\s+(?:pytest|ruff|mypy|coverage)(?![\w.-])"
+    r"|(?<![\w.-])git\s+diff\s+--check(?![\w.-])"
+    r"|(?<![\w.-])diff[- ]check(?![\w.-])",
+    re.IGNORECASE,
+)
+COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_TOOLS = re.compile(
+    r"(?<![\w.-])(?:ruff|mypy|pytest)(?![\w.-])",
+    re.IGNORECASE,
+)
 COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_OUTCOMES = re.compile(
     r"통과|passed|pass|gate|클린|clean|≥\s*80%",
     re.IGNORECASE,
@@ -476,6 +486,23 @@ def _status_line(text: str) -> str:
     return next(line for line in text.splitlines() if line.startswith("> **상태**:"))
 
 
+def _has_stale_acceptance_verification_metadata(line: str) -> bool:
+    if COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_COMMANDS.search(line):
+        return True
+
+    tool_names = {
+        match.group(0).lower()
+        for match in COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_TOOLS.finditer(line)
+    }
+    if len(tool_names) >= 2:
+        return True
+
+    return bool(
+        COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_TERMS.search(line)
+        and COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_OUTCOMES.search(line)
+    )
+
+
 def test_completed_design_spec_status_lines_use_current_verification_metadata() -> None:
     current_status = (
         "> **상태**: ✅ 구현 완료. 최신 검증은 README 테스트 배지와 docs health guard가 추적한다."
@@ -527,6 +554,8 @@ def test_completed_design_spec_acceptance_verification_lines_use_current_metadat
     stale_examples = (
         "- [x] ruff, mypy, pytest, coverage 80% gate가 통과한다.",
         "- [x] `uv run pytest tests/test_cli.py -q`가 통과한다.",
+        "- [x] `uv run pytest tests/test_cli.py -q`",
+        "- [x] ruff + mypy + pytest",
         "- [x] 네트워크 호출 0 · ruff · mypy strict 클린 · 커버리지 ≥ 80%.",
     )
     current_examples = (
@@ -536,23 +565,23 @@ def test_completed_design_spec_acceptance_verification_lines_use_current_metadat
             "DAILY 나이 = 1 영업일 → OK(오탐 없음)."
         ),
         "- [x] mypy strict 내로잉 헬퍼는 payload mismatch에서 예외를 낸다.",
+        "- [x] doctor expected coverage는 A3 테이블에서 파생하지 않는다.",
     )
 
     for line in stale_examples:
-        assert COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_TERMS.search(line)
-        assert COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_OUTCOMES.search(line)
+        assert _has_stale_acceptance_verification_metadata(line)
 
     for line in current_examples:
         if line == COMPLETED_DESIGN_SPEC_ACCEPTANCE_CURRENT_VERIFICATION:
             continue
-        assert not (
-            COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_TERMS.search(line)
-            and COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_OUTCOMES.search(line)
-        )
+        assert not _has_stale_acceptance_verification_metadata(line)
 
     for path in sorted(Path("docs/superpowers/specs").glob("*.md")):
         text = path.read_text(encoding="utf-8")
-        status = _status_line(text)
+        try:
+            status = _status_line(text)
+        except StopIteration:
+            continue
         if "구현 완료" not in status:
             continue
 
@@ -564,10 +593,9 @@ def test_completed_design_spec_acceptance_verification_lines_use_current_metadat
                     f"{path} uses non-canonical current verification acceptance: {line}"
                 )
                 continue
-            assert not (
-                COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_TERMS.search(line)
-                and COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_OUTCOMES.search(line)
-            ), f"{path} has stale acceptance verification metadata: {line}"
+            assert not _has_stale_acceptance_verification_metadata(line), (
+                f"{path} has stale acceptance verification metadata: {line}"
+            )
 
 
 def test_foundation_design_specs_match_current_completion_state() -> None:
