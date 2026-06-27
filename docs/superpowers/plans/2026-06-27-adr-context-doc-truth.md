@@ -44,7 +44,7 @@
   ```python
   def test_architecture_adrs_do_not_publish_stale_current_verification_context() -> None:
       text = INCREMENTAL_EXTENSIBILITY_ADR.read_text(encoding="utf-8")
-      header = text.split("\n\n", 1)[0]
+      header = text.split("\n## 결정", 1)[0]
 
       assert "발전 카탈로그" in header
       assert "README 테스트 배지와 docs health guard" in header
