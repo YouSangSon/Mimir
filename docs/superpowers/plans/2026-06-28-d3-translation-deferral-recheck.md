@@ -97,7 +97,7 @@ Expected: FAIL before the root docs record this loop.
 
 - [ ] **Step 1: Keep translation work deferred**
 
-Do not translate the 112 internal spec/plan/tech-spec files. The current contract is trilingual root README navigation plus Korean-first detailed project docs.
+Do not translate the 100+ internal spec/plan/tech-spec files. The current contract is trilingual root README navigation plus Korean-first detailed project docs.
 
 - [ ] **Step 2: Update root state docs**
 
@@ -151,7 +151,7 @@ Dispatch a spec reviewer and quality reviewer with the intended file list and ga
 - [ ] **Step 5: Commit exact files**
 
 ```bash
-git add tests/test_readme_docs.py docs/architecture/improvement-catalog.md BACKLOG.md DECISIONS.md WORKLOG.md README.md README.ko.md README.zh.md
+git add tests/test_readme_docs.py docs/architecture/improvement-catalog.md BACKLOG.md DECISIONS.md WORKLOG.md README.md README.ko.md README.zh.md docs/superpowers/plans/2026-06-28-d3-translation-deferral-recheck.md
 git commit -m "docs(docs): keep d3 translation scope bounded"
 ```
 

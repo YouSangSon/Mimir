@@ -19,12 +19,15 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. Recheck D3 internal spec/roadmap translation deferral against the current
-   README/reference-doc language split and either keep KO-only internal specs
-   with evidence or promote a bounded translation slice.
+1. Run a fresh docs/implementation consistency scan after the deferred-item
+   rechecks and queue the next evidence-backed cleanup.
 
 ## Done
 
+- `D3-TRANSLATION-DEFERRAL-RECHECK` — broad internal spec/roadmap translation
+  stays deferred because root README x3 are trilingual while detailed project
+  docs remain Korean-first; any future translation should be a bounded
+  reference-doc translation slice with user or contributor evidence.
 - `LLM-SIGNAL-WEIGHT-DEFERRAL-RECHECK` — one-off LLM signal weight YAML
   exposure stays deferred because built-in weights remain code constants and
   any user tuning should be a unified signal-weight tuning design across all

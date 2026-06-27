@@ -1,5 +1,66 @@
 # Work Log
 
+## 2026-06-28 — D3-TRANSLATION-DEFERRAL-RECHECK
+
+Goal: recheck the D3 internal spec/roadmap translation deferral against the
+current README/reference-doc language split.
+
+Plan: `docs/superpowers/plans/2026-06-28-d3-translation-deferral-recheck.md`
+
+Research:
+
+- Root README files keep English/Korean/Chinese language switchers and localized
+  Further Reading sections.
+- The README Further Reading sections link into detailed docs under `docs/`,
+  including reference docs that are currently Korean-first.
+- `docs/superpowers/plans/2026-06-23-runtime-config-doc-truth.md` records the
+  policy: project docs under `docs/` are Korean-first while identifiers and file
+  paths stay English.
+- The internal spec/plan/tech-spec set is over 100 Markdown files, so wholesale
+  translation would create a stale-translation maintenance surface.
+
+TDD:
+
+- RED: `uv run pytest tests/test_readme_docs.py::test_d3_translation_deferral_recheck_keeps_readmes_trilingual_and_docs_korean_first -q`
+  failed because root project docs did not yet record
+  `D3-TRANSLATION-DEFERRAL-RECHECK`.
+
+Verification:
+
+- `uv run pytest tests/test_readme_docs.py::test_d3_translation_deferral_recheck_keeps_readmes_trilingual_and_docs_korean_first -q` — 1 passed
+- `uv run pytest tests/test_readme_docs.py -q` — 33 passed
+- `uv run pytest --collect-only -q | tail -1` — 657 tests collected
+- `uv run pytest -q` — 657 passed
+- `uv run ruff check .` — passed
+- `uv run mypy mimir` — passed
+- `git diff --check` — passed
+- Secrets scan on touched files found only existing placeholder/config wording,
+  GitHub Secrets wording, and worklog review-gate text.
+
+Agent card:
+
+- Owner: Codex
+- State: review -> commit
+- Merge gate: focused docs guard, docs suite, collect-only count, full pytest,
+  ruff, mypy, diff-check, secrets scan, and review pass.
+
+Review:
+
+- Spec reviewer found no Critical issues. Its Important notes were addressed by
+  adding README language-boundary notes and replacing an exact internal-doc count
+  with `100+`.
+- Quality reviewer found no Critical issues. Its Important note about the
+  post-review plan-file edit was addressed by including the plan file in the
+  exact commit list.
+
+Result:
+
+- Broad internal spec/roadmap translation remains deferred.
+- The current contract is trilingual root README navigation plus Korean-first
+  detailed docs under `docs/`.
+- Any future translation should be a bounded reference-doc translation slice
+  backed by user or contributor evidence.
+
 ## 2026-06-28 — LLM-SIGNAL-WEIGHT-DEFERRAL-RECHECK
 
 Goal: recheck the LLM signal weight YAML exposure deferral and promote tuning

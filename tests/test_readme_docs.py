@@ -132,6 +132,19 @@ R1O_SEC_WATCHLIST_FILING_FEEDS_TECH_SPEC = Path(
     "docs/decisions/tech-spec/sources/"
     "R1o-SEC-WATCHLIST-FILING-FEEDS_sec_watchlist_filing_feeds_tech_spec_2026_06_28.md"
 )
+D3_KOREAN_FIRST_POLICY_PLAN = Path(
+    "docs/superpowers/plans/2026-06-23-runtime-config-doc-truth.md"
+)
+D3_SAMPLE_KOREAN_FIRST_DOCS = (
+    Path("docs/architecture/roadmap.md"),
+    Path("docs/architecture/extensibility/README.md"),
+    Path("docs/decisions/tech-spec/README.md"),
+    Path("docs/reference/cli.md"),
+    Path("docs/reference/config/sources.md"),
+    Path("docs/reference/config/watchlist.md"),
+    Path("docs/reference/analysis/scoring.md"),
+    Path("docs/reference/storage/data-layout.md"),
+)
 README_REQUIRED_LINKS = (
     "docs/architecture/improvement-catalog.md",
     "docs/decisions/tech-spec/README.md",
@@ -587,6 +600,85 @@ def test_llm_signal_weight_yaml_deferral_recheck_keeps_unified_weight_tuning_def
         assert "LLM-SIGNAL-WEIGHT-DEFERRAL-RECHECK" in text
         assert "unified signal-weight tuning" in text
         assert "llm_sentiment_weight" not in text
+
+
+def test_d3_translation_deferral_recheck_keeps_readmes_trilingual_and_docs_korean_first() -> None:
+    language_switchers = {
+        Path("README.md"): "**English** · [한국어](README.ko.md) · [中文](README.zh.md)",
+        Path("README.ko.md"): "[English](README.md) · **한국어** · [中文](README.zh.md)",
+        Path("README.zh.md"): "[English](README.md) · [한국어](README.ko.md) · **中文**",
+    }
+    localized_reading_headings = {
+        Path("README.md"): "## 📚 Further Reading",
+        Path("README.ko.md"): "## 📚 더 읽기",
+        Path("README.zh.md"): "## 📚 延伸阅读",
+    }
+    language_boundary_notes = {
+        Path("README.md"): (
+            "Detailed docs under `docs/` are Korean-first; the root README files are "
+            "the maintained English/Korean/Chinese entry points."
+        ),
+        Path("README.ko.md"): (
+            "`docs/` 아래 상세 문서는 Korean-first로 유지하고, 루트 README 3종을 "
+            "English/Korean/Chinese 진입점으로 관리한다."
+        ),
+        Path("README.zh.md"): (
+            "`docs/` 下的详细文档保持 Korean-first；根 README 三种语言是维护中的 "
+            "English/Korean/Chinese 入口。"
+        ),
+    }
+    key_reference_links = (
+        "docs/reference/cli.md",
+        "docs/reference/config/sources.md",
+        "docs/reference/config/watchlist.md",
+        "docs/reference/analysis/scoring.md",
+        "docs/reference/storage/data-layout.md",
+    )
+    for path in README_FILES:
+        text = path.read_text(encoding="utf-8")
+        assert language_switchers[path] in text
+        assert localized_reading_headings[path] in text
+        assert language_boundary_notes[path] in text
+        for link in key_reference_links:
+            assert link in text, f"{path} missing {link}"
+            assert re.search(
+                r"[가-힣]", Path(link).read_text(encoding="utf-8")
+            ), f"{link} should remain Korean-first"
+
+    catalog = IMPROVEMENT_CATALOG.read_text(encoding="utf-8")
+    deferred = _markdown_section(catalog, "## 6. 보류 항목 — 근거 명시")
+    for phrase in (
+        "D3 spec/ro드맵 번역",
+        "KO-only",
+        "README ×3",
+        "trilingual",
+    ):
+        assert phrase in deferred
+
+    policy = D3_KOREAN_FIRST_POLICY_PLAN.read_text(encoding="utf-8")
+    assert "Korean-first for project docs under `docs/`" in policy
+
+    for path in D3_SAMPLE_KOREAN_FIRST_DOCS:
+        text = path.read_text(encoding="utf-8")
+        assert "## 1." in text or "# " in text
+        assert re.search(r"[가-힣]", text), f"{path} should remain Korean-first"
+
+    for translation_tree in (
+        Path("docs/en"),
+        Path("docs/zh"),
+        Path("docs/reference/en"),
+        Path("docs/reference/zh"),
+    ):
+        assert not translation_tree.exists()
+
+    backlog = BACKLOG.read_text(encoding="utf-8")
+    decisions = Path("DECISIONS.md").read_text(encoding="utf-8")
+    worklog = Path("WORKLOG.md").read_text(encoding="utf-8")
+    for text in (backlog, decisions, worklog):
+        normalized = re.sub(r"\s+", " ", text)
+        assert "D3-TRANSLATION-DEFERRAL-RECHECK" in text
+        assert "Korean-first" in text
+        assert "bounded reference-doc translation" in normalized
 
 
 def test_signal_plugin_docs_match_extension_contract() -> None:

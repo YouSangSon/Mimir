@@ -3,6 +3,27 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-06-28 — D3-TRANSLATION-DEFERRAL-RECHECK
+
+Decision: keep broad internal spec/roadmap translation deferred.
+
+Reason:
+
+- Root `README.md`, `README.ko.md`, and `README.zh.md` already provide
+  trilingual user entry points and localized Further Reading descriptions.
+- The linked detailed docs under `docs/` are Korean-first by current project
+  policy, including reference docs, architecture docs, plans, and tech specs.
+- Translating the internal spec/plan/tech-spec set wholesale would create a
+  large stale-translation maintenance surface before there is user or
+  contributor evidence that it is worth owning.
+- If translation becomes necessary, the smallest coherent promotion is a
+  bounded reference-doc translation slice, not internal specs and roadmaps.
+
+Rejected:
+
+- Translating internal specs, plans, and roadmap docs now. The current contract
+  is trilingual README navigation plus Korean-first detailed project docs.
+
 ## 2026-06-28 — LLM-SIGNAL-WEIGHT-DEFERRAL-RECHECK
 
 Decision: keep one-off LLM signal weight YAML exposure deferred.
