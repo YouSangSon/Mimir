@@ -154,6 +154,11 @@ COMPLETED_DESIGN_SPEC_STATUS_STALE_PATTERNS = (
     re.compile(r"\b\d{3,4}\s+passed\b"),
     re.compile(r"\b\d{3,4}\s+테스트\b"),
     re.compile(r"\b\d{2,3}%\s*(?:cov|coverage|커버리지)\b", re.IGNORECASE),
+    re.compile(r"(?<![\w.-])(?:ruff|mypy|pytest)(?![\w.-])", re.IGNORECASE),
+    re.compile(r"(?<![\w.-])(?:coverage|cov)(?![\w.-])|커버리지", re.IGNORECASE),
+    re.compile(r"(?<![\w.-])diff[- ]check(?![\w.-])", re.IGNORECASE),
+    re.compile(r"(?<![\w.-])uv\s+run(?:\s+[\w./:-]+)*", re.IGNORECASE),
+    re.compile(r"(?<![\w.-])python\s+-m(?:\s+[\w.:-]+)*", re.IGNORECASE),
 )
 SEC_REFRESH_STALE_GUARD_DOCS = tuple(sorted(Path("docs").rglob("*.md")))
 BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
@@ -460,6 +465,31 @@ def _status_line(text: str) -> str:
 
 
 def test_completed_design_spec_status_lines_use_current_verification_metadata() -> None:
+    current_status = (
+        "> **상태**: ✅ 구현 완료. 최신 검증은 README 테스트 배지와 docs health guard가 추적한다."
+    )
+    assert not any(
+        pattern.search(current_status)
+        for pattern in COMPLETED_DESIGN_SPEC_STATUS_STALE_PATTERNS
+    )
+
+    stale_status_examples = (
+        "> **상태**: ✅ 구현 완료. ruff + mypy clean.",
+        "> **상태**: ✅ 구현 완료. pytest -q passed.",
+        "> **상태**: ✅ 구현 완료. mypy strict clean.",
+        "> **상태**: ✅ 구현 완료. coverage clean.",
+        "> **상태**: ✅ 구현 완료. cov clean.",
+        "> **상태**: ✅ 구현 완료. 커버리지 clean.",
+        "> **상태**: ✅ 구현 완료. diff check clean.",
+        "> **상태**: ✅ 구현 완료. uv run pytest -q passed.",
+        "> **상태**: ✅ 구현 완료. python -m pytest passed.",
+    )
+    for status in stale_status_examples:
+        assert any(
+            pattern.search(status)
+            for pattern in COMPLETED_DESIGN_SPEC_STATUS_STALE_PATTERNS
+        )
+
     for path in sorted(Path("docs/superpowers/specs").glob("*.md")):
         text = path.read_text(encoding="utf-8")
         try:
