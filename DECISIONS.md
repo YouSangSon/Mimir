@@ -3,6 +3,24 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-06-28 — STOOQ-FLOAT-PARSER-TYPE-CLEANUP
+
+Decision: remove the Stooq parser `type: ignore[arg-type]` by splitting the
+`None` check from string sentinel handling.
+
+Reason:
+
+- `_f()` only needs to accept `None`, empty string, `N/D`, or a numeric string.
+- `if value is None or value in ("", "N/D")` gives mypy enough information to
+  prove `float(value)` receives a string.
+- A helper or broader parser abstraction would add code without improving the
+  source contract.
+
+Rejected:
+
+- Keeping the ignore as harmless debt; a one-line narrowing removes it and keeps
+  strict typing cleaner.
+
 ## 2026-06-28 — DECISIONS-FOLLOWUP-DOC-TRUTH
 
 Decision: once a follow-up loop is complete, remove the stale follow-up from

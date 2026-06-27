@@ -91,6 +91,6 @@ class StooqSource(BaseSource):
 
 
 def _f(value: str | None) -> float | None:
-    if value in (None, "", "N/D"):
+    if value is None or value in ("", "N/D"):
         return None
-    return float(value)  # type: ignore[arg-type]
+    return float(value)

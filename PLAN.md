@@ -11,9 +11,9 @@ record decisions, commit locally, then reorder the backlog.
 
 ## Current Loop
 
-`DECISIONS-FOLLOWUP-DOC-TRUTH`
+`STOOQ-FLOAT-PARSER-TYPE-CLEANUP`
 
-- Plan: `docs/superpowers/plans/2026-06-28-decisions-followup-doc-truth.md`
+- Plan: `docs/superpowers/plans/2026-06-28-stooq-float-parser-type-cleanup.md`
 - Backlog: `BACKLOG.md`
 - Work log: `WORKLOG.md`
 - Decisions: `DECISIONS.md`

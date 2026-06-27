@@ -1,5 +1,51 @@
 # Work Log
 
+## 2026-06-28 — STOOQ-FLOAT-PARSER-TYPE-CLEANUP
+
+Goal: remove a local `type: ignore[arg-type]` from the Stooq numeric parser
+without changing Stooq CSV semantics.
+
+Plan: `docs/superpowers/plans/2026-06-28-stooq-float-parser-type-cleanup.md`
+
+Research:
+
+- Code audit found `mimir/sources/stooq.py::_f()` used `# type: ignore[arg-type]`
+  because the `None` and string sentinel check did not narrow cleanly for mypy.
+- Existing Stooq parser behavior already treated optional `N/D` fields as
+  missing values; the loop needed coverage plus a smaller narrowing expression.
+
+TDD:
+
+- RED: `uv run pytest tests/sources/test_stooq.py::test_stooq_parser_does_not_need_arg_type_ignore -q`
+  failed because the local ignore was still present.
+- Characterization: `uv run pytest tests/sources/test_stooq.py::test_stooq_optional_numeric_nd_values_parse_as_none -q`
+  passed before the implementation change, confirming existing `N/D` behavior.
+
+Verification:
+
+- `uv run pytest tests/sources/test_stooq.py::test_stooq_parser_does_not_need_arg_type_ignore -q` — 1 passed
+- `uv run pytest tests/sources/test_stooq.py::test_stooq_optional_numeric_nd_values_parse_as_none -q` — 1 passed
+- `uv run pytest tests/sources/test_stooq.py -q` — 5 passed
+- `uv run pytest tests/test_readme_docs.py -q` — 29 passed
+- `uv run pytest --collect-only -q | tail -1` — 650 tests collected
+- `uv run pytest -q` — 650 passed
+- `uv run ruff check .` — passed
+- `uv run mypy mimir` — passed
+- `git diff --check` — passed
+
+Agent card:
+
+- Owner: Codex
+- State: review -> commit
+- Merge gate: focused Stooq tests, Stooq suite, docs suite, collect-only count,
+  full pytest, ruff, mypy, diff-check, and review pass.
+
+Result:
+
+- `_f()` now narrows `None` separately before `float(value)`.
+- Stooq optional numeric `N/D` and empty fields are covered.
+- README EN/KO/ZH test counts updated to 650.
+
 ## 2026-06-28 — DECISIONS-FOLLOWUP-DOC-TRUTH
 
 Goal: remove stale `PROJECT-STATE-ENTRYPOINTS` follow-up text after the workflow

@@ -19,12 +19,16 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. Fresh docs-truth scan across `docs/superpowers/specs/`,
-   `docs/decisions/tech-spec/`, and `docs/architecture/` for any remaining
-   stale current-state claims.
+1. Audit remaining local `type: ignore` comments and remove only those with a
+   small, behavior-preserving narrowing or typing fix.
 
 ## Done
 
+- `STOOQ-FLOAT-PARSER-TYPE-CLEANUP` — Stooq optional numeric CSV fields are
+  covered, and `_f()` no longer needs a local `type: ignore[arg-type]`.
+- Fresh docs-truth scan — no stronger stale current-state claim remained after
+  the backlog/decision follow-up cleanups; deferred items stay in the catalog
+  until measurement or policy evidence changes.
 - `DECISIONS-FOLLOWUP-DOC-TRUTH` — stale `PROJECT-STATE-ENTRYPOINTS`
   decision follow-up removed after `WORKFLOW-CONCURRENCY-QUEUE` completed.
 - `BACKLOG-NOTES-DOC-TRUTH` — `BACKLOG.md` Notes now keep completed-item

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 import requests
@@ -38,6 +39,31 @@ def test_stooq_meta_is_official_daily_prices():
     assert StooqSource.meta.cadence is Cadence.DAILY
     assert StooqSource.meta.legal_status is LegalStatus.OFFICIAL
     assert StooqSource.meta.requires_secret == "STOOQ_API_KEY"
+
+
+def test_stooq_parser_does_not_need_arg_type_ignore():
+    assert "type: ignore[arg-type]" not in Path("mimir/sources/stooq.py").read_text(
+        encoding="utf-8"
+    )
+
+
+@responses.activate
+def test_stooq_optional_numeric_nd_values_parse_as_none():
+    responses.add(
+        responses.GET,
+        "https://stooq.com/q/d/l/",
+        body="Date,Open,High,Low,Close,Volume\n2026-05-28,N/D,,0.5,1.5,N/D\n",
+        status=200,
+    )
+    src = StooqSource(session=requests.Session())
+
+    rec = next(iter(src.fetch(_ctx(["AAPL"]))))
+
+    assert rec.payload["open"] is None
+    assert rec.payload["high"] is None
+    assert rec.payload["low"] == 0.5
+    assert rec.payload["close"] == 1.5
+    assert rec.payload["volume"] is None
 
 
 @responses.activate
