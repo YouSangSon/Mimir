@@ -394,6 +394,16 @@ def test_backlog_notes_do_not_treat_completed_workflow_queue_as_pending() -> Non
     assert "decision rationale in `DECISIONS.md`" in normalized_notes
 
 
+def test_project_state_decision_does_not_keep_completed_workflow_followup() -> None:
+    text = Path("DECISIONS.md").read_text(encoding="utf-8")
+    project_state = _markdown_section(text, "## 2026-06-28 — PROJECT-STATE-ENTRYPOINTS")
+    workflow_queue = _markdown_section(text, "## 2026-06-28 — WORKFLOW-CONCURRENCY-QUEUE")
+
+    assert "concurrency.queue: max" in workflow_queue
+    assert "WORKFLOW-CONCURRENCY-QUEUE" not in project_state
+    assert "should be a separate loop with a workflow guard" not in project_state
+
+
 def test_signal_plugin_docs_match_extension_contract() -> None:
     docs = (
         Path("docs/architecture/extensibility/README.md"),

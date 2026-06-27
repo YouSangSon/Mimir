@@ -11,9 +11,9 @@ record decisions, commit locally, then reorder the backlog.
 
 ## Current Loop
 
-`BACKLOG-NOTES-DOC-TRUTH`
+`DECISIONS-FOLLOWUP-DOC-TRUTH`
 
-- Plan: `docs/superpowers/plans/2026-06-28-backlog-notes-doc-truth.md`
+- Plan: `docs/superpowers/plans/2026-06-28-decisions-followup-doc-truth.md`
 - Backlog: `BACKLOG.md`
 - Work log: `WORKLOG.md`
 - Decisions: `DECISIONS.md`

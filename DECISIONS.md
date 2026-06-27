@@ -3,6 +3,26 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-06-28 — DECISIONS-FOLLOWUP-DOC-TRUTH
+
+Decision: once a follow-up loop is complete, remove the stale follow-up from
+the earlier decision instead of leaving it as historical current-state text.
+
+Reason:
+
+- `DECISIONS.md` records durable rationale, but a `Follow-up:` block reads as
+  active work.
+- `WORKFLOW-CONCURRENCY-QUEUE` now has its own decision entry and verification
+  evidence.
+- Keeping the old follow-up in `PROJECT-STATE-ENTRYPOINTS` made the root state
+  docs contradict themselves.
+
+Rejected:
+
+- Leaving the old follow-up for historical context. Git history already
+  preserves it, and the newer workflow decision now carries the durable
+  rationale.
+
 ## 2026-06-28 — BACKLOG-NOTES-DOC-TRUTH
 
 Decision: completed backlog items should keep verification and rationale in
@@ -76,8 +96,3 @@ External research recorded before implementation:
 - Finding: default queueing keeps one pending run in a concurrency group, while
   `queue: max` queues up to 100 pending runs. GitHub documents that
   `queue: max` cannot be used with `cancel-in-progress: true`.
-
-Follow-up:
-
-- `WORKFLOW-CONCURRENCY-QUEUE` should be a separate loop with a workflow guard
-  before changing `.github/workflows/_pipeline.yml`.

@@ -1,5 +1,47 @@
 # Work Log
 
+## 2026-06-28 — DECISIONS-FOLLOWUP-DOC-TRUTH
+
+Goal: remove stale `PROJECT-STATE-ENTRYPOINTS` follow-up text after the workflow
+queue loop completed.
+
+Plan: `docs/superpowers/plans/2026-06-28-decisions-followup-doc-truth.md`
+
+Research:
+
+- Docs-truth scan found `DECISIONS.md` still saying
+  `WORKFLOW-CONCURRENCY-QUEUE` should be a separate loop with a workflow guard.
+- `WORKFLOW-CONCURRENCY-QUEUE` was already completed in `244aa72`.
+
+TDD:
+
+- RED: `uv run pytest tests/test_readme_docs.py::test_project_state_decision_does_not_keep_completed_workflow_followup -q`
+  failed because the stale follow-up remained in `DECISIONS.md`.
+
+Verification:
+
+- `uv run pytest tests/test_readme_docs.py::test_project_state_decision_does_not_keep_completed_workflow_followup -q` — 1 passed
+- `uv run pytest tests/test_readme_docs.py -q` — 29 passed
+- `uv run pytest --collect-only -q | tail -1` — 648 tests collected
+- `uv run pytest -q` — 648 passed
+- `uv run ruff check .` — passed
+- `uv run mypy mimir` — passed
+- `git diff --check` — passed
+
+Agent card:
+
+- Owner: Codex
+- State: review -> commit
+- Merge gate: focused docs guard, docs suite, collect-only count, full pytest,
+  ruff, mypy, diff-check, and review pass.
+
+Result:
+
+- Removed stale workflow-queue follow-up from the project-state decision.
+- `PLAN.md` points at `DECISIONS-FOLLOWUP-DOC-TRUTH`.
+- `BACKLOG.md` Done records both completed root-state cleanup loops.
+- README EN/KO/ZH test counts updated to 648.
+
 ## 2026-06-28 — BACKLOG-NOTES-DOC-TRUTH
 
 Goal: stop `BACKLOG.md` Notes from describing completed workflow-queue work as

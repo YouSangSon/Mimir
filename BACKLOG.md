@@ -25,6 +25,10 @@ free, legal public-data collection and investment insight generation.
 
 ## Done
 
+- `DECISIONS-FOLLOWUP-DOC-TRUTH` — stale `PROJECT-STATE-ENTRYPOINTS`
+  decision follow-up removed after `WORKFLOW-CONCURRENCY-QUEUE` completed.
+- `BACKLOG-NOTES-DOC-TRUTH` — `BACKLOG.md` Notes now keep completed-item
+  evidence policy generic instead of item-specific pre-implementation warnings.
 - `WORKFLOW-CONCURRENCY-QUEUE` — `.github/workflows/_pipeline.yml` now uses
   `concurrency.queue: max` with `cancel-in-progress: false` so scheduled
   collection runs queue in the shared `collect` group.
