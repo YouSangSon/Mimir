@@ -7,6 +7,9 @@ from pathlib import Path
 
 README_FILES = (Path("README.md"), Path("README.ko.md"), Path("README.zh.md"))
 IMPROVEMENT_CATALOG = Path("docs/architecture/improvement-catalog.md")
+INCREMENTAL_EXTENSIBILITY_ADR = Path(
+    "docs/architecture/adr/0001-incremental-extensibility-and-deferral.md"
+)
 CLI_REFERENCE = Path("docs/reference/cli.md")
 SEC_REFRESH_DESIGN_SPEC = Path(
     "docs/superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md"
@@ -596,6 +599,22 @@ def test_completed_design_spec_acceptance_verification_lines_use_current_metadat
             assert not _has_stale_acceptance_verification_metadata(line), (
                 f"{path} has stale acceptance verification metadata: {line}"
             )
+
+
+def test_architecture_adrs_do_not_publish_stale_current_verification_context() -> None:
+    text = INCREMENTAL_EXTENSIBILITY_ADR.read_text(encoding="utf-8")
+    header = text.split("\n## 결정", 1)[0]
+
+    assert "122 테스트" not in header
+    assert "95% 커버리지" not in header
+    assert "mypy strict" not in header
+    assert "발전 카탈로그" in header
+    assert "README 테스트 배지와 docs health guard" in header
+
+    for pattern in COMPLETED_DESIGN_SPEC_STATUS_STALE_PATTERNS:
+        assert not pattern.search(header), (
+            f"{INCREMENTAL_EXTENSIBILITY_ADR} header carries stale verification metadata"
+        )
 
 
 def test_foundation_design_specs_match_current_completion_state() -> None:
