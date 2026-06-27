@@ -1,6 +1,6 @@
 # SEC ticker→CIK mapping file refresh/cache — 설계문서 (off-by-default 구현 완료)
 
-> **상태**: off-by-default 구현 완료 (2026-06-19) — `enabled: true` opt-in 시에만 동작. 기본 경로는 네트워크 0. 구현: `mimir/sources/sec_ticker_cik_refresh.py`, 배선: `build_sources` prep step.
+> **상태**: off-by-default 구현 완료 (2026-06-19) — `enabled: true` opt-in 시에만 동작. 최신 검증은 README 테스트 배지와 docs health guard가 추적한다. 기본 경로는 네트워크 0. 구현: `mimir/sources/sec_ticker_cik_refresh.py`, 배선: `build_sources` prep step.
 > **작성**: 2026-06-19
 > **선행**: R1i-SEC-CIK(로컬 lookup), R1j~R1n(오류 표면) · [개선 카탈로그 §6](../../architecture/improvement-catalog.md)
 > **대상 독자**: SEC mapping refresh/cache의 현재 경계와 실패 정책을 유지·확장하는 개발자

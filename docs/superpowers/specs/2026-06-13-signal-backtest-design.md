@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC4 (카탈로그 B1)
 > **작성일**: 2026-06-13
-> **상태**: ✅ 구현 완료 (Increment 4: evaluation engine + `mimir.evaluate` CLI + daily pipeline/report scorecard). 2026-06-16 hardening에서 stale scorecard 제거와 리포트 합류까지 완료.
+> **상태**: ✅ 구현 완료 (Increment 4: evaluation engine + `mimir.evaluate` CLI + daily pipeline/report scorecard). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다. 2026-06-16 hardening에서 stale scorecard 제거와 리포트 합류까지 완료.
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S4 Historical](2026-05-31-historical-design.md)
 
 ---

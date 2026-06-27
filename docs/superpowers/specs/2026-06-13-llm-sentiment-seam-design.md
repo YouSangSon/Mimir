@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC5 (카탈로그 B2)
 > **작성일**: 2026-06-13
-> **상태**: ✅ seam 구현 완료. 기본 파이프라인은 LLM 호출 0건. 활성화 조건은 `[llm]` extra + `ANTHROPIC_API_KEY` + `llm_sentiment_enabled: true`의 세 조건 AND다. 2026-06-16 R1a 이후 `analysis.news.aliases` 기반 shared matcher를 사용하며, 2026-06-23 AN2 이후 classifier verdict cardinality guard가 추가됐다.
+> **상태**: ✅ seam 구현 완료. 최신 검증은 README 테스트 배지와 docs health guard가 추적한다. 기본 파이프라인은 LLM 호출 0건. 활성화 조건은 `[llm]` extra + `ANTHROPIC_API_KEY` + `llm_sentiment_enabled: true`의 세 조건 AND다. 2026-06-16 R1a 이후 `analysis.news.aliases` 기반 shared matcher를 사용하며, 2026-06-23 AN2 이후 classifier verdict cardinality guard가 추가됐다.
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S2 Analysis](2026-05-31-analysis-design.md)
 
 ---

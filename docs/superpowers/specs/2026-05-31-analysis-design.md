@@ -2,7 +2,7 @@
 
 > **스펙 ID**: S2
 > **작성일**: 2026-05-31
-> **상태**: 구현 완료 · LLM seam/A2 macro registry 확장 반영
+> **상태**: 구현 완료 · LLM seam/A2 macro registry 확장 반영. 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [S1 Collector](2026-05-31-collector-design.md) · [로드맵](../../architecture/roadmap.md)
 
 ---

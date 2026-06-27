@@ -470,18 +470,6 @@ def test_completed_design_spec_status_lines_use_current_verification_metadata() 
         if "구현 완료" not in status:
             continue
 
-        has_current_metadata = (
-            "최신 검증은 README 테스트 배지와 docs health guard가 추적" in status
-        )
-        has_stale_metadata = any(
-            phrase in status for phrase in COMPLETED_DESIGN_SPEC_STATUS_STALE_PHRASES
-        ) or any(
-            pattern.search(status)
-            for pattern in COMPLETED_DESIGN_SPEC_STATUS_STALE_PATTERNS
-        )
-        if not has_current_metadata and not has_stale_metadata:
-            continue
-
         assert "최신 검증은 README 테스트 배지와 docs health guard가 추적" in status, (
             f"{path} completed status must point at README/docs health verification"
         )

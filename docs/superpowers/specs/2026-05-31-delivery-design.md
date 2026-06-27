@@ -2,7 +2,7 @@
 
 > **스펙 ID**: S3
 > **작성일**: 2026-05-31
-> **상태**: 구현 완료 · S4/B1 확장 반영
+> **상태**: 구현 완료 · S4/B1 확장 반영. 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [S2 Analysis](2026-05-31-analysis-design.md) · [로드맵](../../architecture/roadmap.md)
 
 ---
