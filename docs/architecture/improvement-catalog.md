@@ -65,7 +65,7 @@
 | **CFG1** | `sources.yaml` CLI validation contract | 운영/DX | docs/reference config 약속 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-18-sources-config-cli-validation-design.md) |
 | **CFG2** | `mimir doctor` sources config validation | 운영/DX | CFG1 후속 + doctor 운영 점검 계약 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/config/CFG2_doctor_sources_config_validation_tech_spec_2026_06_18.md) |
 | **CFG3-CONFIG-GUARDRAILS** | watchlist schema 검증 + LLM headline cap 경계 | 견고성/비용 | CFG1/CFG2 후속 + 무료 원칙 비용 가드 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/config/CFG3_config_guardrails_tech_spec_2026_06_18.md) |
-| **COV1-CONTRACT-COVERAGE** | 기존 계약 characterization 커버리지 (ECOS Q/A cycle·blank value, config 절대경로, price volume edge) | 견고성/테스트 | 80%+ 커버리지 + idempotency_key/partition 불변식 약속 | **✅ 구현 완료 (2026-06-19)** | 테스트 + 문서 (본 문서 §4) |
+| **COV1-CONTRACT-COVERAGE** | 기존 계약 characterization 커버리지 (ECOS Q/A cycle·blank value, config 절대경로, price volume edge) | 견고성/테스트 | README/docs health guard가 추적하는 커버리지 게이트 + idempotency_key/partition 불변식 약속 | **✅ 구현 완료 (2026-06-19)** | 테스트 + 문서 (본 문서 §4) |
 | **I18N1-PARITY-GUARD** | 리포트 i18n 키·placeholder 패리티 drift guard | 운영/DX | trilingual 리포트 약속 + DOCHEALTH류 drift guard 계약 | **✅ 구현 완료 (2026-06-19)** | 테스트 + 문서 (본 문서 §4) |
 | **C2** | 파티션 인덱스 (git-as-DB rglob 스케일) | 성능 | 신규 | ⏸ 보류 | 본 문서 §6 |
 | **C3** | pykrx retry/backoff 정책 | 견고성 | 백로그 LOW | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-pykrx-retry-policy-design.md) |
@@ -459,7 +459,7 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 
 건강한 코드베이스의 증거 — 다음은 검토했고 **고칠 것이 없다**:
 
-- 레이어 그래프 순환 없음 · 파일 크기 건전(최대 ~150줄) · mypy strict 통과.
+- 레이어 그래프 순환 없음 · 파일 크기 건전(최대 ~150줄) · 타입 검증은 pyproject.toml strict config와 README 테스트 배지와 docs health guard가 추적한다.
 - `idempotency_key`는 소스 prefix로 교차충돌 없음 · 파티션은 자정 UTC라 안정.
 - 시크릿은 env/`.env`(gitignore)만 · ECOS 키 URL 유출은 이미 레다크션 처리.
 - `http_get` 429/5xx 재시도 + 4xx 빠른 실패 · 소스 격리(한 소스 실패가 전체를 멈추지 않음).

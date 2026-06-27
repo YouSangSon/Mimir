@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 README_FILES = (Path("README.md"), Path("README.ko.md"), Path("README.zh.md"))
@@ -273,6 +274,41 @@ def test_readme_test_badges_match_collected_pytest_count() -> None:
         assert table is not None, f"{path} has no tests table row"
         assert int(badge.group(1)) == expected
         assert int(table.group(1)) == expected
+
+
+def test_readme_and_architecture_health_metadata_use_current_contract() -> None:
+    pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+    assert pyproject["tool"]["mypy"]["strict"] is True
+
+    canonical_lint_type = "ruff + mypy (`pyproject.toml` strict config) clean"
+    stale_readme_lint_type = "ruff + mypy `--strict` clean"
+    for path in README_FILES:
+        text = path.read_text(encoding="utf-8")
+        rows = [
+            line
+            for line in text.splitlines()
+            if line.startswith("| **lint/type** |")
+        ]
+        assert rows == [f"| **lint/type** | {canonical_lint_type} |"]
+        assert stale_readme_lint_type not in text
+
+    catalog = IMPROVEMENT_CATALOG.read_text(encoding="utf-8")
+    cov1_rows = [
+        line
+        for line in catalog.splitlines()
+        if line.startswith("| **COV1-CONTRACT-COVERAGE** |")
+    ]
+    assert len(cov1_rows) == 1
+    cov1_row = cov1_rows[0]
+    assert "README/docs health guard가 추적하는 커버리지 게이트" in cov1_row
+    assert "idempotency_key/partition 불변식 약속" in cov1_row
+    assert "80%+ 커버리지" not in cov1_row
+
+    anti_discovery = _markdown_section(catalog, "## 7. 안티-발견 (확인됨, 손대지 않음)")
+    assert "pyproject.toml strict config" in anti_discovery
+    assert "README 테스트 배지와 docs health guard가 추적" in anti_discovery
+    assert "mypy strict 통과" not in anti_discovery
+    assert "mypy --strict clean" not in anti_discovery
 
 
 def test_improvement_catalog_summary_mentions_latest_completed_ids() -> None:
