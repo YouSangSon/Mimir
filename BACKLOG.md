@@ -19,12 +19,16 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. Recheck captured-date persistent index deferral against current measurement
-   hooks and either keep it deferred with evidence or promote a bounded storage
-   slice to a tech spec.
+1. Recheck LLM signal weight YAML exposure deferral against the current signal
+   config surface and either keep it deferred with evidence or promote a unified
+   signal-weight tuning spec.
 
 ## Done
 
+- `CAPTURED-INDEX-DEFERRAL-RECHECK` — captured-date persistent index stays
+  deferred because the C2a in-memory cache and `records/days/elapsed_ms`
+  measurement hook exist, but repo evidence does not show a rebuild bottleneck
+  crossing the implementation threshold.
 - `RSS-PROVIDER-POLICY-RECHECK` — generic provider RSS discovery remains
   deferred, while the SEC-only watchlist company filing feed generation slice is
   promoted to a Draft tech spec as `R1o-SEC-WATCHLIST-FILING-FEEDS`.

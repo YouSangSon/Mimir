@@ -1,5 +1,69 @@
 # Work Log
 
+## 2026-06-28 — CAPTURED-INDEX-DEFERRAL-RECHECK
+
+Goal: recheck the captured-date persistent index deferral and promote storage
+work only if current repo evidence shows the in-memory rebuild has become a
+rebuild bottleneck.
+
+Plan: `docs/superpowers/plans/2026-06-28-captured-index-deferral-recheck.md`
+
+Research:
+
+- `mimir/storage/reader.py` already builds a per-reader captured-date
+  in-memory index and invalidates it on `JsonlStore.revision`.
+- The rebuild path logs `records/days/elapsed_ms` at DEBUG level, which is the
+  measurement hook needed before deciding whether an on-disk index is worth the
+  extra schema and stale-index behavior.
+- `tests/analysis/test_reader.py::test_captured_index_rebuild_logs_scan_scale`
+  asserts one rebuild log with record/day scale fields.
+- `docs/superpowers/specs/2026-06-19-captured-date-persistent-index-design.md`
+  remains a design-only, unimplemented spec that says to build only after
+  measurements prove the rebuild bottleneck.
+
+TDD:
+
+- RED: `uv run pytest tests/test_readme_docs.py::test_captured_date_persistent_index_recheck_keeps_measurement_based_deferral -q`
+  failed because root project docs did not yet record
+  `CAPTURED-INDEX-DEFERRAL-RECHECK`.
+
+Verification:
+
+- `uv run pytest tests/test_readme_docs.py::test_captured_date_persistent_index_recheck_keeps_measurement_based_deferral -q` — 1 passed
+- `uv run pytest tests/test_readme_docs.py -q` — 31 passed
+- `uv run pytest --collect-only -q | tail -1` — 655 tests collected
+- `uv run pytest -q` — 655 passed
+- `uv run ruff check .` — passed
+- `uv run mypy mimir` — passed
+- `git diff --check` — passed
+- Secrets scan on touched files found only placeholders, GitHub Secrets wording,
+  public docs references, and existing worklog mentions.
+
+Agent card:
+
+- Owner: Codex
+- State: review -> commit
+- Merge gate: focused docs guard, docs suite, collect-only count, full pytest,
+  ruff, mypy, diff-check, secrets scan, and review pass.
+
+Review:
+
+- Spec reviewer found no Critical or Important issues and accepted the
+  measurement-based deferral contract.
+- Quality reviewer found no Critical or Important issues. Two Minor guard
+  precision concerns were addressed by making the test rely on the existing
+  runtime log-scale test and by checking the captured-index rows/sections in
+  current docs instead of broad file-wide terms.
+
+Result:
+
+- Captured-date persistent index remains deferred.
+- Existing C2a in-memory cache and `records/days/elapsed_ms` measurement logs
+  remain the unblock evidence path.
+- `BACKLOG.md` now queues the LLM signal weight YAML exposure deferral recheck
+  next.
+- README EN/KO/ZH test counts updated to 655.
+
 ## 2026-06-28 — RSS-PROVIDER-POLICY-RECHECK
 
 Goal: recheck the deferred RSS discovery/provider-policy backlog item and

@@ -82,6 +82,9 @@ BACKFILL_PREFLIGHT_MANIFEST_SPEC = Path(
 NEWS_CAPTURED_WINDOW_SPEC = Path(
     "docs/superpowers/specs/2026-06-16-news-captured-window-design.md"
 )
+CAPTURED_DATE_PERSISTENT_INDEX_SPEC = Path(
+    "docs/superpowers/specs/2026-06-19-captured-date-persistent-index-design.md"
+)
 SYMBOL_TAGGED_RSS_FEEDS_SPEC = Path(
     "docs/superpowers/specs/2026-06-16-symbol-tagged-rss-feeds-design.md"
 )
@@ -465,6 +468,64 @@ def test_rss_provider_policy_recheck_promotes_only_sec_watchlist_spec() -> None:
     ):
         assert phrase in spec
         assert phrase in decisions
+
+
+def test_captured_date_persistent_index_recheck_keeps_measurement_based_deferral() -> None:
+    design = CAPTURED_DATE_PERSISTENT_INDEX_SPEC.read_text(encoding="utf-8")
+    reader = Path("mimir/storage/reader.py").read_text(encoding="utf-8")
+    reader_tests = Path("tests/analysis/test_reader.py").read_text(encoding="utf-8")
+    catalog = IMPROVEMENT_CATALOG.read_text(encoding="utf-8")
+    extensibility = Path("docs/architecture/extensibility/README.md").read_text(encoding="utf-8")
+    improvements = Path("docs/IMPROVEMENTS.md").read_text(encoding="utf-8")
+    backlog = BACKLOG.read_text(encoding="utf-8")
+    decisions = Path("DECISIONS.md").read_text(encoding="utf-8")
+    worklog = Path("WORKLOG.md").read_text(encoding="utf-8")
+
+    for phrase in ("설계만", "구현하지 않음", "보류", "YAGNI"):
+        assert phrase in design
+    for phrase in ("_captured_date_index", "records", "days", "elapsed_ms", "먼저 측정하라"):
+        assert phrase in design
+
+    for phrase in ("logger.debug", "captured-date index rebuilt", "record_count", "len(index)"):
+        assert phrase in reader
+    reader_log_test = reader_tests.split(
+        "def test_captured_index_rebuild_logs_scan_scale", 1
+    )[1].split("\ndef test_", 1)[0]
+    for phrase in ("caplog", "captured-date index rebuilt", "records=3", "days=2"):
+        assert phrase in reader_log_test
+
+    deferred = _markdown_section(catalog, "## 6. 보류 항목 — 근거 명시")
+    for phrase in (
+        "C2 파티션 인덱스",
+        "측정 계기는 구현됐다",
+        "records/days/elapsed_ms",
+        "아직 미도달",
+    ):
+        assert phrase in deferred
+    extensibility_debt = _markdown_section(extensibility, "## 7. 남은 확장성 부채")
+    improvements_followup = _markdown_section(improvements, "## 후속 후보")
+    for phrase in (
+        "Captured-date persistent index",
+        "현재 구현은 실행 중 메모리 cache",
+        "cache rebuild 병목이 측정되면 구현",
+    ):
+        assert phrase in extensibility_debt
+    for phrase in (
+        "Captured-date persistent index나 보조 파티션은 아직 보류한다",
+        "`read_captured_window()` 재빌드 자체가 병목이라는 측정",
+        "on-disk index schema",
+    ):
+        assert phrase in improvements_followup
+
+    for text in (design, catalog, extensibility, improvements, backlog, decisions, worklog):
+        assert "captured-date persistent index is implemented" not in text
+        assert "on-disk captured-date index is implemented" not in text
+        assert "mimir index rebuild --dataset news_captured 구현 완료" not in text
+
+    for text in (backlog, decisions, worklog):
+        assert "CAPTURED-INDEX-DEFERRAL-RECHECK" in text
+        assert "rebuild bottleneck" in text
+        assert "records/days/elapsed_ms" in text
 
 
 def test_signal_plugin_docs_match_extension_contract() -> None:

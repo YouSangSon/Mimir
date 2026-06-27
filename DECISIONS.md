@@ -3,6 +3,30 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-06-28 — CAPTURED-INDEX-DEFERRAL-RECHECK
+
+Decision: keep the captured-date persistent index deferred.
+
+Reason:
+
+- `DataReader.read_captured_window()` already builds a per-reader in-memory
+  captured-date index and reuses it until `JsonlStore.revision` changes.
+- `DataReader._captured_date_index()` already logs `records/days/elapsed_ms`
+  at DEBUG level, so operators can observe the scan size and rebuild cost.
+- `tests/analysis/test_reader.py::test_captured_index_rebuild_logs_scan_scale`
+  keeps that measurement hook covered.
+- The persistent index design requires evidence that the in-memory rebuild has
+  become a rebuild bottleneck. The repo has no current measurement proving that
+  threshold has been crossed.
+- An on-disk index would add schema, rebuild command, stale-index fallback, and
+  cache invalidation behavior before it is justified.
+
+Rejected:
+
+- Promoting a bounded storage implementation now. The existing design document
+  is enough until measurements show `records/days/elapsed_ms` costs threatening
+  runtime budgets.
+
 ## 2026-06-28 — RSS-PROVIDER-POLICY-RECHECK
 
 Decision: keep generic provider RSS discovery deferred, and promote only the
