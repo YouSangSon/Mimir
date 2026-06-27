@@ -118,9 +118,18 @@ def test_completed_design_spec_numbered_completion_criteria_use_current_metadata
                 continue
 
             if "README 테스트 배지와 docs health guard" in line:
-                assert line.strip().endswith(
+                item_text = COMPLETED_DESIGN_SPEC_NUMBERED_ITEM_RE.sub(
+                    "", line.strip(), count=1
+                )
+                assert item_text.startswith(
                     COMPLETED_DESIGN_SPEC_NUMBERED_CURRENT_VERIFICATION
                 ), f"{path} uses non-canonical numbered current verification: {line}"
+                extra_text = item_text.removeprefix(
+                    COMPLETED_DESIGN_SPEC_NUMBERED_CURRENT_VERIFICATION
+                ).strip()
+                assert not _has_stale_acceptance_verification_metadata(extra_text), (
+                    f"{path} has stale numbered completion verification metadata: {line}"
+                )
                 continue
 
             assert not _has_stale_acceptance_verification_metadata(line), (
