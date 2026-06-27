@@ -11,9 +11,9 @@ record decisions, commit locally, then reorder the backlog.
 
 ## Current Loop
 
-`NORMALIZE-PAYLOAD-TYPE-CLEANUP`
+`ENTRYPOINT-CAST-TYPE-CLEANUP`
 
-- Plan: `docs/superpowers/plans/2026-06-28-normalize-payload-type-cleanup.md`
+- Plan: `docs/superpowers/plans/2026-06-28-entrypoint-cast-type-cleanup.md`
 - Backlog: `BACKLOG.md`
 - Work log: `WORKLOG.md`
 - Decisions: `DECISIONS.md`
