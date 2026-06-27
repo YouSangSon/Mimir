@@ -13,6 +13,7 @@ INCREMENTAL_EXTENSIBILITY_ADR = Path(
     "docs/architecture/adr/0001-incremental-extensibility-and-deferral.md"
 )
 CLI_REFERENCE = Path("docs/reference/cli.md")
+BACKLOG = Path("BACKLOG.md")
 ROOT_STATE_DOCS = {
     Path("PLAN.md"): (
         "docs/superpowers/plans/",
@@ -378,6 +379,19 @@ def test_root_project_state_entrypoints_link_canonical_sources() -> None:
         text = path.read_text(encoding="utf-8")
         for fragment in required_fragments:
             assert fragment in text, f"{path} missing {fragment}"
+
+
+def test_backlog_notes_do_not_treat_completed_workflow_queue_as_pending() -> None:
+    text = BACKLOG.read_text(encoding="utf-8")
+    done = _markdown_section(text, "## Done")
+    notes = _markdown_section(text, "## Notes")
+    normalized_notes = re.sub(r"\s+", " ", notes)
+
+    assert "WORKFLOW-CONCURRENCY-QUEUE" in done
+    assert "WORKFLOW-CONCURRENCY-QUEUE" not in notes
+    assert "needs its own RED workflow guard before changing YAML" not in normalized_notes
+    assert "Completed items keep verification evidence in `WORKLOG.md`" in normalized_notes
+    assert "decision rationale in `DECISIONS.md`" in normalized_notes
 
 
 def test_signal_plugin_docs_match_extension_contract() -> None:

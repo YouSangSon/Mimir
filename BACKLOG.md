@@ -35,5 +35,6 @@ free, legal public-data collection and investment insight generation.
 ## Notes
 
 - `PROJECT-STATE-ENTRYPOINTS` must not duplicate the long backlog/catalog.
-- `WORKFLOW-CONCURRENCY-QUEUE` needs its own RED workflow guard before changing
-  YAML.
+- Completed items keep verification evidence in `WORKLOG.md` and decision
+  rationale in `DECISIONS.md`; Notes should not keep pre-implementation
+  warnings after an item moves to Done.

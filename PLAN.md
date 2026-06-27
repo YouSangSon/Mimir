@@ -11,9 +11,9 @@ record decisions, commit locally, then reorder the backlog.
 
 ## Current Loop
 
-`WORKFLOW-CONCURRENCY-QUEUE`
+`BACKLOG-NOTES-DOC-TRUTH`
 
-- Plan: `docs/superpowers/plans/2026-06-28-workflow-concurrency-queue.md`
+- Plan: `docs/superpowers/plans/2026-06-28-backlog-notes-doc-truth.md`
 - Backlog: `BACKLOG.md`
 - Work log: `WORKLOG.md`
 - Decisions: `DECISIONS.md`

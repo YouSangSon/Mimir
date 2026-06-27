@@ -3,6 +3,26 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-06-28 — BACKLOG-NOTES-DOC-TRUTH
+
+Decision: completed backlog items should keep verification and rationale in
+`WORKLOG.md` and `DECISIONS.md`, not as item-specific pre-implementation
+warnings in `BACKLOG.md` Notes.
+
+Reason:
+
+- `BACKLOG.md` is the active queue and lightweight policy surface.
+- Once `WORKFLOW-CONCURRENCY-QUEUE` moved to Done, the old note saying it still
+  needed a RED guard became stale current-state wording.
+- A generic evidence rule preserves the useful process constraint without
+  implying completed work is still pending.
+
+Rejected:
+
+- Keeping a workflow-specific warning in Notes after completion, because it
+  contradicts Done state and duplicates evidence already recorded in
+  `WORKLOG.md`.
+
 ## 2026-06-28 — WORKFLOW-CONCURRENCY-QUEUE
 
 Decision: set workflow-level `concurrency.queue: max` in the reusable scheduled

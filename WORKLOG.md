@@ -1,5 +1,55 @@
 # Work Log
 
+## 2026-06-28 — BACKLOG-NOTES-DOC-TRUTH
+
+Goal: stop `BACKLOG.md` Notes from describing completed workflow-queue work as
+if it still needs a pre-implementation guard.
+
+Plan: `docs/superpowers/plans/2026-06-28-backlog-notes-doc-truth.md`
+
+Research:
+
+- Repo scan found `WORKFLOW-CONCURRENCY-QUEUE` in `BACKLOG.md` Done while Notes
+  still said it needed its own RED workflow guard before changing YAML.
+- The workflow guard and YAML change were already committed in `244aa72`.
+
+TDD:
+
+- RED: `uv run pytest tests/test_readme_docs.py::test_backlog_notes_do_not_treat_completed_workflow_queue_as_pending -q`
+  failed on the stale Notes wording.
+
+Verification:
+
+- `uv run pytest tests/test_readme_docs.py::test_backlog_notes_do_not_treat_completed_workflow_queue_as_pending -q` — 1 passed
+- `uv run pytest tests/test_readme_docs.py -q` — 28 passed
+- `uv run pytest --collect-only -q | tail -1` — 647 tests collected
+- `uv run pytest -q` — 647 passed
+- `uv run ruff check .` — passed
+- `uv run mypy mimir` — passed
+- `git diff --check` — passed
+- Secrets scan on touched files found only placeholders, docs references, and
+  existing test strings.
+
+Review:
+
+- Initial spec review flagged unrelated untracked continuation files; corrected
+  review scoped to intended commit files approved with no findings.
+- Quality review found one Minor guard-strength concern; the guard now also
+  rejects item-specific `WORKFLOW-CONCURRENCY-QUEUE` Notes after Done.
+
+Agent card:
+
+- Owner: Codex
+- State: review -> commit
+- Merge gate: focused docs guard, docs suite, collect-only count, full pytest,
+  ruff, mypy, diff-check, and review pass.
+
+Result:
+
+- `BACKLOG.md` Notes now use a generic completed-item evidence rule.
+- `PLAN.md` points at `BACKLOG-NOTES-DOC-TRUTH`.
+- README EN/KO/ZH test counts updated to 647.
+
 ## 2026-06-28 — WORKFLOW-CONCURRENCY-QUEUE
 
 Goal: preserve all pending scheduled collection runs by queueing the reusable
