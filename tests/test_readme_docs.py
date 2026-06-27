@@ -125,6 +125,10 @@ R1I_SEC_CIK_TECH_SPEC = Path(
     "docs/decisions/tech-spec/sources/"
     "R1i-SEC-CIK_sec_ticker_cik_map_tech_spec_2026_06_18.md"
 )
+R1O_SEC_WATCHLIST_FILING_FEEDS_TECH_SPEC = Path(
+    "docs/decisions/tech-spec/sources/"
+    "R1o-SEC-WATCHLIST-FILING-FEEDS_sec_watchlist_filing_feeds_tech_spec_2026_06_28.md"
+)
 README_REQUIRED_LINKS = (
     "docs/architecture/improvement-catalog.md",
     "docs/decisions/tech-spec/README.md",
@@ -402,6 +406,65 @@ def test_project_state_decision_does_not_keep_completed_workflow_followup() -> N
     assert "concurrency.queue: max" in workflow_queue
     assert "WORKFLOW-CONCURRENCY-QUEUE" not in project_state
     assert "should be a separate loop with a workflow guard" not in project_state
+
+
+def test_rss_provider_policy_recheck_promotes_only_sec_watchlist_spec() -> None:
+    assert R1O_SEC_WATCHLIST_FILING_FEEDS_TECH_SPEC.exists()
+
+    spec = R1O_SEC_WATCHLIST_FILING_FEEDS_TECH_SPEC.read_text(encoding="utf-8")
+    index = Path("docs/decisions/tech-spec/README.md").read_text(encoding="utf-8")
+    catalog = IMPROVEMENT_CATALOG.read_text(encoding="utf-8")
+    decisions = Path("DECISIONS.md").read_text(encoding="utf-8")
+    current_docs = (
+        catalog,
+        Path("docs/architecture/extensibility/README.md").read_text(encoding="utf-8"),
+        Path("docs/reference/config/sources.md").read_text(encoding="utf-8"),
+        Path("docs/IMPROVEMENTS.md").read_text(encoding="utf-8"),
+    )
+    deferred = _markdown_section(catalog, "## 6. 보류 항목 — 근거 명시")
+
+    status = TECH_SPEC_STATUS_RE.search(spec)
+    assert status is not None
+    assert status.group(1).strip() == "Draft"
+
+    for phrase in (
+        "sources.rss.sec.watchlist_company_filings",
+        "default false",
+        "MIMIR_SEC_USER_AGENT",
+        "company_tickers.json",
+        "no HTML RSS link crawling",
+        "no vendor URL pattern inference",
+    ):
+        assert phrase in spec
+
+    relative_spec_path = str(
+        R1O_SEC_WATCHLIST_FILING_FEEDS_TECH_SPEC.relative_to(
+            "docs/decisions/tech-spec"
+        )
+    )
+    assert relative_spec_path in index
+    assert "R1o-SEC-WATCHLIST-FILING-FEEDS" in catalog
+    for phrase in (
+        "generic live discovery",
+        "SEC 외 provider discovery",
+        "HTML RSS link crawling",
+        "vendor URL pattern inference",
+    ):
+        assert phrase in deferred
+    for text in current_docs:
+        assert "watchlist 기반 SEC feed 자동 생성은 여전히 deferred item이다" not in text
+        assert "watchlist 기반 SEC feed 자동 생성, HTML RSS link crawling" not in text
+    for phrase in (
+        "SEC RSS Feeds",
+        "https://www.sec.gov/about/rss-feeds",
+        "SEC Developer Resources",
+        "https://www.sec.gov/about/developer-resources",
+        "SEC Webmaster FAQ",
+        "https://www.sec.gov/about/webmaster-frequently-asked-questions",
+        "https://www.sec.gov/files/company_tickers.json",
+    ):
+        assert phrase in spec
+        assert phrase in decisions
 
 
 def test_signal_plugin_docs_match_extension_contract() -> None:

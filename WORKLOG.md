@@ -1,5 +1,68 @@
 # Work Log
 
+## 2026-06-28 — RSS-PROVIDER-POLICY-RECHECK
+
+Goal: recheck the deferred RSS discovery/provider-policy backlog item and
+promote only a legal, official-source slice if current evidence supports it.
+
+Plan: `docs/superpowers/plans/2026-06-28-rss-provider-policy-recheck.md`
+
+Research:
+
+- SEC RSS Feeds documents that EDGAR Company Search results can be captured as
+  RSS feeds and filtered by filing type.
+- SEC Developer Resources and Webmaster FAQ document efficient scripting,
+  request moderation, declared User-Agent headers, and a 10 requests/sec maximum
+  access-rate guideline.
+- SEC Webmaster FAQ lists `company_tickers.json` for ticker/CIK/company-name
+  associations but says SEC does not guarantee accuracy or scope.
+- Existing Mimir code already implements `sources.rss.sec.company_filings`,
+  ticker input, local `company_tickers.json` lookup, and off-by-default mapping
+  refresh. Generic provider discovery remains outside the verified SEC boundary.
+
+TDD:
+
+- RED: `uv run pytest tests/test_readme_docs.py::test_rss_provider_policy_recheck_promotes_only_sec_watchlist_spec -q`
+  failed because the R1o draft tech spec did not exist.
+
+Verification:
+
+- `uv run pytest tests/test_readme_docs.py::test_rss_provider_policy_recheck_promotes_only_sec_watchlist_spec -q` — 1 passed
+- `uv run pytest tests/test_readme_docs.py -q` — 30 passed
+- `uv run pytest --collect-only -q | tail -1` — 654 tests collected
+- `uv run pytest -q` — 654 passed
+- `uv run ruff check .` — passed
+- `uv run mypy mimir` — passed
+- `git diff --check` — passed
+- Secrets scan on touched files found only placeholders, public SEC URLs, and
+  existing docs/test references.
+
+Agent card:
+
+- Owner: Codex
+- State: review -> commit
+- Merge gate: focused docs guard, docs suite, collect-only count, full pytest,
+  ruff, mypy, diff-check, secrets scan, and review pass.
+
+Review:
+
+- Spec reviewer found no Critical or Important issues; a Minor citation-guard
+  concern was resolved by requiring the R1o spec and `DECISIONS.md` to keep the
+  official SEC source names and URLs.
+- Quality reviewer found one P2 stale-current-doc issue in
+  `docs/architecture/extensibility/README.md`; the doc now points watchlist SEC
+  feed generation to the R1o Draft spec, and the guard scans current docs for
+  stale deferred wording.
+- Re-review approved with no remaining findings.
+
+Result:
+
+- Generic provider RSS discovery remains deferred.
+- `R1o-SEC-WATCHLIST-FILING-FEEDS` is a Draft tech spec for an SEC-only,
+  default-false, opt-in watchlist company filing feed generation slice.
+- `BACKLOG.md` now queues captured-date persistent index deferral recheck next.
+- README EN/KO/ZH test counts updated to 654.
+
 ## 2026-06-28 — ENTRYPOINT-CAST-TYPE-CLEANUP
 
 Goal: remove remaining avoidable `cast()` calls from plugin entry-point loaders

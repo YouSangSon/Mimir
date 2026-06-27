@@ -108,7 +108,7 @@ SEC structured disclosure catalog id는 정적 공식 feed다. `sec_structured_u
 
 `sources.rss.sec.company_filings[].ticker`는 SEC Company Search RSS의 ticker token을 쓰는 편의 입력이다. `sources.rss.sec.ticker_cik_map_path`를 설정하면 같은 ticker를 로컬 SEC mapping file에서 찾아 10자리 CIK로 바꾼다. `ticker_cik_map_refresh`를 opt-in하면 build 전에 TTL gate + ETag 조건부 GET으로 이 file을 best-effort 갱신할 수 있다. `304`는 기존 file을 유지하고 TTL을 리셋하며, orphaned `304`는 warning만 남기고 넘어간다. invalid download는 canonical loader 검증에 실패하면 채택하지 않는다.
 
-watchlist 기반 SEC feed 자동 생성, HTML RSS link crawling, vendor URL pattern inference는 아직 deferred item이다. 이 작업들은 provider 정책과 SEC fair-access 경계가 필요하므로 정적 catalog와 로컬 mapping file lookup과 분리한다.
+watchlist 기반 SEC feed 자동 생성은 `R1o-SEC-WATCHLIST-FILING-FEEDS` Draft spec으로 승격했다. 아직 production code는 없으며, 제안 범위는 SEC 공식 Company Search RSS와 기존 local mapping file lookup을 재사용하는 opt-in slice다. HTML RSS link crawling과 vendor URL pattern inference는 계속 deferred item이다.
 
 이 기능은 외부 source plugin을 대체하지 않는다. Catalog는 built-in RSS source의 입력 목록을 편하게 만드는 장치다. 새 protocol, 새 인증 방식, 내부 feed client가 필요하면 `mimir.sources` plugin 또는 새 내장 source를 추가해야 한다.
 

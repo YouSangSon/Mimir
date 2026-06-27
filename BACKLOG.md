@@ -19,12 +19,15 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. Recheck deferred RSS discovery/provider-policy scope and either keep it
-   deferred with current evidence or promote one legal, official-source slice
-   to a tech spec.
+1. Recheck captured-date persistent index deferral against current measurement
+   hooks and either keep it deferred with evidence or promote a bounded storage
+   slice to a tech spec.
 
 ## Done
 
+- `RSS-PROVIDER-POLICY-RECHECK` — generic provider RSS discovery remains
+  deferred, while the SEC-only watchlist company filing feed generation slice is
+  promoted to a Draft tech spec as `R1o-SEC-WATCHLIST-FILING-FEEDS`.
 - `ENTRYPOINT-CAST-TYPE-CLEANUP` — source and analysis plugin entry-point
   loaders now use Python 3.14 `entry_points(group=...)` directly instead of
   legacy mapping fallback casts.

@@ -3,6 +3,41 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-06-28 — RSS-PROVIDER-POLICY-RECHECK
+
+Decision: keep generic provider RSS discovery deferred, and promote only the
+SEC official-source watchlist company filing feed slice to a Draft tech spec.
+
+Reason:
+
+- SEC documents Company Search RSS feeds and Filing Type filtering, so this
+  slice can reuse Mimir's existing SEC company filing feed resolver.
+- SEC fair-access guidance requires efficient requests, request moderation, and
+  declared automated tooling. An opt-in default-false setting keeps request
+  volume explicit.
+- SEC publishes `company_tickers.json` but does not guarantee accuracy or scope,
+  so the draft keeps the existing local mapping and fail-loud ambiguity policy.
+- SEC-external provider discovery, HTML RSS link crawling, and vendor URL
+  pattern inference still need provider-specific policy and ToS review.
+
+Sources:
+
+- SEC RSS Feeds:
+  https://www.sec.gov/about/rss-feeds
+- SEC Developer Resources:
+  https://www.sec.gov/about/developer-resources
+- SEC Webmaster FAQ:
+  https://www.sec.gov/about/webmaster-frequently-asked-questions
+- SEC `company_tickers.json`:
+  https://www.sec.gov/files/company_tickers.json
+
+Rejected:
+
+- Implementing watchlist-based feed generation immediately. The backlog item was
+  a provider-policy recheck, and a draft spec is the smallest safe product step.
+- Generic live discovery. It would guess or crawl provider surfaces outside the
+  verified SEC official-source boundary.
+
 ## 2026-06-28 — ENTRYPOINT-CAST-TYPE-CLEANUP
 
 Decision: remove legacy `importlib.metadata.entry_points()` mapping fallbacks
