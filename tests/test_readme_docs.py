@@ -8,6 +8,7 @@ from pathlib import Path
 
 README_FILES = (Path("README.md"), Path("README.ko.md"), Path("README.zh.md"))
 IMPROVEMENT_CATALOG = Path("docs/architecture/improvement-catalog.md")
+ROADMAP = Path("docs/architecture/roadmap.md")
 INCREMENTAL_EXTENSIBILITY_ADR = Path(
     "docs/architecture/adr/0001-incremental-extensibility-and-deferral.md"
 )
@@ -309,6 +310,16 @@ def test_readme_and_architecture_health_metadata_use_current_contract() -> None:
     assert "README 테스트 배지와 docs health guard가 추적" in anti_discovery
     assert "mypy strict 통과" not in anti_discovery
     assert "mypy --strict clean" not in anti_discovery
+
+
+def test_architecture_roadmap_testing_metadata_uses_current_contract() -> None:
+    text = ROADMAP.read_text(encoding="utf-8")
+    cross_cutting = _markdown_section(text, "## 5. 횡단 관심사 (모든 스펙에 적용)")
+
+    assert "TDD" in cross_cutting
+    assert "README 테스트 배지와 docs health guard" in cross_cutting
+    assert "coverage 80%+" not in cross_cutting
+    assert "커버리지 80%+" not in cross_cutting
 
 
 def test_improvement_catalog_summary_mentions_latest_completed_ids() -> None:
