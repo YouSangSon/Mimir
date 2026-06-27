@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import pytest
 from pydantic import BaseModel, ConfigDict
@@ -208,6 +209,15 @@ def test_entry_point_source_specs_are_loaded_in_name_order(monkeypatch):
         "alpha_plugin",
         "zulu_plugin",
     ]
+
+
+def test_source_entry_point_loader_does_not_keep_legacy_cast() -> None:
+    text = Path("mimir/core/builder.py").read_text(encoding="utf-8")
+    loader = text.split("def _entry_points_for_group", 1)[1].split(
+        "def _source_specs_from_entry_point", 1
+    )[0]
+
+    assert "cast(" not in loader
 
 
 def test_entry_point_source_spec_id_must_match_entry_point_name(monkeypatch):

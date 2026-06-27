@@ -197,6 +197,15 @@ def test_entry_point_signal_specs_are_loaded_in_name_order(monkeypatch):
     ]
 
 
+def test_signal_entry_point_loader_does_not_keep_legacy_cast() -> None:
+    text = Path("mimir/analysis/builder.py").read_text(encoding="utf-8")
+    loader = text.split("def _entry_points_for_group", 1)[1].split(
+        "def _signal_specs_from_entry_point", 1
+    )[0]
+
+    assert "cast(" not in loader
+
+
 def test_load_signal_specs_appends_entry_point_signals(monkeypatch):
     spec = SignalSpec("plugin_quality", lambda settings, cfg: _FakeSignal())
     _patch_signal_entry_points(monkeypatch, [_FakeEntryPoint("plugin_quality", spec)])

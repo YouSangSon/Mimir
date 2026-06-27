@@ -3,6 +3,30 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-06-28 — ENTRYPOINT-CAST-TYPE-CLEANUP
+
+Decision: remove legacy `importlib.metadata.entry_points()` mapping fallbacks
+from source and analysis plugin builders.
+
+Reason:
+
+- Mimir requires Python `>=3.14`, where `entry_points(group=...)` is the
+  supported direct selection API.
+- The fallback existed only to support older entry-point return shapes and was
+  the last avoidable builder `cast()` surface.
+- Existing plugin loader tests already cover name ordering, bad entry points,
+  configured plugin inclusion, and default no-entry-point paths.
+
+Source:
+
+- Python docs, `importlib.metadata` entry points:
+  https://docs.python.org/3/library/importlib.metadata.html#entry-points
+
+Rejected:
+
+- Keeping the compatibility branch as harmless. It targets unsupported Python
+  versions and keeps static typing debt in two hot extension seams.
+
 ## 2026-06-28 — NORMALIZE-PAYLOAD-TYPE-CLEANUP
 
 Decision: parse payloads explicitly in `normalize()` before constructing

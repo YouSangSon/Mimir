@@ -3,9 +3,8 @@ from __future__ import annotations
 import importlib.metadata
 import importlib.util
 import logging
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import cast
 
 from mimir.config import SecTickerCikMapConfigError, SourcesConfigError
 from mimir.core.source import Source, SourceMeta
@@ -142,20 +141,7 @@ def _validate_unique_source_ids(specs: Sequence[SourceSpec]) -> None:
 
 
 def _entry_points_for_group(group: str) -> tuple[importlib.metadata.EntryPoint, ...]:
-    entry_points: Iterable[importlib.metadata.EntryPoint]
-    try:
-        entry_points = importlib.metadata.entry_points(group=group)
-    except TypeError:
-        all_entry_points = importlib.metadata.entry_points()
-        if hasattr(all_entry_points, "select"):
-            entry_points = all_entry_points.select(group=group)
-        elif isinstance(all_entry_points, Mapping):
-            entry_points = cast(
-                Iterable[importlib.metadata.EntryPoint],
-                all_entry_points.get(group, ()),
-            )
-        else:
-            entry_points = ()
+    entry_points = importlib.metadata.entry_points(group=group)
     return tuple(sorted(entry_points, key=lambda entry_point: entry_point.name))
 
 

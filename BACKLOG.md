@@ -19,11 +19,15 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. Audit remaining typing casts/guards and keep only those that document a real
-   pydantic or intentionally invalid-test boundary.
+1. Recheck deferred RSS discovery/provider-policy scope and either keep it
+   deferred with current evidence or promote one legal, official-source slice
+   to a tech spec.
 
 ## Done
 
+- `ENTRYPOINT-CAST-TYPE-CLEANUP` — source and analysis plugin entry-point
+  loaders now use Python 3.14 `entry_points(group=...)` directly instead of
+  legacy mapping fallback casts.
 - `NORMALIZE-PAYLOAD-TYPE-CLEANUP` — normalize now parses payloads before
   `Record` construction and payload dispatch uses a typed cast instead of local
   `type: ignore` comments.
@@ -49,3 +53,6 @@ free, legal public-data collection and investment insight generation.
 - Completed items keep verification evidence in `WORKLOG.md` and decision
   rationale in `DECISIONS.md`; Notes should not keep pre-implementation
   warnings after an item moves to Done.
+- Remaining code-level casts are intentional: an invalid-object test double in
+  `tests/core/test_normalize.py` and the pydantic payload dispatch boundary in
+  `mimir/core/payloads.py`.

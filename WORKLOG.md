@@ -1,5 +1,56 @@
 # Work Log
 
+## 2026-06-28 — ENTRYPOINT-CAST-TYPE-CLEANUP
+
+Goal: remove remaining avoidable `cast()` calls from plugin entry-point loaders
+without changing source or analysis plugin discovery semantics.
+
+Plan: `docs/superpowers/plans/2026-06-28-entrypoint-cast-type-cleanup.md`
+
+Research:
+
+- Code audit found the remaining builder casts only inside legacy
+  `importlib.metadata.entry_points()` mapping fallbacks.
+- `pyproject.toml` requires Python `>=3.14`, so Mimir does not need old
+  entry-point dictionary compatibility.
+- Python's official `importlib.metadata` docs document direct
+  `entry_points(group=...)` selection, matching the existing tests'
+  monkeypatch contract.
+
+TDD:
+
+- RED: `uv run pytest tests/core/test_builder.py::test_source_entry_point_loader_does_not_keep_legacy_cast tests/analysis/test_builder.py::test_signal_entry_point_loader_does_not_keep_legacy_cast -q`
+  failed because both loaders still contained `cast(...)`.
+
+Verification:
+
+- `uv run pytest tests/core/test_builder.py::test_source_entry_point_loader_does_not_keep_legacy_cast tests/analysis/test_builder.py::test_signal_entry_point_loader_does_not_keep_legacy_cast -q` — 2 passed
+- `uv run pytest tests/core/test_builder.py tests/analysis/test_builder.py -q` — 77 passed
+- `uv run mypy mimir/core/builder.py mimir/analysis/builder.py` — passed
+- `uv run pytest --collect-only -q | tail -1` — 653 tests collected
+- `uv run pytest tests/test_readme_docs.py -q` — passed
+- `uv run pytest -q` — passed
+- `uv run ruff check .` — passed
+- `uv run mypy mimir` — passed
+- `git diff --check` — passed
+
+Agent card:
+
+- Owner: Codex
+- State: review -> commit
+- Merge gate: focused entry-point cast guards, core/analysis builder suites,
+  docs suite, collect-only count, full pytest, ruff, mypy, diff-check, and
+  review pass.
+
+Result:
+
+- Source and analysis entry-point loaders now call
+  `importlib.metadata.entry_points(group=...)` directly.
+- Legacy mapping fallback imports and casts were removed.
+- README EN/KO/ZH test counts updated to 653.
+- Backlog reordered to the deferred RSS discovery/provider-policy evidence
+  scan.
+
 ## 2026-06-28 — NORMALIZE-PAYLOAD-TYPE-CLEANUP
 
 Goal: remove payload-boundary `type: ignore` comments without changing payload
