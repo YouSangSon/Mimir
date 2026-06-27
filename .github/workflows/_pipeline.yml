@@ -13,6 +13,7 @@ on:
 concurrency:
   group: collect
   cancel-in-progress: false
+  queue: max
 
 permissions:
   contents: write

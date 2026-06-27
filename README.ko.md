@@ -13,7 +13,7 @@ repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 �
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-645%20passing%20%C2%B7%2098%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-646%20passing%20%C2%B7%2098%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -101,7 +101,7 @@ reports/status.html               # 소스별 수집 현황
 | 기능 | 동작 |
 | :--- | :--- |
 | **무료 cron** | GitHub Actions `hourly/daily/weekly/monthly` 워크플로 (정시 혼잡을 피한 오프셋 분) |
-| **git-as-DB 커밋백** | 수집 후 데이터를 repo로 커밋(`concurrency` 가드 + rebase) |
+| **git-as-DB 커밋백** | 수집 후 데이터를 repo로 커밋(`concurrency.queue: max` 가드 + rebase) |
 | **최소 가시성** | 데이터 현황 HTML + (옵션) "수집 완료" 텔레그램 핑 |
 | **시크릿 분리** | API 키·봇 토큰은 GitHub Actions Secrets로만, 절대 커밋하지 않음 |
 
@@ -228,7 +228,7 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 
 | 항목 | 값 |
 | :--- | :--- |
-| **테스트** | 645 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
+| **테스트** | 646 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
 | **커버리지** | `mimir/` 98% (게이트 80%) |
 | **lint/type** | ruff + mypy (`pyproject.toml` strict config) clean |
 | **CI** | `.github/workflows/ci.yml` — push/PR마다 lint·type·test·coverage |

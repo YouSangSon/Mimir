@@ -3,6 +3,35 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-06-28 — WORKFLOW-CONCURRENCY-QUEUE
+
+Decision: set workflow-level `concurrency.queue: max` in the reusable scheduled
+pipeline while keeping `cancel-in-progress: false`.
+
+Reason:
+
+- Mimir's hourly/daily/weekly/monthly schedulers all call `_pipeline.yml`, which
+  uses one `collect` concurrency group.
+- GitHub's default concurrency queue keeps only one pending run in a group.
+  Later pending runs can replace earlier pending runs before they collect data.
+- `queue: max` keeps up to 100 pending runs. That matches Mimir's data
+  collection goal better than silently replacing scheduled runs.
+
+Sources:
+
+- GitHub Docs, control workflow/job concurrency:
+  https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency
+- GitHub Docs, workflow syntax:
+  https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+- GitHub Docs, Actions limits:
+  https://docs.github.com/en/actions/reference/limits
+
+Rejected:
+
+- `cancel-in-progress: true` remains off because GitHub documents that it cannot
+  be combined with `queue: max`, and canceling in-progress collection would risk
+  data gaps.
+
 ## 2026-06-28 — PROJECT-STATE-ENTRYPOINTS
 
 Decision: add root project-state entrypoints as pointers, not a second planning
@@ -18,7 +47,7 @@ Reason:
 - Thin root docs satisfy continuation needs while avoiding copied state that
   will drift.
 
-External research recorded for next loop:
+External research recorded before implementation:
 
 - GitHub Docs documents `concurrency.queue: max` for workflow/job concurrency:
   https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency

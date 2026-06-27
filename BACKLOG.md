@@ -19,16 +19,15 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. `WORKFLOW-CONCURRENCY-QUEUE` — evaluate adding
-   `concurrency.queue: max` to `.github/workflows/_pipeline.yml` so scheduled
-   collection runs in the same `collect` group queue instead of replacing the
-   single default pending run.
-2. Fresh docs-truth scan across `docs/superpowers/specs/`,
+1. Fresh docs-truth scan across `docs/superpowers/specs/`,
    `docs/decisions/tech-spec/`, and `docs/architecture/` for any remaining
    stale current-state claims.
 
 ## Done
 
+- `WORKFLOW-CONCURRENCY-QUEUE` — `.github/workflows/_pipeline.yml` now uses
+  `concurrency.queue: max` with `cancel-in-progress: false` so scheduled
+  collection runs queue in the shared `collect` group.
 - `PROJECT-STATE-ENTRYPOINTS` — root `PLAN.md`, `BACKLOG.md`, `WORKLOG.md`,
   and `DECISIONS.md` pointers added so future sessions can resume from repo
   documents plus git history.

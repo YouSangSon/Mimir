@@ -10,8 +10,8 @@
 
 ## External Source
 
-- GitHub Docs, control workflow/job concurrency: `https://docs.github.com/actions/writing-workflows/choosing-what-your-workflow-does/control-the-concurrency-of-workflows-and-jobs`
-- GitHub Docs, workflow syntax: `https://docs.github.com/actions/using-workflows/workflow-syntax-for-github-actions`
+- GitHub Docs, control workflow/job concurrency: `https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency`
+- GitHub Docs, workflow syntax: `https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax`
 - GitHub Docs, Actions limits: `https://docs.github.com/en/actions/reference/limits`
 
 ## Global Constraints
