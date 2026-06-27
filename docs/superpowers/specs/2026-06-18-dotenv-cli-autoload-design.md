@@ -99,5 +99,4 @@ CLI `main()` 함수들은 `os.environ`을 직접 넘기지 않는다. 대신 run
 - [x] CLI collect 경로가 `.env` key를 읽는다.
 - [x] 실제 환경변수가 `.env`보다 우선한다.
 - [x] 명시 `env` mapping을 넘기는 테스트와 library 사용은 `.env` 자동 로드에 영향받지 않는다.
-- [x] `uv run pytest tests/test_settings.py tests/test_collect.py tests/test_run.py tests/test_deliver.py tests/test_backfill.py -q`가 통과한다.
 - [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.

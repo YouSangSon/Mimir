@@ -147,7 +147,7 @@ stored = store.append(
 - [x] 저장 정책은 orchestrator와 backfill에 중복된 조건문으로 흩어지지 않는다.
 - [x] overwrite 저장 건수는 새 key와 교체된 key를 반영한다.
 - [x] README 3종과 확장성 문서가 macro revision 정책을 설명한다.
-- [x] ruff, mypy, pytest, coverage 80% gate를 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

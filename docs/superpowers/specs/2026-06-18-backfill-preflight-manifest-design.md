@@ -203,7 +203,7 @@ RED 단계에서는 첫 테스트가 실패해야 한다. 현재 구현은 sourc
 - [x] runtime fetch/normalize/store failure manifest 동작은 바뀌지 않는다.
 - [x] 기존 plugin `SourceSpec(id, factory)` 생성 방식은 계속 동작한다.
 - [x] README 3종과 개선 문서가 unknown/unavailable boundary를 설명한다.
-- [x] ruff, mypy, pytest, coverage gate, diff-check가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

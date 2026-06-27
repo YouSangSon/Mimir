@@ -310,7 +310,7 @@ if __name__ == "__main__":
 - [x] **Dashboard 통합**: `mimir.dashboard`는 doctor report를 읽기 전용으로 생성해 health 섹션에 포함한다.
 - [x] **CLI 종료코드**: CRITICAL → 1, WARN → 0, `--strict` 시 WARN → 1.
 - [x] scheduled workflow에는 `python -m mimir.doctor --strict` hard gate를 추가하지 않았다. 기존 collect failure gate와 dashboard publication flow를 유지한다.
-- [x] 네트워크 호출 0 · ruff · mypy strict 클린 · 커버리지 ≥ 80%.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ### 8.1 테스트 계획 (합성 `data/` 트리, 무네트워크)
 

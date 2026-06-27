@@ -166,7 +166,7 @@ fake classifier를 사용해 네트워크와 실제 LLM 호출 없이 headline �
 - [x] 기존 `DataReader.read()`의 `ts` 기준 의미는 유지된다.
 - [x] captured window는 저장 파티션 구조를 바꾸지 않는다.
 - [x] 개선 백로그와 확장성 문서가 R1b 구현과 남은 한계를 설명한다.
-- [x] ruff, mypy, pytest, coverage 80% gate를 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

@@ -149,7 +149,7 @@ if record.symbol == symbol:
 - [x] symbol-tagged RSS feed는 symbol별 idempotency key를 사용한다.
 - [x] `news_volume`과 opt-in `llm_sentiment`가 symbol-tagged news를 활용한다.
 - [x] 개선 백로그와 확장성 문서에서 "종목별 feed" 한계를 업데이트한다.
-- [x] ruff, mypy, pytest, coverage 80% gate를 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

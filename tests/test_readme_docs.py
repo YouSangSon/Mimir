@@ -160,6 +160,18 @@ COMPLETED_DESIGN_SPEC_STATUS_STALE_PATTERNS = (
     re.compile(r"(?<![\w.-])uv\s+run(?:\s+[\w./:-]+)*", re.IGNORECASE),
     re.compile(r"(?<![\w.-])python\s+-m(?:\s+[\w.:-]+)*", re.IGNORECASE),
 )
+COMPLETED_DESIGN_SPEC_ACCEPTANCE_CURRENT_VERIFICATION = (
+    "- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다."
+)
+COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_TERMS = re.compile(
+    r"(?<![\w.-])(?:ruff|mypy|pytest|coverage|cov)(?![\w.-])"
+    r"|커버리지|diff[- ]check|uv\s+run|git\s+diff",
+    re.IGNORECASE,
+)
+COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_OUTCOMES = re.compile(
+    r"통과|passed|pass|gate|클린|clean|≥\s*80%",
+    re.IGNORECASE,
+)
 SEC_REFRESH_STALE_GUARD_DOCS = tuple(sorted(Path("docs").rglob("*.md")))
 BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
 TABLE_RE = re.compile(r"\|\s*\*\*(?:Tests|테스트|测试)\*\*\s*\|\s*(\d+) passing")
@@ -457,7 +469,7 @@ def test_news_alias_specs_match_current_completion_state() -> None:
 
     assert "DEFAULT_NEWS_ALIASES" in r1c
     assert "analysis.news.use_default_aliases" in r1c
-    assert "- [x] ruff, mypy, pytest, coverage 80% gate가 통과한다." in r1c
+    assert COMPLETED_DESIGN_SPEC_ACCEPTANCE_CURRENT_VERIFICATION in r1c
 
 
 def _status_line(text: str) -> str:
@@ -509,6 +521,53 @@ def test_completed_design_spec_status_lines_use_current_verification_metadata() 
             assert not pattern.search(status), (
                 f"{path} completed status still carries stale fixed verification metadata"
             )
+
+
+def test_completed_design_spec_acceptance_verification_lines_use_current_metadata() -> None:
+    stale_examples = (
+        "- [x] ruff, mypy, pytest, coverage 80% gate가 통과한다.",
+        "- [x] `uv run pytest tests/test_cli.py -q`가 통과한다.",
+        "- [x] 네트워크 호출 0 · ruff · mypy strict 클린 · 커버리지 ≥ 80%.",
+    )
+    current_examples = (
+        COMPLETED_DESIGN_SPEC_ACCEPTANCE_CURRENT_VERIFICATION,
+        (
+            "- [x] **영업일 오탐 방지**: 금요일 종가가 최신, `now`=월요일 → "
+            "DAILY 나이 = 1 영업일 → OK(오탐 없음)."
+        ),
+        "- [x] mypy strict 내로잉 헬퍼는 payload mismatch에서 예외를 낸다.",
+    )
+
+    for line in stale_examples:
+        assert COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_TERMS.search(line)
+        assert COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_OUTCOMES.search(line)
+
+    for line in current_examples:
+        if line == COMPLETED_DESIGN_SPEC_ACCEPTANCE_CURRENT_VERIFICATION:
+            continue
+        assert not (
+            COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_TERMS.search(line)
+            and COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_OUTCOMES.search(line)
+        )
+
+    for path in sorted(Path("docs/superpowers/specs").glob("*.md")):
+        text = path.read_text(encoding="utf-8")
+        status = _status_line(text)
+        if "구현 완료" not in status:
+            continue
+
+        for line in text.splitlines():
+            if not line.startswith("- [x]"):
+                continue
+            if "README 테스트 배지와 docs health guard" in line:
+                assert line == COMPLETED_DESIGN_SPEC_ACCEPTANCE_CURRENT_VERIFICATION, (
+                    f"{path} uses non-canonical current verification acceptance: {line}"
+                )
+                continue
+            assert not (
+                COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_TERMS.search(line)
+                and COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_OUTCOMES.search(line)
+            ), f"{path} has stale acceptance verification metadata: {line}"
 
 
 def test_foundation_design_specs_match_current_completion_state() -> None:

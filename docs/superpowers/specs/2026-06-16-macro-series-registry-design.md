@@ -190,7 +190,7 @@ flowchart TD
 - [x] `MacroRegimeSignal`이 생성자 인자로 rate-series를 받는다.
 - [x] `analysis.macro_regime.rate_series` 설정이 검증되고 빌더까지 전달된다.
 - [x] 기존 수집 설정과 저장 key 형식은 바뀌지 않는다.
-- [x] ruff, mypy, 전체 pytest, coverage 80% gate를 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

@@ -122,7 +122,7 @@ def build_sources(settings: Settings, config: SourcesConfig | None = None) -> li
 - [x] `run_backfill`이 설정 시리즈를 사용한다.
 - [x] `config/sources.yaml` 예시, README 3개 언어, `.env.example`, reference docs가 설정 기반 소스 확장을 설명한다.
 - [x] 빈 리스트는 parse layer에서 `None`과 구분되지만 source 생성자는 기존 `DEFAULT_*` fallback을 유지한다. 소스 비활성화는 `disabled_ids`가 담당한다.
-- [x] 최신 전체 검증은 README 테스트 배지와 docs health guard가 추적하며 ruff, mypy, pytest, coverage 80% gate가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

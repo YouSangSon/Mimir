@@ -152,7 +152,7 @@ Signal 클래스 자체는 기본 alias를 모른다. 그래서 기존 unit test
 - [x] 사용자 alias는 기본 alias와 병합되고 중복은 제거된다.
 - [x] 직접 생성한 signal의 symbol-only 기본 의미는 유지된다.
 - [x] config/reference/README/개선 문서가 기본 alias와 opt-out을 설명한다.
-- [x] ruff, mypy, pytest, coverage 80% gate가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

@@ -311,7 +311,7 @@ def normalize(raw, meta, *, captured_at) -> Record:
 - [x] 4개 시그널, LLM sentiment, historical series가 타입드 접근 helper로 기존 출력 의미를 유지한다.
 - [x] `Record.payload` 유니온화 후 `Record.model_validate_json`/`model_dump_json` round-trip이 주요 데이터셋에서 바이트 동일하다.
 - [x] `RawRecord.payload`는 `dict[str, Any]`를 유지한다.
-- [x] 최신 전체 검증은 README 테스트 배지와 docs health guard가 추적하며 ruff, mypy, pytest, coverage 80% gate가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

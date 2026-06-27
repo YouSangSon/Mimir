@@ -126,5 +126,4 @@ CLI별 사용 방식은 다음과 같다.
 - [x] `mimir deliver`가 malformed `sources.yaml`에 대해 같은 메시지와 exit code를 반환한다.
 - [x] `mimir dashboard`가 malformed `sources.yaml`에 대해 같은 메시지와 exit code를 반환한다.
 - [x] downstream `ValidationError`가 `sources.yaml` 오류로 오분류되지 않는다.
-- [x] `uv run pytest tests/test_analyze.py tests/test_deliver.py tests/test_dashboard_cli.py tests/test_run.py tests/test_backfill.py tests/test_collect.py -q`가 통과한다.
 - [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.

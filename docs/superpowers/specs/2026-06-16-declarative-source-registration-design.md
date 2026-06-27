@@ -235,4 +235,4 @@ flowchart TD
 - [x] FRED/ECOS/RSS 설정 인자가 기존처럼 생성자에 전달된다.
 - [x] doctor expected coverage는 A3 테이블에서 파생하지 않는다.
 - [x] README ×3, architecture guide, improvement catalog, 관련 specs가 현재 구현 기준으로 갱신된다.
-- [x] focused suite, ruff, mypy, 전체 coverage가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.

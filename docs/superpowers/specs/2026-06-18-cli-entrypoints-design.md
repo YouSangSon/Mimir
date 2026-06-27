@@ -137,6 +137,5 @@ fallback도 유지한다.
 - [x] `mimir collect --cadence daily` 형태가 기존 `mimir.collect.main()`으로 위임된다.
 - [x] `mimir.collect` 등 README의 dotted command가 package script로 등록된다.
 - [x] 기존 `python -m mimir.X` 실행 경로가 유지된다.
-- [x] README 3개 언어의 CLI 설명은 현재 CLI 계약과 맞고, test count는 README 테스트 배지와 docs health guard가 추적한다.
-- [x] `uv run pytest tests/test_cli.py tests/test_pyproject_scripts.py -q`가 통과한다.
+- [x] README 3개 언어의 CLI 설명은 현재 CLI 계약과 맞는다.
 - [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.

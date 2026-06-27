@@ -143,7 +143,7 @@ SOURCE_SPECS = (
 - [x] broken plugin은 warning 후 skip된다.
 - [x] source id 중복은 `ValueError`로 실패한다.
 - [x] docs가 외부 source plugin 작성법과 실패 정책을 설명한다.
-- [x] ruff, mypy, pytest, coverage 80% gate가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

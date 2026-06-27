@@ -169,7 +169,7 @@ BF-MANIFEST 당시에는 `source_id`가 build 결과에 없으면 `SystemExit("u
 - [x] 실패 manifest 기록이 실패해도 원래 backfill 예외를 보존한다.
 - [x] `run_backfill()` 반환값은 기존처럼 저장된 건수다.
 - [x] 개선 백로그, 발전 카탈로그, README 3종이 backfill manifest 동작을 설명한다.
-- [x] ruff, mypy, pytest, coverage gate가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

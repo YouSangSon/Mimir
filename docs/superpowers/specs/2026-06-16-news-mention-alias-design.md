@@ -225,7 +225,7 @@ LLM 쪽은 fake classifier를 주입해 `LlmSentimentSignal`이 alias로 headlin
 - [x] 잘못된 alias 설정은 `ValidationError`로 실패한다.
 - [x] `config/sources.yaml`, `docs/reference/config/sources.md`, 개선 백로그, 확장성 문서가 새 설정을 설명한다.
 - [x] 후속 R1c에서 `DEFAULT_NEWS_ALIASES`와 `analysis.news.use_default_aliases` opt-out이 구현되었다.
-- [x] ruff, mypy, pytest, coverage 80% gate가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

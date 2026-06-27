@@ -245,7 +245,7 @@ SEC Company Search Atom feed 조립은 후속 R1f/R1h/R1i 흐름으로 구현되
 - [x] RSS 설정이 없으면 기존 default feed가 유지된다.
 - [x] 기존 `sources.rss.feeds[].symbol` behavior는 바뀌지 않는다.
 - [x] 문서가 static catalog와 live discovery 제외 범위를 구분한다.
-- [x] 전체 test, ruff, mypy, coverage gate가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 
