@@ -147,7 +147,7 @@ confidence= Σ confidence·weight / total_weight
 
 ---
 
-## 9. 테스트 (TDD, 80%+)
+## 9. 테스트 전략 (TDD)
 - **reader**: 시드된 store에서 dataset/symbol/윈도우 필터.
 - **시그널 4종**: tmp store + DataReader에 크래프트 레코드 → direction/strength/None 케이스.
 - **scorer**: 강세/약세/중립 혼합 입력 → direction·stars 검증.
@@ -161,7 +161,7 @@ confidence= Σ confidence·weight / total_weight
 2. 4종 시그널 + 스코어러 + 엔진 단위/통합 테스트 통과.
 3. 데이터 없는 시그널은 graceful skip(예외 없음), 모든 시그널 None이면 종목 스킵.
 4. 인사이트에 방향성·⭐(1~5)·confidence·근거·면책 포함.
-5. 커버리지 80%+, ruff·mypy --strict clean.
+5. 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

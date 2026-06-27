@@ -166,6 +166,20 @@ COMPLETED_DESIGN_SPEC_STATUS_STALE_PATTERNS = (
 COMPLETED_DESIGN_SPEC_ACCEPTANCE_CURRENT_VERIFICATION = (
     "- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다."
 )
+COMPLETED_DESIGN_SPEC_COMPLETION_HEADING_KEYWORDS = (
+    "완료 기준",
+    "수용 기준",
+    "Acceptance Criteria",
+    "Acceptance",
+)
+COMPLETED_DESIGN_SPEC_NUMBERED_CURRENT_VERIFICATION = (
+    "최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다."
+)
+COMPLETED_DESIGN_SPEC_TEST_HEADING_STALE_PATTERN = re.compile(
+    r"^##\s+.*테스트.*(?:80%|coverage|커버리지)",
+    re.IGNORECASE,
+)
+COMPLETED_DESIGN_SPEC_NUMBERED_ITEM_RE = re.compile(r"^\s*\d+\.\s+")
 COMPLETED_DESIGN_SPEC_ACCEPTANCE_VERIFICATION_TERMS = re.compile(
     r"(?<![\w.-])(?:ruff|mypy|pytest|coverage|cov)(?![\w.-])"
     r"|커버리지|diff[- ]check|uv\s+run|git\s+diff",
@@ -598,6 +612,82 @@ def test_completed_design_spec_acceptance_verification_lines_use_current_metadat
                 continue
             assert not _has_stale_acceptance_verification_metadata(line), (
                 f"{path} has stale acceptance verification metadata: {line}"
+            )
+
+
+def test_completed_design_spec_numbered_completion_criteria_use_current_metadata() -> None:
+    stale_headings = (
+        "## 9. 테스트 (TDD, 80%+)",
+        "## 15. 테스트 전략 (TDD, 80%+)",
+    )
+    current_headings = (
+        "## 9. 테스트 전략 (TDD)",
+        "## 11. 테스트 계획 (TDD, 합성 데이터 · 네트워크 없음)",
+    )
+    stale_numbered_examples = (
+        "5. 커버리지 80%+, ruff·mypy --strict clean.",
+        "7. 커버리지 80%+ , `ruff`·`mypy` 통과.",
+        "10. 커버리지 80%+, `ruff` clean, `mypy --strict` clean, 모든 파일 <800줄.",
+    )
+    current_numbered_examples = (
+        "1. `python -m mimir.analyze --date D`가 저장된 데이터로 동작한다.",
+        "2. 이벤트 2종 + analog 요약 + 엔진 단위/통합 테스트 통과.",
+        f"5. {COMPLETED_DESIGN_SPEC_NUMBERED_CURRENT_VERIFICATION}",
+    )
+
+    for heading in stale_headings:
+        assert COMPLETED_DESIGN_SPEC_TEST_HEADING_STALE_PATTERN.search(heading)
+    for heading in current_headings:
+        assert not COMPLETED_DESIGN_SPEC_TEST_HEADING_STALE_PATTERN.search(heading)
+    for line in stale_numbered_examples:
+        assert _has_stale_acceptance_verification_metadata(line)
+    for line in current_numbered_examples:
+        assert not _has_stale_acceptance_verification_metadata(line)
+
+    for path in sorted(Path("docs/superpowers/specs").glob("*.md")):
+        text = path.read_text(encoding="utf-8")
+        try:
+            status = _status_line(text)
+        except StopIteration:
+            continue
+        if "구현 완료" not in status:
+            continue
+
+        in_completion_section = False
+        for line in text.splitlines():
+            if line.startswith("## "):
+                if "테스트" in line:
+                    assert not COMPLETED_DESIGN_SPEC_TEST_HEADING_STALE_PATTERN.search(line), (
+                        f"{path} test heading carries stale fixed verification metadata: {line}"
+                    )
+                in_completion_section = any(
+                    keyword in line
+                    for keyword in COMPLETED_DESIGN_SPEC_COMPLETION_HEADING_KEYWORDS
+                )
+                continue
+
+            if not in_completion_section:
+                continue
+            if not COMPLETED_DESIGN_SPEC_NUMBERED_ITEM_RE.match(line):
+                continue
+
+            if "README 테스트 배지와 docs health guard" in line:
+                item_text = COMPLETED_DESIGN_SPEC_NUMBERED_ITEM_RE.sub(
+                    "", line.strip(), count=1
+                )
+                assert item_text.startswith(
+                    COMPLETED_DESIGN_SPEC_NUMBERED_CURRENT_VERIFICATION
+                ), f"{path} uses non-canonical numbered current verification: {line}"
+                extra_text = item_text.removeprefix(
+                    COMPLETED_DESIGN_SPEC_NUMBERED_CURRENT_VERIFICATION
+                ).strip()
+                assert not _has_stale_acceptance_verification_metadata(extra_text), (
+                    f"{path} has stale numbered completion verification metadata: {line}"
+                )
+                continue
+
+            assert not _has_stale_acceptance_verification_metadata(line), (
+                f"{path} has stale numbered completion verification metadata: {line}"
             )
 
 

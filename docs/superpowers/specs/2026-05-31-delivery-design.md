@@ -63,7 +63,7 @@ python -m mimir.deliver  --cadence <c>
 git add data reports && commit || true && pull --rebase && push
 ```
 
-## 7. 테스트(TDD, 80%+)
+## 7. 테스트 전략 (TDD)
 - `build_report_html`: 인사이트 → HTML에 심볼·⭐·방향·면책 포함; 빈 입력 → "특이사항 없음".
 - `save_report`/`rebuild_index`: 파일 생성 + index가 날짜 링크 포함.
 - `build_digest`: 상위 종목·⭐·면책 포함; cadence 헤더.
@@ -74,4 +74,4 @@ git add data reports && commit || true && pull --rebase && push
 2. 봇 토큰이 있으면 다이제스트 발송, 없으면 graceful no-op(기록).
 3. 인사이트 0건도 깔끔한 리포트/다이제스트.
 4. 워크플로가 collect→analyze→history→evaluate→deliver를 체이닝하고 reports를 커밋.
-5. 커버리지 80%+, ruff·mypy --strict clean.
+5. 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.

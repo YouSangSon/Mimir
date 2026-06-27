@@ -247,7 +247,7 @@ class EvaluationEngine:
 7. `mimir.run` daily pipeline이 `collect -> analyze -> history -> evaluate -> deliver` 순서로 실행.
 8. 리포트에 "시그널 성적표" 섹션이 en/ko/zh로 렌더.
 9. 모든 버킷이 표본 부족으로 탈락하면 이전 evaluation 파티션이 삭제되어 stale scorecard가 남지 않음.
-10. 커버리지 80%+, `ruff` clean, `mypy --strict` clean, 모든 파일 <800줄.
+10. 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다. 파일 크기 건전성은 발전 카탈로그의 anti-discovery 항목에서 별도 추적한다.
 
 ## 11. 테스트 계획 (TDD, 합성 데이터 · 네트워크 없음)
 
