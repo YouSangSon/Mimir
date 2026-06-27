@@ -1,5 +1,59 @@
 # Work Log
 
+## 2026-06-28 — NORMALIZE-PAYLOAD-TYPE-CLEANUP
+
+Goal: remove payload-boundary `type: ignore` comments without changing payload
+validation or storage semantics.
+
+Plan: `docs/superpowers/plans/2026-06-28-normalize-payload-type-cleanup.md`
+
+Research:
+
+- `normalize()` passed a raw payload dict into `Record` and relied on the
+  `Record` before-validator to parse it, which worked at runtime but required a
+  local `type: ignore[arg-type]`.
+- `parse_payload()` already owns dataset-specific payload dispatch, so
+  `normalize()` can call it before `Record` construction.
+- `parse_payload()` still needs one `cast(Payload, ...)` because pydantic's
+  `model_validate()` return type is wider than the validated union.
+
+TDD:
+
+- RED: `uv run pytest tests/core/test_normalize.py::test_payload_boundary_does_not_need_type_ignore_comments -q`
+  failed while `normalize.py`, `payloads.py`, and the invalid-object test still
+  contained local `type: ignore` comments.
+
+Verification:
+
+- `uv run pytest tests/core/test_normalize.py::test_payload_boundary_does_not_need_type_ignore_comments -q` — 1 passed
+- `uv run pytest tests/core/test_normalize.py -q` — 4 passed
+- `uv run pytest tests/core/test_payloads.py -q` — 35 passed
+- `uv run pytest tests/test_readme_docs.py -q` — 29 passed
+- `uv run pytest --collect-only -q | tail -1` — 651 tests collected
+- `uv run pytest -q` — 651 passed
+- `uv run ruff check .` — passed
+- `uv run mypy mimir` — passed
+- `git diff --check` — passed
+
+Agent card:
+
+- Owner: Codex
+- State: review -> commit
+- Merge gate: focused payload-boundary guard, normalize tests, payload tests,
+  docs suite, collect-only count, full pytest, ruff, mypy, diff-check, and
+  review pass.
+- Review note: quality review flagged the source-text guard as intentionally
+  narrow and brittle; keep it scoped to this debt-removal guard only.
+
+Result:
+
+- `normalize()` now passes `parse_payload(meta.dataset, raw.payload)` into
+  `Record`.
+- `parse_payload()` uses `cast(Payload, model.model_validate(data))` instead of
+  a local return-value ignore.
+- The intentionally invalid normalize test uses `cast(RawRecord, Bad())`.
+- README EN/KO/ZH test counts updated to 651.
+
 ## 2026-06-28 — STOOQ-FLOAT-PARSER-TYPE-CLEANUP
 
 Goal: remove a local `type: ignore[arg-type]` from the Stooq numeric parser

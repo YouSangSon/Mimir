@@ -3,6 +3,24 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-06-28 — NORMALIZE-PAYLOAD-TYPE-CLEANUP
+
+Decision: parse payloads explicitly in `normalize()` before constructing
+`Record`, while keeping `Record`'s before-validator for JSONL deserialization.
+
+Reason:
+
+- `parse_payload()` is already the single dataset payload dispatch function.
+- Explicit parsing makes the normalize boundary match the static `Record.payload`
+  type and removes the local `type: ignore[arg-type]`.
+- `Record` still accepts dict payloads from persisted JSONL, so storage
+  deserialization behavior is unchanged.
+
+Rejected:
+
+- Adding a second helper around `Record` construction. The existing
+  `parse_payload()` call is enough.
+
 ## 2026-06-28 — STOOQ-FLOAT-PARSER-TYPE-CLEANUP
 
 Decision: remove the Stooq parser `type: ignore[arg-type]` by splitting the

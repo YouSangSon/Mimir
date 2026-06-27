@@ -11,9 +11,9 @@ record decisions, commit locally, then reorder the backlog.
 
 ## Current Loop
 
-`STOOQ-FLOAT-PARSER-TYPE-CLEANUP`
+`NORMALIZE-PAYLOAD-TYPE-CLEANUP`
 
-- Plan: `docs/superpowers/plans/2026-06-28-stooq-float-parser-type-cleanup.md`
+- Plan: `docs/superpowers/plans/2026-06-28-normalize-payload-type-cleanup.md`
 - Backlog: `BACKLOG.md`
 - Work log: `WORKLOG.md`
 - Decisions: `DECISIONS.md`

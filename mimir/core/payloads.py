@@ -18,7 +18,7 @@ by `extra="forbid"` + disjoint required keys.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -141,7 +141,7 @@ def parse_payload(dataset: Dataset, data: dict[str, Any]) -> Payload:
     errors: list[str] = []
     for model in models:
         try:
-            return model.model_validate(data)  # type: ignore[return-value]
+            return cast(Payload, model.model_validate(data))
         except ValidationError as exc:
             errors.append(f"{model.__name__}: {exc.error_count()} error(s)")
     raise PayloadSchemaError(

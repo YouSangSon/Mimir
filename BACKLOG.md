@@ -19,11 +19,14 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. Audit remaining local `type: ignore` comments and remove only those with a
-   small, behavior-preserving narrowing or typing fix.
+1. Audit remaining typing casts/guards and keep only those that document a real
+   pydantic or intentionally invalid-test boundary.
 
 ## Done
 
+- `NORMALIZE-PAYLOAD-TYPE-CLEANUP` — normalize now parses payloads before
+  `Record` construction and payload dispatch uses a typed cast instead of local
+  `type: ignore` comments.
 - `STOOQ-FLOAT-PARSER-TYPE-CLEANUP` — Stooq optional numeric CSV fields are
   covered, and `_f()` no longer needs a local `type: ignore[arg-type]`.
 - Fresh docs-truth scan — no stronger stale current-state claim remained after
