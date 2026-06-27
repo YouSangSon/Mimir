@@ -19,12 +19,16 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. Recheck LLM signal weight YAML exposure deferral against the current signal
-   config surface and either keep it deferred with evidence or promote a unified
-   signal-weight tuning spec.
+1. Recheck D3 internal spec/roadmap translation deferral against the current
+   README/reference-doc language split and either keep KO-only internal specs
+   with evidence or promote a bounded translation slice.
 
 ## Done
 
+- `LLM-SIGNAL-WEIGHT-DEFERRAL-RECHECK` — one-off LLM signal weight YAML
+  exposure stays deferred because built-in weights remain code constants and
+  any user tuning should be a unified signal-weight tuning design across all
+  signals.
 - `CAPTURED-INDEX-DEFERRAL-RECHECK` — captured-date persistent index stays
   deferred because the C2a in-memory cache and `records/days/elapsed_ms`
   measurement hook exist, but repo evidence does not show a rebuild bottleneck

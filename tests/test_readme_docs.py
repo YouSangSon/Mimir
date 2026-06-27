@@ -528,6 +528,67 @@ def test_captured_date_persistent_index_recheck_keeps_measurement_based_deferral
         assert "records/days/elapsed_ms" in text
 
 
+def test_llm_signal_weight_yaml_deferral_recheck_keeps_unified_weight_tuning_deferred() -> None:
+    fixed_weight_signals = {
+        Path("mimir/analysis/signals/price_momentum.py"): "WEIGHT = 1.0",
+        Path("mimir/analysis/signals/filing_event.py"): "WEIGHT = 0.8",
+        Path("mimir/analysis/signals/news_volume.py"): "WEIGHT = 0.5",
+        Path("mimir/analysis/signals/macro_regime.py"): "WEIGHT = 0.3",
+    }
+    for path, weight_constant in fixed_weight_signals.items():
+        text = path.read_text(encoding="utf-8")
+        assert weight_constant in text
+        assert "weight=WEIGHT" in text
+    llm_signal = Path("mimir/analysis/signals/llm_sentiment.py").read_text(encoding="utf-8")
+    for phrase in ("WEIGHT = 0.8", "weight: float = WEIGHT", "self._weight = weight"):
+        assert phrase in llm_signal
+    assert "weight=self._weight" in llm_signal
+
+    builder = Path("mimir/analysis/builder.py").read_text(encoding="utf-8")
+    llm_branch = builder.split("if _llm_sentiment_enabled", 1)[1].split("return signals", 1)[0]
+    assert "LlmSentimentSignal(" in llm_branch
+    assert "weight=" not in llm_branch
+
+    config_source = Path("mimir/sources/config.py").read_text(encoding="utf-8")
+    config_docs = Path("docs/reference/config/sources.md").read_text(encoding="utf-8")
+    scoring_docs = Path("docs/reference/analysis/scoring.md").read_text(encoding="utf-8")
+    catalog = IMPROVEMENT_CATALOG.read_text(encoding="utf-8")
+    improvements = Path("docs/IMPROVEMENTS.md").read_text(encoding="utf-8")
+    backlog = BACKLOG.read_text(encoding="utf-8")
+    decisions = Path("DECISIONS.md").read_text(encoding="utf-8")
+    worklog = Path("WORKLOG.md").read_text(encoding="utf-8")
+
+    for text in (config_source, config_docs, scoring_docs):
+        assert "llm_sentiment_weight" not in text
+        assert "signal_weights" not in text
+        assert "analysis.weights" not in text
+    fields = re.findall(r"^\s{4}([a-z_]+):", config_source, flags=re.MULTILINE)
+    for field in fields:
+        assert "weight" not in field
+    for phrase in (
+        "llm_sentiment_enabled",
+        "llm_sentiment_max_headlines",
+    ):
+        assert phrase in config_source
+        assert phrase in config_docs
+    assert "현재 값은 코드 상수" in scoring_docs
+    assert "사용자 YAML로 노출하지 않는다" in scoring_docs
+
+    deferred = _markdown_section(catalog, "## 6. 보류 항목 — 근거 명시")
+    for phrase in (
+        "LLM signal weight YAML 노출",
+        "모든 시그널 weight는 코드 상수",
+        "모든 시그널을 아우르는 별도 설계",
+    ):
+        assert phrase in deferred
+    assert "다른 시그널과 일관성을 깨므로 보류" in improvements
+
+    for text in (backlog, decisions, worklog):
+        assert "LLM-SIGNAL-WEIGHT-DEFERRAL-RECHECK" in text
+        assert "unified signal-weight tuning" in text
+        assert "llm_sentiment_weight" not in text
+
+
 def test_signal_plugin_docs_match_extension_contract() -> None:
     docs = (
         Path("docs/architecture/extensibility/README.md"),

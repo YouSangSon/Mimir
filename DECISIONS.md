@@ -3,6 +3,31 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-06-28 — LLM-SIGNAL-WEIGHT-DEFERRAL-RECHECK
+
+Decision: keep one-off LLM signal weight YAML exposure deferred.
+
+Reason:
+
+- Built-in signal weights are still code constants:
+  `price_momentum=1.0`, `filing_event=0.8`, `news_volume=0.5`,
+  `macro_regime=0.3`, and `llm_sentiment=0.8`.
+- `build_signals()` only passes `llm_sentiment` the existing behavior knobs:
+  classifier, headline cap, and news aliases. It does not pass a config-derived
+  weight.
+- `SourcesConfig` exposes the paid LLM signal toggle and headline cap, not
+  signal-weight tuning.
+- `docs/reference/analysis/scoring.md` documents weight as a multiplier whose
+  current values are code constants and backtest calibration targets.
+- Adding a single LLM-only weight knob would make an inconsistent tuning
+  surface. If operators need tuning, it should be a unified signal-weight tuning
+  design across all built-in signals.
+
+Rejected:
+
+- Adding a one-off LLM weight setting now. It is a config surface expansion
+  without a current backtest-driven requirement.
+
 ## 2026-06-28 — CAPTURED-INDEX-DEFERRAL-RECHECK
 
 Decision: keep the captured-date persistent index deferred.

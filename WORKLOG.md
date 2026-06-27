@@ -1,5 +1,67 @@
 # Work Log
 
+## 2026-06-28 — LLM-SIGNAL-WEIGHT-DEFERRAL-RECHECK
+
+Goal: recheck the LLM signal weight YAML exposure deferral and promote tuning
+only if current repo evidence supports a unified signal-weight tuning spec.
+
+Plan: `docs/superpowers/plans/2026-06-28-llm-signal-weight-deferral-recheck.md`
+
+Research:
+
+- Built-in signal modules still use code constants for weights:
+  `price_momentum=1.0`, `filing_event=0.8`, `news_volume=0.5`,
+  `macro_regime=0.3`, and `llm_sentiment=0.8`.
+- `build_signals()` does not pass a config-derived weight to
+  `LlmSentimentSignal`; the existing LLM knobs are enablement, headline cap,
+  classifier injection, and aliases.
+- `SourcesConfig` and `_TopLevelSourcesConfig` expose `llm_sentiment_enabled`
+  and `llm_sentiment_max_headlines`, not signal-weight tuning.
+- `docs/reference/analysis/scoring.md` already documents weights as code
+  constants and backtest calibration targets rather than user YAML.
+
+TDD:
+
+- RED: `uv run pytest tests/test_readme_docs.py::test_llm_signal_weight_yaml_deferral_recheck_keeps_unified_weight_tuning_deferred -q`
+  first failed on a test assumption about `LlmSentimentSignal`; after correcting
+  the guard to match the constructor-default contract, it failed because root
+  project docs did not yet record `LLM-SIGNAL-WEIGHT-DEFERRAL-RECHECK`.
+
+Verification:
+
+- `uv run pytest tests/test_readme_docs.py::test_llm_signal_weight_yaml_deferral_recheck_keeps_unified_weight_tuning_deferred -q` — 1 passed
+- `uv run pytest tests/test_readme_docs.py -q` — 32 passed
+- `uv run pytest --collect-only -q | tail -1` — 656 tests collected
+- `uv run pytest -q` — 656 passed
+- `uv run ruff check .` — passed
+- `uv run mypy mimir` — passed
+- `git diff --check` — passed
+- Secrets scan on touched files found only placeholders, GitHub Secrets wording,
+  docs references, and existing worklog mentions.
+
+Agent card:
+
+- Owner: Codex
+- State: review -> commit
+- Merge gate: focused docs guard, docs suite, collect-only count, full pytest,
+  ruff, mypy, diff-check, secrets scan, and review pass.
+
+Review:
+
+- Spec reviewer found no Critical or Important issues. Its Minor note about
+  named-key string guards was addressed by also checking the parsed
+  `SourcesConfig` field declarations for weight fields.
+- Quality reviewer found no Critical, Important, or Minor issues.
+
+Result:
+
+- One-off LLM signal weight YAML exposure remains deferred.
+- Built-in signal weights stay code constants and any future operator tuning
+  should be designed as unified signal-weight tuning across all signals.
+- `BACKLOG.md` now queues the D3 internal spec/roadmap translation deferral
+  recheck next.
+- README EN/KO/ZH test counts updated to 656.
+
 ## 2026-06-28 — CAPTURED-INDEX-DEFERRAL-RECHECK
 
 Goal: recheck the captured-date persistent index deferral and promote storage
