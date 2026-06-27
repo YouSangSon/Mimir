@@ -11,9 +11,9 @@ record decisions, commit locally, then reorder the backlog.
 
 ## Current Loop
 
-`CAPTURED-INDEX-DEFERRAL-RECHECK`
+`LLM-SIGNAL-WEIGHT-DEFERRAL-RECHECK`
 
-- Plan: `docs/superpowers/plans/2026-06-28-captured-index-deferral-recheck.md`
+- Plan: `docs/superpowers/plans/2026-06-28-llm-signal-weight-deferral-recheck.md`
 - Backlog: `BACKLOG.md`
 - Work log: `WORKLOG.md`
 - Decisions: `DECISIONS.md`
