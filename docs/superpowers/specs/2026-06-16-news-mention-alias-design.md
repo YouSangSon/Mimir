@@ -2,7 +2,7 @@
 
 > **스펙 ID**: R1
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`analysis.news.aliases` + shared `NewsMentionMatcher`). 최신 검증은 README 테스트 배지와 docs health guard가 추적하며, ruff · mypy · coverage gate 클린 상태를 유지한다. 후속 R1c에서 `DEFAULT_NEWS_ALIASES`와 `analysis.news.use_default_aliases`가 추가되었다.
+> **상태**: ✅ 구현 완료 (`analysis.news.aliases` + shared `NewsMentionMatcher`). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다. 후속 R1c에서 `DEFAULT_NEWS_ALIASES`와 `analysis.news.use_default_aliases`가 추가되었다.
 > **선행**: [S2 Analysis](2026-05-31-analysis-design.md) · [LLM 뉴스 감성 seam](2026-06-13-llm-sentiment-seam-design.md) · [확장성 카탈로그](../../architecture/improvement-catalog.md)
 
 ---

@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC2 (카탈로그 A4)
 > **작성일**: 2026-06-13
-> **상태**: ✅ 구현 완료 (Increment 2 typed payload rollout). 최신 검증은 README 테스트 배지와 docs health guard가 추적하며, ruff · mypy · coverage gate 클린 상태를 유지한다. 이후 `Dataset.EVALUATION`/`BucketStat`도 같은 typed payload boundary에 포함됐다.
+> **상태**: ✅ 구현 완료 (Increment 2 typed payload rollout). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다. 이후 `Dataset.EVALUATION`/`BucketStat`도 같은 typed payload boundary에 포함됐다.
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S1 Collector](2026-05-31-collector-design.md)
 
 ---

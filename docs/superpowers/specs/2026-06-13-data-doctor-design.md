@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC3 (카탈로그 C1)
 > **작성일**: 2026-06-13
-> **상태**: ✅ 구현 완료 (Increment 3 doctor MVP + 후속 HTML/i18n/dashboard 통합). 최신 검증은 README 테스트 배지와 docs health guard가 추적하며, ruff · mypy · coverage gate 클린 상태를 유지한다. scheduled workflow의 `mimir.doctor --strict` hard gate는 의도적으로 추가하지 않았다.
+> **상태**: ✅ 구현 완료 (Increment 3 doctor MVP + 후속 HTML/i18n/dashboard 통합). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다. scheduled workflow의 `mimir.doctor --strict` hard gate는 의도적으로 추가하지 않았다.
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S1 Collector](2026-05-31-collector-design.md)
 
 ---

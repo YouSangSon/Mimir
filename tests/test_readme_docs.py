@@ -136,6 +136,25 @@ S2_ANALYSIS_DESIGN_STALE_PHRASES = (
     "LLM은 같은 `Signal` 인터페이스를 구현하는 한 시그널로 후속 추가",
     "후속 추가한다",
 )
+COMPLETED_DESIGN_SPEC_STATUS_STALE_PHRASES = (
+    "coverage gate",
+    "coverage 80% gate",
+    "커버리지 ≥ 80%",
+    "diff-check",
+    "diff check",
+    "ruff · mypy",
+    "ruff, mypy",
+    "uv run pytest",
+    "uv run ruff",
+    "uv run mypy",
+    "git diff --check",
+)
+COMPLETED_DESIGN_SPEC_STATUS_STALE_PATTERNS = (
+    re.compile(r"\b\d{3,4}\s+tests?\b"),
+    re.compile(r"\b\d{3,4}\s+passed\b"),
+    re.compile(r"\b\d{3,4}\s+테스트\b"),
+    re.compile(r"\b\d{2,3}%\s*(?:cov|coverage|커버리지)\b", re.IGNORECASE),
+)
 SEC_REFRESH_STALE_GUARD_DOCS = tuple(sorted(Path("docs").rglob("*.md")))
 BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
 TABLE_RE = re.compile(r"\|\s*\*\*(?:Tests|테스트|测试)\*\*\s*\|\s*(\d+) passing")
@@ -392,8 +411,8 @@ def test_news_alias_specs_match_current_completion_state() -> None:
             line for line in text.splitlines() if line.startswith("> **상태**:")
         )
         assert "구현 완료" in status_line
-        assert "ruff" in status_line
-        assert "mypy" in status_line
+        assert "최신 검증은 README 테스트 배지와 docs health guard가 추적" in status_line
+        assert "coverage gate" not in status_line
 
     acceptance = _markdown_section(r1, "## 9. 수용 기준")
     settings = _markdown_section(r1, "## 4. 설정 설계")
@@ -438,6 +457,40 @@ def test_news_alias_specs_match_current_completion_state() -> None:
 
 def _status_line(text: str) -> str:
     return next(line for line in text.splitlines() if line.startswith("> **상태**:"))
+
+
+def test_completed_design_spec_status_lines_use_current_verification_metadata() -> None:
+    for path in sorted(Path("docs/superpowers/specs").glob("*.md")):
+        text = path.read_text(encoding="utf-8")
+        try:
+            status = _status_line(text)
+        except StopIteration:
+            continue
+
+        if "구현 완료" not in status:
+            continue
+
+        has_current_metadata = (
+            "최신 검증은 README 테스트 배지와 docs health guard가 추적" in status
+        )
+        has_stale_metadata = any(
+            phrase in status for phrase in COMPLETED_DESIGN_SPEC_STATUS_STALE_PHRASES
+        ) or any(
+            pattern.search(status)
+            for pattern in COMPLETED_DESIGN_SPEC_STATUS_STALE_PATTERNS
+        )
+        if not has_current_metadata and not has_stale_metadata:
+            continue
+
+        assert "최신 검증은 README 테스트 배지와 docs health guard가 추적" in status, (
+            f"{path} completed status must point at README/docs health verification"
+        )
+        for phrase in COMPLETED_DESIGN_SPEC_STATUS_STALE_PHRASES:
+            assert phrase not in status, f"{path} completed status still says: {phrase}"
+        for pattern in COMPLETED_DESIGN_SPEC_STATUS_STALE_PATTERNS:
+            assert not pattern.search(status), (
+                f"{path} completed status still carries stale fixed verification metadata"
+            )
 
 
 def test_foundation_design_specs_match_current_completion_state() -> None:

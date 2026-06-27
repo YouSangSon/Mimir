@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC1 (확장성 카탈로그 A1)
 > **작성일**: 2026-06-13
-> **상태**: ✅ 구현 완료 (feat/config-driven-extensibility). 최신 검증은 README 테스트 배지와 docs health guard가 추적하며, ruff · mypy · coverage gate 클린 상태를 유지한다. 후속 A2/A3/A3b에서 macro series registry, 선언적 source registry, source entry points가 추가됐다.
+> **상태**: ✅ 구현 완료 (feat/config-driven-extensibility). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다. 후속 A2/A3/A3b에서 macro series registry, 선언적 source registry, source entry points가 추가됐다.
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S1 Collector](2026-05-31-collector-design.md) · [ADR-0001](../../architecture/adr/0001-incremental-extensibility-and-deferral.md)
 
 ---
