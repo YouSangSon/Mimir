@@ -11,9 +11,9 @@ record decisions, commit locally, then reorder the backlog.
 
 ## Current Loop
 
-`R1O-SEC-WATCHLIST-FILING-FEEDS-RECHECK`
+`GENERIC-RSS-DISCOVERY-BOUNDARY-RECHECK`
 
-- Plan: `docs/superpowers/plans/2026-06-28-r1o-sec-watchlist-filing-feeds-recheck.md`
+- Plan: `docs/superpowers/plans/2026-06-28-generic-rss-discovery-boundary-recheck.md`
 - Backlog: `BACKLOG.md`
 - Work log: `WORKLOG.md`
 - Decisions: `DECISIONS.md`
