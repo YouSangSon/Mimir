@@ -1,5 +1,78 @@
 # Work Log
 
+## 2026-06-28 — R1O-SEC-WATCHLIST-FILING-FEEDS-RECHECK
+
+Goal: recheck the R1o SEC watchlist filing feeds Draft spec and promote only
+the smallest official-source slice if current contracts support it.
+
+Plan: `docs/superpowers/plans/2026-06-28-r1o-sec-watchlist-filing-feeds-recheck.md`
+
+Research:
+
+- SEC RSS Feeds documents Company Search RSS/Atom output and Filing Type
+  filtering.
+- SEC Developer Resources and Webmaster FAQ require efficient automated access,
+  request moderation, and a declared User-Agent/contact.
+- SEC `company_tickers.json` is an official mapping source but still stays a
+  local/operator-managed lookup unless the existing off-by-default refresh prep
+  is enabled.
+- Existing Mimir contracts already had `SecCompanyFilingFeed`,
+  `resolve_rss_feeds()`, local ticker-to-CIK mapping, duplicate feed rejection,
+  and `collect`/`backfill` watchlist loading.
+
+TDD:
+
+- RED: config focused tests failed because `SecWatchlistCompanyFilings` did not
+  exist.
+- RED: builder focused tests failed because `build_sources()` had no
+  `watchlist` keyword argument.
+
+Verification:
+
+- `uv run pytest tests/sources/test_config.py::test_rss_sec_watchlist_company_filings_defaults_disabled_when_present tests/sources/test_config.py::test_rss_sec_watchlist_company_filings_parse_enabled_options -q` — 2 passed
+- `uv run pytest tests/core/test_builder.py::test_build_sources_does_not_generate_sec_watchlist_feeds_by_default tests/core/test_builder.py::test_build_sources_generates_sec_watchlist_company_filing_feeds -q` — 2 passed
+- `uv run pytest tests/test_collect.py::test_collect_cli_uses_watchlist_for_sec_watchlist_filing_feeds tests/test_backfill.py::test_main_uses_watchlist_for_sec_watchlist_filing_feeds -q` — 2 passed
+- `uv run pytest tests/core/test_builder.py::test_build_sources_rejects_duplicate_manual_and_watchlist_sec_feed -q` — 1 passed
+- `uv run pytest tests/test_readme_docs.py::test_r1o_sec_watchlist_filing_feeds_recheck_promotes_implemented_slice -q` — 1 passed
+- `uv run pytest tests/core/test_builder.py::test_build_sources_wraps_invalid_watchlist_sec_form tests/core/test_builder.py::test_build_sources_wraps_invalid_watchlist_sec_ticker tests/core/test_builder.py::test_build_sources_generates_sec_watchlist_company_filing_feeds tests/core/test_builder.py::test_build_sources_rejects_duplicate_manual_and_watchlist_sec_feed -q` — 4 passed
+- `uv run pytest tests/sources/test_config.py tests/core/test_builder.py tests/test_collect.py tests/test_backfill.py tests/test_readme_docs.py -q` — 167 passed
+- `uv run pytest --collect-only -q | tail -1` — 667 tests collected
+- `uv run ruff check .` — passed
+- `uv run mypy mimir` — passed
+- `git diff --check` — passed
+- `uv run pytest -q` — 667 passed
+- Secrets scan on touched files found only placeholder/config wording such as
+  `STOOQ_API_KEY`, `ANTHROPIC_API_KEY`, `.env`, GitHub Secrets wording, test
+  keys, and field names.
+
+Agent card:
+
+- Owner: Codex
+- State: review -> commit
+- Merge gate: focused source/config/docs guards, related suite, collect-only
+  count, full pytest, ruff, mypy, diff-check, secrets scan, and review pass.
+
+Review:
+
+- Spec reviewer approved with no Critical, Important, or Minor findings.
+- Quality reviewer found no Critical or Important issues. Its Minor note about
+  blank SEC form validation through the watchlist path was addressed with
+  `test_build_sources_wraps_invalid_watchlist_sec_form`; re-review approved.
+
+Result:
+
+- `sources.rss.sec.watchlist_company_filings` is implemented as default-false
+  opt-in config.
+- Enabled config generates SEC Company Search filing feeds only from
+  `watchlist.yaml` `us` symbols.
+- Generated selections reuse `SecCompanyFilingFeed`, existing local
+  ticker-to-CIK mapping/refresh, duplicate feed rejection, and RSS source
+  User-Agent behavior.
+- Generic provider discovery, SEC-external provider discovery, HTML RSS
+  crawling, and vendor URL inference remain deferred.
+- `BACKLOG.md` now queues the remaining generic provider RSS discovery boundary
+  recheck.
+
 ## 2026-06-28 — DOCS-IMPLEMENTATION-CONSISTENCY-SCAN
 
 Goal: run a fresh docs/implementation consistency scan after the deferred-item

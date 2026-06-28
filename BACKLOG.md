@@ -19,12 +19,15 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. Recheck the R1o SEC watchlist filing feeds Draft spec against current source
-   contracts and either plan the smallest implementation slice or keep it Draft
-   with evidence.
+1. Recheck the remaining generic provider RSS discovery boundary after R1o and
+   either keep it deferred with evidence or plan one official-source slice.
 
 ## Done
 
+- `R1O-SEC-WATCHLIST-FILING-FEEDS-RECHECK` — `sources.rss.sec.watchlist_company_filings`
+  now opt-in generates SEC Company Search filing feeds from watchlist `us`
+  symbols while keeping generic provider discovery, HTML RSS crawling, and
+  vendor URL inference deferred.
 - `DOCS-IMPLEMENTATION-CONSISTENCY-SCAN` — live improvement-catalog rows no
   longer pin stale static test counts; current verification belongs to the
   README test badge and docs health guard.

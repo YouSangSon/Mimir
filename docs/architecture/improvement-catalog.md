@@ -1,6 +1,6 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/AN1-SIGNAL-PLUGIN-ENTRYPOINTS/AN2-LLM-CLASSIFIER-CARDINALITY/AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD/AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION/AN5-ANALYSIS-SIGNAL-SPECS-INJECTION/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/CFG3-CONFIG-GUARDRAILS/COV1-CONTRACT-COVERAGE/I18N1-PARITY-GUARD/BF-PREFLIGHT 구현 완료 + AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY 구현 완료 + R1o-SEC-WATCHLIST-FILING-FEEDS Draft
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/AN1-SIGNAL-PLUGIN-ENTRYPOINTS/AN2-LLM-CLASSIFIER-CARDINALITY/AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD/AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION/AN5-ANALYSIS-SIGNAL-SPECS-INJECTION/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/CFG3-CONFIG-GUARDRAILS/COV1-CONTRACT-COVERAGE/I18N1-PARITY-GUARD/BF-PREFLIGHT 구현 완료 + AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY 구현 완료 + R1o-SEC-WATCHLIST-FILING-FEEDS 구현 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
 
@@ -53,7 +53,7 @@
 | **R1l-SEC-CIK-CLI-ERRORS** | SEC ticker CIK map CLI error surface | 운영/DX | R1j/R1k CLI 오류 표면 | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/sources/R1l-SEC-CIK-CLI-ERRORS_sec_ticker_cik_map_cli_errors_tech_spec_2026_06_18.md) |
 | **R1m-SEC-CIK-MISSING-PATH** | SEC ticker CIK map missing lookup path context | 운영/DX | R1i~R1l lookup-time 오류 표면 잔여 gap | **✅ 구현 완료 (2026-06-18)** | 코드 + 테스트 · [spec](../decisions/tech-spec/sources/R1m-SEC-CIK-MISSING-PATH_sec_ticker_cik_missing_path_tech_spec_2026_06_18.md) |
 | **R1n-SEC-CIK-CLI-PATH-CONTRACT** | SEC ticker CIK CLI stderr path contract | 운영/DX | R1m CLI 회귀 계약 고정 | **✅ 구현 완료 (2026-06-18)** | 테스트 + 문서 · [spec](../decisions/tech-spec/sources/R1n-SEC-CIK-CLI-PATH-CONTRACT_sec_ticker_cik_cli_path_contract_tech_spec_2026_06_18.md) |
-| **R1o-SEC-WATCHLIST-FILING-FEEDS** | SEC watchlist company filing feed generation | 분석품질/확장성 | R1f generic discovery recheck의 SEC-only slice | **📐 Draft tech spec (2026-06-28)** | [spec](../decisions/tech-spec/sources/R1o-SEC-WATCHLIST-FILING-FEEDS_sec_watchlist_filing_feeds_tech_spec_2026_06_28.md) |
+| **R1o-SEC-WATCHLIST-FILING-FEEDS** | SEC watchlist company filing feed generation | 분석품질/확장성 | R1f generic discovery recheck의 SEC-only slice | **✅ 구현 완료 (2026-06-28)** | 코드 + 테스트 · [spec](../decisions/tech-spec/sources/R1o-SEC-WATCHLIST-FILING-FEEDS_sec_watchlist_filing_feeds_tech_spec_2026_06_28.md) |
 | **MR1** | 거시 개정 저장 정책 (`macro` last-write-wins) | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-macro-revision-policy-design.md) |
 | **H1** | 재생성 데이터 stale 제거 + pipeline scorecard 갱신 | 견고성/운영 | B1 후속 + 리뷰 발견 | **✅ 구현 완료 (2026-06-16 hardening)** | `replace_partition`, `run_evaluate`, daily report scorecard |
 | **BF-MANIFEST** | 백필 실행 manifest 기록 | 견고성/운영 | 백로그 MEDIUM | **✅ 구현 완료 (2026-06-16)** | backfill success/failure run log |
@@ -235,7 +235,7 @@ SEC는 structured disclosure submission을 위한 공식 RSS feed를 따로 제�
 
 구현 후 `sources.rss.catalogs`는 `sec_structured_usgaap`, `sec_structured_risk_return`, `sec_structured_inline_xbrl`, `sec_structured_all_xbrl`을 지원한다. Resolver는 기존 정적 catalog와 같은 방식으로 id를 `RssFeed(publisher="SEC", market="US")`로 확장한다. 네트워크를 호출하지 않고, SEC HTML을 크롤링하지 않으며, URL pattern도 추측하지 않는다.
 
-이 네 feed는 broad SEC/XBRL feed다. 특정 ticker나 watchlist symbol 전용 feed가 아니므로 `symbol`을 붙이지 않는다. ticker→CIK 자동 조회는 R1i/R1j~R1n에서 구현됐고, watchlist 기반 SEC feed 자동 생성은 R1o Draft spec으로 승격했다.
+이 네 feed는 broad SEC/XBRL feed다. 특정 ticker나 watchlist symbol 전용 feed가 아니므로 `symbol`을 붙이지 않는다. ticker→CIK 자동 조회는 R1i/R1j~R1n에서 구현됐고, watchlist 기반 SEC feed 자동 생성은 R1o에서 opt-in으로 구현됐다.
 
 ### R1h-SEC-TICKER. SEC company filing RSS ticker input — **구현 완료 (2026-06-18)**
 
@@ -251,13 +251,13 @@ R1h는 ticker token을 SEC Company Search RSS URL에 그대로 넣는 편의 입
 
 구현 후 `sources.rss.sec.ticker_cik_map_path`는 사용자가 내려받아 둔 SEC `company_tickers.json` 로컬 파일을 읽는다. `company_filings[].ticker`가 있고 mapping file에도 같은 ticker가 있으면 resolver는 URL의 `CIK=` 값을 10자리 CIK로 바꾼다. 같은 ticker가 서로 다른 CIK로 중복되면 ambiguous mapping으로 실패한다. 파일에 ticker가 없으면 feed를 조용히 ticker token으로 되돌리지 않고 실패한다.
 
-이 증분은 resolver-time network call을 추가하지 않는다. 현재도 resolver는 네트워크를 호출하지 않는다. SEC mapping file refresh/cache는 이후 `sources.rss.sec.ticker_cik_map_refresh.enabled`(기본 `false`)로 off-by-default 구현됐다. 켜면 build 전에 TTL(`max_age_hours`) gate와 conditional GET으로 best-effort 갱신하고, 실패 시 기존 파일로 fallback한다. watchlist 전체에서 SEC feed를 자동 생성하지 않는 경계는 그대로다.
+이 증분은 resolver-time network call을 추가하지 않는다. 현재도 resolver는 네트워크를 호출하지 않는다. SEC mapping file refresh/cache는 이후 `sources.rss.sec.ticker_cik_map_refresh.enabled`(기본 `false`)로 off-by-default 구현됐다. 켜면 build 전에 TTL(`max_age_hours`) gate와 conditional GET으로 best-effort 갱신하고, 실패 시 기존 파일로 fallback한다. watchlist 기반 SEC feed 생성은 이후 R1o에서 `sources.rss.sec.watchlist_company_filings.enabled` 기본 `false`로 구현됐다.
 
-### R1o-SEC-WATCHLIST-FILING-FEEDS. SEC watchlist filing feed generation — **Draft tech spec (2026-06-28)**
+### R1o-SEC-WATCHLIST-FILING-FEEDS. SEC watchlist filing feed generation — **구현 완료 (2026-06-28)**
 
 RSS provider-policy recheck 결과, generic provider discovery는 계속 보류한다. SEC 외 provider discovery, HTML RSS link crawling, vendor URL pattern inference는 provider 정책과 ToS 검토가 더 필요하다.
 
-다만 SEC 공식 Company Search RSS, 기존 `sources.rss.sec.company_filings`, 기존 local `company_tickers.json` lookup, off-by-default `ticker_cik_map_refresh`를 재사용하는 좁은 SEC-only slice는 설계할 근거가 충분하다. R1o Draft는 `sources.rss.sec.watchlist_company_filings`를 기본 `false` opt-in으로 두고, watchlist `us` symbols에서만 bounded SEC company filing feeds를 만드는 다음 구현 범위를 정의한다. 아직 production code는 없다.
+다만 SEC 공식 Company Search RSS, 기존 `sources.rss.sec.company_filings`, 기존 local `company_tickers.json` lookup, off-by-default `ticker_cik_map_refresh`를 재사용하는 좁은 SEC-only slice는 구현됐다. `sources.rss.sec.watchlist_company_filings`는 기본 `false` opt-in이며, watchlist `us` symbols에서만 bounded SEC company filing feeds를 만든다. `build_sources(..., watchlist=...)`가 generated selections를 기존 `resolve_rss_feeds()` 입력에 합치므로 resolver-time network call, HTML crawling, vendor URL pattern 추측은 추가하지 않는다.
 
 ### R1j-SEC-CIK-ERRORS. SEC ticker CIK map file error surface — **구현 완료 (2026-06-18)**
 
@@ -425,7 +425,7 @@ R1f-SEC ─── SEC EDGAR company filing RSS provider
 R1g-SEC-STRUCTURED ─ SEC structured disclosure RSS catalog
 R1h-SEC-TICKER ─ SEC company filing RSS ticker input
 R1i-SEC-CIK ─ SEC ticker CIK local mapping lookup
-R1o-SEC-WATCHLIST-FILING-FEEDS ─ draft: opt-in SEC watchlist company filing feeds
+R1o-SEC-WATCHLIST-FILING-FEEDS ─ opt-in SEC watchlist company filing feeds
 R1j-SEC-CIK-ERRORS ─ SEC ticker CIK map file error surface
 R1k-SEC-CIK-ENTRY-ERRORS ─ SEC ticker CIK map entry error context
 R1l-SEC-CIK-CLI-ERRORS ─ SEC ticker CIK map CLI error surface
@@ -457,7 +457,7 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 | 항목 | 보류 근거 |
 |---|---|
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 일반 날짜 윈도우 핫패스를 처리한다. R1b의 captured-window 반복 scan은 C2a 인메모리 cache로 완화했다. persistent index나 보조 파티션은 데이터가 수년 누적되고 cache rebuild 자체가 병목이라는 측정이 나온 뒤 설계한다. 엄밀한 설계와 측정 기반 unblock 기준은 [설계문서](../superpowers/specs/2026-06-19-captured-date-persistent-index-design.md)로 승격했고, unblock 선행 조건인 **측정 계기는 구현됐다**: `DataReader._captured_date_index`가 재빌드 시 records/days/elapsed_ms를 DEBUG 로그로 남긴다. on-disk index 구현은 이 측정이 병목 임계를 넘을 때 착수한다(아직 미도달). |
-| **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. R1h-SEC-TICKER는 SEC Company Search RSS의 ticker token 입력을 추가했다. R1i-SEC-CIK는 사용자가 제공한 로컬 SEC `company_tickers.json` lookup과 ambiguity failure policy를 추가했다. R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT는 잘못된 로컬 파일, 개별 entry, CLI 출력, missing ticker lookup, CLI stderr 회귀 계약의 오류 표면을 정리했다. SEC mapping file refresh/cache는 [설계문서](../superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md) 후 **off-by-default로 구현됐다**(`sources.rss.sec.ticker_cik_map_refresh.enabled`; 기본 `false` → 네트워크 0, 켜면 conditional GET + TTL + fallback). R1o-SEC-WATCHLIST-FILING-FEEDS는 SEC 공식 source만 쓰는 watchlist feed generation slice를 Draft spec으로 승격했다. 남은 부채는 generic live discovery, SEC 외 provider discovery, HTML RSS link crawling, vendor URL pattern inference처럼 provider 정책과 ToS 검토가 더 필요한 범위다. |
+| **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. R1h-SEC-TICKER는 SEC Company Search RSS의 ticker token 입력을 추가했다. R1i-SEC-CIK는 사용자가 제공한 로컬 SEC `company_tickers.json` lookup과 ambiguity failure policy를 추가했다. R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT는 잘못된 로컬 파일, 개별 entry, CLI 출력, missing ticker lookup, CLI stderr 회귀 계약의 오류 표면을 정리했다. SEC mapping file refresh/cache는 [설계문서](../superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md) 후 **off-by-default로 구현됐다**(`sources.rss.sec.ticker_cik_map_refresh.enabled`; 기본 `false` → 네트워크 0, 켜면 conditional GET + TTL + fallback). R1o-SEC-WATCHLIST-FILING-FEEDS는 SEC 공식 source만 쓰는 watchlist feed generation slice를 기본 `false` opt-in으로 구현했다. 남은 부채는 generic live discovery, SEC 외 provider discovery, HTML RSS link crawling, vendor URL pattern inference처럼 provider 정책과 ToS 검토가 더 필요한 범위다. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서와 상세 reference docs는 Korean-first/KO-only로 유지한다(백로그 재확인). 사용자 진입 문서(README ×3)는 이미 trilingual이고, 향후 번역이 필요하면 내부 specs 전체가 아니라 bounded reference-doc translation slice로 별도 설계한다. |
 | **LLM signal weight YAML 노출** | `LlmSentimentSignal(weight=...)` 생성자 인자는 spec에서 *생성자 기본값*(0.8)으로만 문서화되고 sources.yaml key로 약속되지 않았다. 모든 시그널 weight는 코드 상수이며 백테스트(B1)로 보정 대상이다. llm_sentiment만 YAML로 노출하면 일관성 없는 순수 신규 튜닝 표면이 되므로(catalog §0) 보류한다. signal weight 튜닝이 실제 요구되면 모든 시그널을 아우르는 별도 설계로 다룬다. |
 
@@ -476,4 +476,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 등록된 source가 secret/package gate 때문에 fetch 전에 unavailable이어도 `ok=false` manifest를 남기고, 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, AN1-SIGNAL-PLUGIN-ENTRYPOINTS, AN2-LLM-CLASSIFIER-CARDINALITY, AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD, AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION, AN5-ANALYSIS-SIGNAL-SPECS-INJECTION, AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, COV1-CONTRACT-COVERAGE, I18N1-PARITY-GUARD, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. R1o-SEC-WATCHLIST-FILING-FEEDS는 Draft spec이다. 남은 신규 아키텍처 부채는 generic provider RSS discovery와 persistent partition/captured-date index다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, AN1-SIGNAL-PLUGIN-ENTRYPOINTS, AN2-LLM-CLASSIFIER-CARDINALITY, AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD, AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION, AN5-ANALYSIS-SIGNAL-SPECS-INJECTION, AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, R1o-SEC-WATCHLIST-FILING-FEEDS, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, COV1-CONTRACT-COVERAGE, I18N1-PARITY-GUARD, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery와 persistent partition/captured-date index다.

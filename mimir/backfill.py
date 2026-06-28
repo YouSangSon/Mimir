@@ -95,7 +95,12 @@ def run_backfill(
     )
     manifest = Manifest(root=data_root)
     specs = load_source_specs()
-    built_sources = build_sources(settings, runtime.source_config, specs=specs)
+    built_sources = build_sources(
+        settings,
+        runtime.source_config,
+        specs=specs,
+        watchlist=watchlist,
+    )
     sources = {s.meta.id: s for s in built_sources}
     if source_id not in sources:
         if (spec := _source_spec_for_id(specs, source_id)) and spec.meta is not None:

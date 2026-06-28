@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib.metadata
 import importlib.util
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
 from mimir.config import SecTickerCikMapConfigError, SourcesConfigError
@@ -15,7 +15,11 @@ from mimir.sources.ecos import EcosSource
 from mimir.sources.fred import FredSource
 from mimir.sources.pykrx_source import PykrxSource
 from mimir.sources.rss import RssFeed, RssSource
-from mimir.sources.rss_catalog import load_sec_ticker_cik_map, resolve_rss_feeds
+from mimir.sources.rss_catalog import (
+    SecCompanyFilingFeed,
+    load_sec_ticker_cik_map,
+    resolve_rss_feeds,
+)
 from mimir.sources.sec_edgar import SecEdgarSource
 from mimir.sources.sec_ticker_cik_refresh import refresh_sec_ticker_cik_map
 from mimir.sources.stooq import StooqSource
@@ -31,6 +35,45 @@ def _load_configured_sec_ticker_cik_map(config: SourcesConfig) -> dict[str, str]
         return load_sec_ticker_cik_map(config.rss_sec_ticker_cik_map_path)
     except ValueError as exc:
         raise SecTickerCikMapConfigError(str(exc)) from exc
+
+
+def _sec_watchlist_company_filings(
+    config: SourcesConfig,
+    watchlist: Mapping[str, Sequence[str]] | None,
+) -> list[SecCompanyFilingFeed]:
+    option = config.rss_sec_watchlist_company_filings
+    if option is None or not option.enabled or watchlist is None:
+        return []
+    feeds: list[SecCompanyFilingFeed] = []
+    for symbol in watchlist.get("us", ()):
+        ticker = SecCompanyFilingFeed(ticker=symbol).ticker or ""
+        feeds.append(
+            SecCompanyFilingFeed(
+                ticker=ticker,
+                symbol=ticker,
+                forms=option.forms,
+                count=option.count,
+                owner=option.owner,
+            )
+        )
+    return feeds
+
+
+def _config_with_sec_watchlist_company_filings(
+    config: SourcesConfig,
+    watchlist: Mapping[str, Sequence[str]] | None,
+) -> SourcesConfig:
+    generated = _sec_watchlist_company_filings(config, watchlist)
+    if not generated:
+        return config
+    return config.model_copy(
+        update={
+            "rss_sec_company_filings": [
+                *(config.rss_sec_company_filings or ()),
+                *generated,
+            ]
+        }
+    )
 
 
 def _resolve_configured_rss_feeds(config: SourcesConfig) -> list[RssFeed] | None:
@@ -243,13 +286,17 @@ def build_sources(
     config: SourcesConfig | None = None,
     *,
     specs: Sequence[SourceSpec] | None = None,
+    watchlist: Mapping[str, Sequence[str]] | None = None,
 ) -> list[Source]:
     if "@" not in settings.sec_user_agent:
         logger.warning(
             "MIMIR_SEC_USER_AGENT has no contact email; SEC EDGAR may return 403. "
             "Set it to e.g. 'Your Name you@example.com'."
     )
-    cfg = config or SourcesConfig()
+    try:
+        cfg = _config_with_sec_watchlist_company_filings(config or SourcesConfig(), watchlist)
+    except ValueError as exc:
+        raise SourcesConfigError(str(exc)) from exc
     # Off-by-default prep step: refresh the local SEC ticker->CIK map before sources
     # are built, so the RSS resolver still reads a plain local file (no network in the
     # resolver). Disabled by default -> zero network calls on the standard path.

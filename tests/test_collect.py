@@ -176,3 +176,33 @@ def test_collect_cli_reports_missing_sec_ticker_mapping(tmp_path: Path, capsys):
     err = capsys.readouterr().err
     assert err.startswith("[mimir] invalid sources.yaml:")
     assert f"SEC ticker CIK map has no entry for ticker MSFT in {map_path}" in err
+
+
+def test_collect_cli_uses_watchlist_for_sec_watchlist_filing_feeds(
+    tmp_path: Path, capsys
+):
+    (tmp_path / "sources.yaml").write_text(
+        """
+        sources:
+          rss:
+            sec:
+              ticker_cik_map_path: company_tickers.json
+              watchlist_company_filings:
+                enabled: true
+                forms: ["10-K"]
+        """,
+        encoding="utf-8",
+    )
+    (tmp_path / "company_tickers.json").write_text(
+        '{"0": {"cik_str": 789019, "ticker": "MSFT"}}',
+        encoding="utf-8",
+    )
+    (tmp_path / "watchlist.yaml").write_text("us: [AAPL]\nkr: []\n", encoding="utf-8")
+
+    map_path = tmp_path / "company_tickers.json"
+    rc = main(["--cadence", "daily", "--config-dir", str(tmp_path)])
+
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert err.startswith("[mimir] invalid sources.yaml:")
+    assert f"SEC ticker CIK map has no entry for ticker AAPL in {map_path}" in err

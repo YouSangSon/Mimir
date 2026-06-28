@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -28,12 +28,21 @@ class TickerCikMapRefresh(BaseModel):
     max_age_hours: int = Field(default=168, ge=1)
 
 
+class SecWatchlistCompanyFilings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool = False
+    forms: list[str] = Field(default_factory=lambda: ["10-K", "10-Q", "8-K"])
+    count: int = Field(default=40, ge=10, le=100)
+    owner: Literal["exclude", "include", "only"] = "exclude"
+
+
 class SourcesConfig(BaseModel):
     fred_series: list[str] | None = None
     ecos_series: list[EcosSeries] | None = None
     rss_feeds: list[RssFeed] | None = None
     rss_catalogs: list[RssCatalogSelection] | None = None
     rss_sec_company_filings: list[SecCompanyFilingFeed] | None = None
+    rss_sec_watchlist_company_filings: SecWatchlistCompanyFilings | None = None
     rss_sec_ticker_cik_map_path: Path | None = None
     rss_sec_ticker_cik_map_refresh: TickerCikMapRefresh | None = None
     plugin_settings: dict[str, dict[str, Any]] = Field(default_factory=dict)
@@ -82,6 +91,7 @@ class _EcosBlock(BaseModel):
 class _RssSecBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
     company_filings: list[SecCompanyFilingFeed] | None = None
+    watchlist_company_filings: SecWatchlistCompanyFilings | None = None
     ticker_cik_map_path: Path | None = None
     ticker_cik_map_refresh: TickerCikMapRefresh | None = None
 
@@ -156,6 +166,9 @@ def _source_config_from_top_level(top_level: _TopLevelSourcesConfig) -> SourcesC
         rss_catalogs=block.rss.catalogs if block.rss else None,
         rss_sec_company_filings=(
             block.rss.sec.company_filings if block.rss and block.rss.sec else None
+        ),
+        rss_sec_watchlist_company_filings=(
+            block.rss.sec.watchlist_company_filings if block.rss and block.rss.sec else None
         ),
         rss_sec_ticker_cik_map_path=(
             block.rss.sec.ticker_cik_map_path if block.rss and block.rss.sec else None

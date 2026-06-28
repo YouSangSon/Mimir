@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from mimir.report.i18n import DEFAULT_LANG
 from mimir.sources.config import (
     RuntimeSourcesConfig,
+    SecWatchlistCompanyFilings,
     SourcesConfig,
     parse_runtime_sources_config,
     parse_sources_config,
@@ -280,6 +281,41 @@ def test_rss_sec_company_filings_bad_count_raises_validation_error(bad_count: in
                 }
             }
         )
+
+
+def test_rss_sec_watchlist_company_filings_defaults_disabled_when_present():
+    cfg = parse_sources_config(
+        {"sources": {"rss": {"sec": {"watchlist_company_filings": {}}}}}
+    )
+
+    assert cfg.rss_sec_watchlist_company_filings == SecWatchlistCompanyFilings()
+    assert cfg.rss_sec_watchlist_company_filings.enabled is False
+
+
+def test_rss_sec_watchlist_company_filings_parse_enabled_options():
+    cfg = parse_sources_config(
+        {
+            "sources": {
+                "rss": {
+                    "sec": {
+                        "watchlist_company_filings": {
+                            "enabled": True,
+                            "forms": ["10-K"],
+                            "count": 20,
+                            "owner": "include",
+                        }
+                    }
+                }
+            }
+        }
+    )
+
+    assert cfg.rss_sec_watchlist_company_filings == SecWatchlistCompanyFilings(
+        enabled=True,
+        forms=["10-K"],
+        count=20,
+        owner="include",
+    )
 
 
 def test_partial_block_only_configures_present_source():

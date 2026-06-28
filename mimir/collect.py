@@ -32,8 +32,12 @@ DEFAULT_DATA_ROOT = Path("data")
 DEFAULT_STATUS_PATH = Path("reports/status.html")
 
 
-def _build_source_registry(settings: Settings, cfg: RuntimeSourcesConfig) -> Registry:
-    sources = build_sources(settings, cfg.source_config)
+def _build_source_registry(
+    settings: Settings,
+    cfg: RuntimeSourcesConfig,
+    watchlist: dict[str, list[str]],
+) -> Registry:
+    sources = build_sources(settings, cfg.source_config, watchlist=watchlist)
     return Registry(
         sources,
         gray_enabled=cfg.gray_enabled,
@@ -58,7 +62,7 @@ def run_collect(
         if isinstance(sources_config, RuntimeSourcesConfig)
         else parse_runtime_sources_config(sources_config or {})
     )
-    registry = _build_source_registry(settings, runtime)
+    registry = _build_source_registry(settings, runtime, watchlist)
     store = JsonlStore(root=data_root)
     manifest = Manifest(root=data_root)
     orchestrator = Orchestrator(registry, store, manifest)

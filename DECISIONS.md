@@ -3,6 +3,43 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-06-28 — R1O-SEC-WATCHLIST-FILING-FEEDS-RECHECK
+
+Decision: implement only the SEC official-source watchlist company filing feed
+slice, default false.
+
+Reason:
+
+- SEC documents Company Search RSS/Atom output and Filing Type filtering, so the
+  slice can reuse Mimir's existing `SecCompanyFilingFeed` URL builder.
+- `sources.rss.sec.watchlist_company_filings.enabled` is opt-in and uses only
+  `watchlist.yaml` `us` symbols, so existing installs do not add RSS requests.
+- Generated feeds reuse the existing local `company_tickers.json` lookup,
+  missing-ticker failures, owner/count/form validation, and duplicate RSS feed
+  guard.
+- `collect` and `backfill` already load `watchlist.yaml` before source build,
+  so the minimal boundary is `build_sources(..., watchlist=...)`.
+- SEC fair-access guidance still requires a declared User-Agent and request
+  moderation; `RssSource` continues to send `MIMIR_SEC_USER_AGENT`.
+
+Sources:
+
+- SEC RSS Feeds:
+  https://www.sec.gov/about/rss-feeds
+- SEC Developer Resources:
+  https://www.sec.gov/about/developer-resources
+- SEC Webmaster FAQ:
+  https://www.sec.gov/about/webmaster-frequently-asked-questions
+- SEC `company_tickers.json`:
+  https://www.sec.gov/files/company_tickers.json
+
+Rejected:
+
+- Generic provider discovery, HTML RSS link crawling, and vendor URL pattern
+  inference. They still need provider-specific policy and ToS review.
+- Generating feeds by default. That would change request volume and data shape
+  for existing users.
+
 ## 2026-06-28 — DOCS-IMPLEMENTATION-CONSISTENCY-SCAN
 
 Decision: remove fixed historical test counts from the live improvement catalog.

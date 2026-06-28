@@ -52,6 +52,11 @@ sources:
           forms: ["10-K", "10-Q", "8-K"]
           count: 40
           owner: "exclude"
+      watchlist_company_filings:
+        enabled: false
+        forms: ["10-K", "10-Q", "8-K"]
+        count: 40
+        owner: "exclude"
     feeds:
       - { url: "https://www.sec.gov/news/pressreleases.rss", publisher: "SEC", market: "US" }
       - { url: "https://example.com/aapl.rss", publisher: "Example", market: "US", symbol: "AAPL" }
@@ -236,6 +241,7 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 | `catalogs` | 아니오 | Mimir가 코드에 담아 둔 검증된 RSS feed catalog 선택 목록 |
 | `catalogs[].id` | 예 | catalog id. 아래 표의 내장 id 중 하나 |
 | `sec.company_filings` | 아니오 | SEC EDGAR Company Search Atom feed를 CIK 또는 ticker token과 form 설정에서 조립하는 목록 |
+| `sec.watchlist_company_filings` | 아니오 | 켜진 경우 `watchlist.yaml`의 `us` symbols에서 SEC company filing feeds를 생성하는 opt-in 설정 |
 | `sec.ticker_cik_map_path` | 아니오 | SEC `company_tickers.json` 로컬 파일 경로. 설정하면 ticker 입력을 10자리 CIK로 바꾼 뒤 URL을 만든다 |
 | `sec.ticker_cik_map_refresh` | 아니오 | 로컬 SEC mapping file을 build 전에 best-effort로 갱신하는 opt-in 설정. 기본값은 disabled |
 | `feeds` | 아니오 | 운영자가 직접 지정하는 RSS feed 목록 |
@@ -256,7 +262,7 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 | `sec_structured_inline_xbrl` | Inline XBRL financial statement filings |
 | `sec_structured_all_xbrl` | all XBRL filings submitted to the SEC |
 
-`sec_structured_*` catalog는 SEC가 공식으로 공개한 broad SEC/XBRL feed다. 특정 watchlist symbol 전용 feed가 아니므로 `symbol`을 설정하지 않는다. 특정 종목의 SEC filing feed가 필요하면 사용자가 CIK 또는 ticker token을 명시하는 `sources.rss.sec.company_filings`를 쓴다. 운영자가 SEC `company_tickers.json` 파일을 로컬에 두고 `sec.ticker_cik_map_path`를 설정하면, Mimir는 ticker를 10자리 CIK로 바꾼 뒤 URL을 만든다. Generic live discovery는 여전히 보류지만, SEC mapping file refresh 자체는 `ticker_cik_map_refresh`로 opt-in 구현되어 있다.
+`sec_structured_*` catalog는 SEC가 공식으로 공개한 broad SEC/XBRL feed다. 특정 watchlist symbol 전용 feed가 아니므로 `symbol`을 설정하지 않는다. 특정 종목의 SEC filing feed가 필요하면 사용자가 CIK 또는 ticker token을 명시하는 `sources.rss.sec.company_filings`를 쓰거나, `sources.rss.sec.watchlist_company_filings.enabled: true`로 watchlist `us` symbols에서 opt-in 생성한다. 운영자가 SEC `company_tickers.json` 파일을 로컬에 두고 `sec.ticker_cik_map_path`를 설정하면, Mimir는 ticker를 10자리 CIK로 바꾼 뒤 URL을 만든다. Generic live discovery는 여전히 보류지만, SEC mapping file refresh 자체는 `ticker_cik_map_refresh`로 opt-in 구현되어 있다.
 
 `catalogs`, `sec.company_filings`, `feeds`를 함께 쓰면 catalog feed, SEC EDGAR feed, manual feed 순서로 붙는다. 같은 `(url, symbol)` 쌍이 두 번 나오면 실패한다. 중복을 조용히 제거하면 운영자가 같은 feed를 두 경로로 설정했다는 사실을 놓칠 수 있기 때문이다. 같은 URL이라도 symbol이 다르면 서로 다른 종목 관계를 뜻하므로 허용한다.
 
@@ -312,6 +318,41 @@ sources:
 `cik`와 `ticker`를 둘 다 쓰거나 둘 다 생략하면 설정 오류다. 운영자가 정확한 CIK를 알고 있거나 중복 feed 검출을 더 강하게 하고 싶으면 `cik`를 직접 쓰는 편이 낫다. `ticker_cik_map_path`가 없으면 `ticker`는 SEC Company Search RSS가 현재 받는 ticker token을 쓰는 편의 입력이다. `ticker_cik_map_path`가 있으면 Mimir가 로컬 파일에서 ticker를 찾아 CIK로 바꾼다. 파일에 해당 ticker가 없으면 설정을 조용히 무시하지 않고 실패한다.
 
 SEC fair-access 정책은 자동화 도구가 자신을 식별하고 필요한 요청만 보내기를 요구한다. SEC feed를 쓰는 환경에서는 `MIMIR_SEC_USER_AGENT`를 `서비스명 이메일` 형식으로 설정한다.
+
+#### SEC watchlist company filing feeds
+
+`sources.rss.sec.watchlist_company_filings`는 `watchlist.yaml`의 `us` symbols를
+기존 `SecCompanyFilingFeed` 입력으로 바꾸는 얇은 opt-in 설정이다. 기본값은
+`enabled: false`라서 기존 설정은 새 RSS 요청을 만들지 않는다.
+
+```yaml
+sources:
+  rss:
+    sec:
+      watchlist_company_filings:
+        enabled: true
+        forms: ["10-K", "10-Q", "8-K"]
+        count: 40
+        owner: "exclude"
+```
+
+| 필드 | 기본값 | 의미 |
+|---|---|---|
+| `enabled` | `false` | 켜진 경우에만 watchlist `us` symbols에서 SEC filing feeds를 만든다 |
+| `forms` | `["10-K", "10-Q", "8-K"]` | 각 symbol마다 생성할 SEC form feed 목록 |
+| `count` | `40` | SEC Atom feed의 count. 허용 범위는 10~100 |
+| `owner` | `exclude` | SEC owner filter. `exclude`, `include`, `only` 중 하나 |
+
+이 설정은 generic provider discovery가 아니다. HTML RSS link crawling이나
+vendor URL pattern inference를 하지 않고, `build_sources(..., watchlist=...)`
+시점에 watchlist `us` symbols만 `SecCompanyFilingFeed(ticker=symbol,
+symbol=symbol)`로 변환한 뒤 기존 `resolve_rss_feeds()`에 합친다. `kr`
+watchlist symbols는 SEC feed 생성에 쓰지 않는다.
+
+`ticker_cik_map_path`가 있으면 generated ticker도 같은 로컬
+`company_tickers.json` lookup을 통과한다. 파일에 해당 ticker가 없으면 기존
+missing ticker 설정 오류를 그대로 낸다. Manual `company_filings`와 generated
+feed가 같은 `(url, symbol)`을 만들면 기존 `duplicate RSS feed` 오류로 실패한다.
 
 `symbol`이 없으면 기존처럼 일반 뉴스 feed로 저장한다. idempotency key도 기존 형식인 `rss:{link}`를 유지한다.
 

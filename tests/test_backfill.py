@@ -432,6 +432,36 @@ def test_main_reports_missing_sec_ticker_mapping(tmp_path: Path, capsys):
     assert f"SEC ticker CIK map has no entry for ticker MSFT in {map_path}" in err
 
 
+def test_main_uses_watchlist_for_sec_watchlist_filing_feeds(tmp_path: Path, capsys):
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "sources.yaml").write_text(
+        """
+        sources:
+          rss:
+            sec:
+              ticker_cik_map_path: company_tickers.json
+              watchlist_company_filings:
+                enabled: true
+                forms: ["10-K"]
+        """,
+        encoding="utf-8",
+    )
+    (config_dir / "company_tickers.json").write_text(
+        '{"0": {"cik_str": 789019, "ticker": "MSFT"}}',
+        encoding="utf-8",
+    )
+    (config_dir / "watchlist.yaml").write_text("us: [AAPL]\nkr: []\n", encoding="utf-8")
+
+    map_path = config_dir / "company_tickers.json"
+    rc = main(["--source", "rss", "--since", "2024-01-01", "--config-dir", str(config_dir)])
+
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert err.startswith("[mimir] invalid sources.yaml:")
+    assert f"SEC ticker CIK map has no entry for ticker AAPL in {map_path}" in err
+
+
 @responses.activate
 def test_run_backfill_default_env_loads_dotenv(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)

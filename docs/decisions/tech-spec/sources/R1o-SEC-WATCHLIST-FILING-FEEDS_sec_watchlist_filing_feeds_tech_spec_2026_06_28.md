@@ -1,8 +1,8 @@
 # R1o-SEC-WATCHLIST-FILING-FEEDS SEC watchlist filing feeds Tech Spec
 
-**상태**: Draft
+**상태**: 구현 완료 (2026-06-28)
 **작성일**: 2026-06-28
-**범위**: SEC 공식 Company Search RSS만 대상으로, watchlist의 US symbols에서 company filing feeds를 opt-in으로 생성하는 다음 증분을 정의한다.
+**범위**: SEC 공식 Company Search RSS만 대상으로, watchlist의 US symbols에서 company filing feeds를 opt-in으로 생성한다.
 
 ## 한눈에 보기
 
@@ -10,12 +10,12 @@ Generic provider RSS discovery는 여전히 보류한다. SEC 외 provider disco
 HTML RSS link crawling, vendor URL pattern inference는 provider 정책과 ToS
 검토 없이는 Mimir의 무료·합법·공식 소스 우선 원칙을 깨뜨릴 수 있다.
 
-다만 SEC official-source 범위에는 하나의 좁은 후속이 남아 있다.
-이미 구현된 `sources.rss.sec.company_filings`, `ticker_cik_map_path`, 그리고
+다만 SEC official-source 범위에는 하나의 좁은 구현이 들어갔다. 이미
+구현된 `sources.rss.sec.company_filings`, `ticker_cik_map_path`, 그리고
 off-by-default `ticker_cik_map_refresh`를 재사용해, 사용자가 원할 때만
 watchlist `us` symbols에서 SEC company filing feeds를 만든다.
 
-제안 설정은 `sources.rss.sec.watchlist_company_filings`다. default false라서
+구현 설정은 `sources.rss.sec.watchlist_company_filings`다. default false라서
 기존 설정은 새 feed를 만들지 않는다.
 
 ## 근거
@@ -30,19 +30,23 @@ header에 선언된 User-Agent를 넣으라고 설명한다. SEC Webmaster FAQ�
 따라서 이 spec은 SEC-only, opt-in, bounded request count, declared
 `MIMIR_SEC_USER_AGENT`를 기본 제약으로 둔다.
 
-## 목표
+## 구현된 계약
 
-- `sources.rss.sec.watchlist_company_filings` draft setting을 정의한다.
+- `sources.rss.sec.watchlist_company_filings` setting을 정의한다.
 - 기본값은 default false다.
 - watchlist의 `us` symbols만 입력으로 쓴다.
-- 생성되는 feed는 기존 `SecCompanyFilingFeed`와 `resolve_rss_feeds()` 흐름을
-  재사용한다.
+- 생성되는 feed는 `SecWatchlistCompanyFilings` 설정을 읽어 기존
+  `SecCompanyFilingFeed`와 `resolve_rss_feeds()` 흐름을 재사용한다.
 - `ticker_cik_map_path`가 있으면 기존 `company_tickers.json` local lookup을
   사용한다.
 - `ticker_cik_map_refresh.enabled: true`일 때만 기존 refresh prep step을
   사용한다.
 - generated feeds는 explicit SEC RSS requests로 계산 가능해야 한다.
 - SEC fetch 환경은 `MIMIR_SEC_USER_AGENT`를 요구한다.
+- `build_sources(..., watchlist=...)`가 watchlist를 받아 source build 시점에
+  generated SEC filing selections를 기존 RSS resolver 입력에 합친다.
+- `collect`와 `backfill`은 이미 load한 `watchlist.yaml` 값을 source build에
+  전달한다.
 
 ## 목표가 아닌 것
 
@@ -119,7 +123,18 @@ flowchart TD
 | builder enabled path | watchlist `us` symbols가 `SecCompanyFilingFeed(ticker=symbol, symbol=symbol)`로 변환 |
 | local CIK map path | `company_tickers.json` mapping이 기존 resolver에서 적용 |
 | duplicate detection | generated/manual duplicate이 실패 |
-| docs guard | generic provider discovery는 계속 deferred, R1o는 Draft spec |
+| collect/backfill boundary | runner가 load한 watchlist를 source build에 전달 |
+| docs guard | generic provider discovery는 계속 deferred, R1o는 구현 완료 |
+
+현재 focused guards:
+
+- `tests/sources/test_config.py::test_rss_sec_watchlist_company_filings_defaults_disabled_when_present`
+- `tests/sources/test_config.py::test_rss_sec_watchlist_company_filings_parse_enabled_options`
+- `tests/core/test_builder.py::test_build_sources_does_not_generate_sec_watchlist_feeds_by_default`
+- `tests/core/test_builder.py::test_build_sources_generates_sec_watchlist_company_filing_feeds`
+- `tests/core/test_builder.py::test_build_sources_rejects_duplicate_manual_and_watchlist_sec_feed`
+- `tests/test_collect.py::test_collect_cli_uses_watchlist_for_sec_watchlist_filing_feeds`
+- `tests/test_backfill.py::test_main_uses_watchlist_for_sec_watchlist_filing_feeds`
 
 ## 추적 출처
 
@@ -127,4 +142,3 @@ flowchart TD
 - SEC Developer Resources: `https://www.sec.gov/about/developer-resources` (Last Reviewed or Updated: March 10, 2025)
 - SEC Webmaster FAQ: `https://www.sec.gov/about/webmaster-frequently-asked-questions` (Last Reviewed or Updated: Aug. 23, 2024)
 - SEC `company_tickers.json`: `https://www.sec.gov/files/company_tickers.json`
-

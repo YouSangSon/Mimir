@@ -433,13 +433,17 @@ def test_project_state_decision_does_not_keep_completed_workflow_followup() -> N
     assert "should be a separate loop with a workflow guard" not in project_state
 
 
-def test_rss_provider_policy_recheck_promotes_only_sec_watchlist_spec() -> None:
+def test_r1o_sec_watchlist_filing_feeds_recheck_promotes_implemented_slice() -> None:
     assert R1O_SEC_WATCHLIST_FILING_FEEDS_TECH_SPEC.exists()
 
     spec = R1O_SEC_WATCHLIST_FILING_FEEDS_TECH_SPEC.read_text(encoding="utf-8")
     index = Path("docs/decisions/tech-spec/README.md").read_text(encoding="utf-8")
     catalog = IMPROVEMENT_CATALOG.read_text(encoding="utf-8")
     decisions = Path("DECISIONS.md").read_text(encoding="utf-8")
+    config = Path("mimir/sources/config.py").read_text(encoding="utf-8")
+    builder = Path("mimir/core/builder.py").read_text(encoding="utf-8")
+    collect = Path("mimir/collect.py").read_text(encoding="utf-8")
+    backfill = Path("mimir/backfill.py").read_text(encoding="utf-8")
     current_docs = (
         catalog,
         Path("docs/architecture/extensibility/README.md").read_text(encoding="utf-8"),
@@ -450,7 +454,7 @@ def test_rss_provider_policy_recheck_promotes_only_sec_watchlist_spec() -> None:
 
     status = TECH_SPEC_STATUS_RE.search(spec)
     assert status is not None
-    assert status.group(1).strip() == "Draft"
+    assert "구현 완료" in status.group(1)
 
     for phrase in (
         "sources.rss.sec.watchlist_company_filings",
@@ -469,6 +473,14 @@ def test_rss_provider_policy_recheck_promotes_only_sec_watchlist_spec() -> None:
     )
     assert relative_spec_path in index
     assert "R1o-SEC-WATCHLIST-FILING-FEEDS" in catalog
+    assert "Implemented" in index
+    assert "`SecWatchlistCompanyFilings`" in spec
+    assert "`build_sources(..., watchlist=...)`" in spec
+    assert "class SecWatchlistCompanyFilings" in config
+    assert "rss_sec_watchlist_company_filings" in config
+    assert "watchlist: Mapping[str, Sequence[str]] | None = None" in builder
+    assert "watchlist=watchlist" in collect
+    assert "watchlist=watchlist" in backfill
     for phrase in (
         "generic live discovery",
         "SEC 외 provider discovery",
@@ -479,6 +491,8 @@ def test_rss_provider_policy_recheck_promotes_only_sec_watchlist_spec() -> None:
     for text in current_docs:
         assert "watchlist 기반 SEC feed 자동 생성은 여전히 deferred item이다" not in text
         assert "watchlist 기반 SEC feed 자동 생성, HTML RSS link crawling" not in text
+        assert "R1o Draft" not in text
+        assert "아직 production code는 없다" not in text
     for phrase in (
         "SEC RSS Feeds",
         "https://www.sec.gov/about/rss-feeds",

@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from pydantic import BaseModel, ConfigDict
 
+from mimir.config import SourcesConfigError
 from mimir.core.builder import (
     BUILTIN_SOURCE_SPECS,
     SourceSpec,
@@ -426,6 +427,93 @@ def test_config_overrides_rss_feeds():
     feed = RssFeed(url="https://x/feed.rss", publisher="P", market="US")
     by_id = _by_id(build_sources(settings, SourcesConfig(rss_feeds=[feed])))
     assert by_id["rss"]._feeds == [feed]
+
+
+def test_build_sources_does_not_generate_sec_watchlist_feeds_by_default(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+
+    sources = build_sources(
+        Settings.from_env({}),
+        SourcesConfig(),
+        watchlist={"us": ["AAPL"], "kr": ["005930"]},
+    )
+    rss = _by_id(sources)["rss"]
+
+    assert isinstance(rss, RssSource)
+    assert rss._feeds == RSS_DEFAULT_FEEDS
+
+
+def test_build_sources_generates_sec_watchlist_company_filing_feeds(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    cfg = SourcesConfig(
+        rss_sec_watchlist_company_filings={
+            "enabled": True,
+            "forms": ["10-K"],
+        }
+    )
+
+    sources = build_sources(
+        Settings.from_env({"MIMIR_SEC_USER_AGENT": "Mimir Test test@example.com"}),
+        cfg,
+        watchlist={"us": ["aapl"], "kr": ["005930"]},
+    )
+    rss = _by_id(sources)["rss"]
+
+    assert isinstance(rss, RssSource)
+    assert rss._feeds == [
+        RssFeed(
+            url=(
+                "https://www.sec.gov/cgi-bin/browse-edgar?"
+                "action=getcompany&CIK=AAPL&type=10-K&owner=exclude&count=40&output=atom"
+            ),
+            publisher="SEC",
+            market="US",
+            symbol="AAPL",
+        )
+    ]
+
+
+def test_build_sources_rejects_duplicate_manual_and_watchlist_sec_feed(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    cfg = SourcesConfig(
+        rss_sec_company_filings=[
+            SecCompanyFilingFeed(ticker="AAPL", symbol="AAPL", forms=["10-K"])
+        ],
+        rss_sec_watchlist_company_filings={"enabled": True, "forms": ["10-K"]},
+    )
+
+    with pytest.raises(ValueError, match="duplicate RSS feed"):
+        build_sources(
+            Settings.from_env({}),
+            cfg,
+            watchlist={"us": ["AAPL"], "kr": []},
+        )
+
+
+def test_build_sources_wraps_invalid_watchlist_sec_ticker(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    cfg = SourcesConfig(rss_sec_watchlist_company_filings={"enabled": True})
+
+    with pytest.raises(SourcesConfigError, match="SEC filing feed ticker"):
+        build_sources(
+            Settings.from_env({}),
+            cfg,
+            watchlist={"us": ["BAD TICKER"], "kr": []},
+        )
+
+
+def test_build_sources_wraps_invalid_watchlist_sec_form(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    cfg = SourcesConfig(
+        rss_sec_watchlist_company_filings={"enabled": True, "forms": [" "]}
+    )
+
+    with pytest.raises(SourcesConfigError, match="SEC form type must not be blank"):
+        build_sources(
+            Settings.from_env({}),
+            cfg,
+            watchlist={"us": ["AAPL"], "kr": []},
+        )
 
 
 def test_build_sources_resolves_rss_catalog_feeds(monkeypatch):

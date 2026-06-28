@@ -53,7 +53,7 @@
 | [R1l-SEC-CIK-CLI-ERRORS](sources/R1l-SEC-CIK-CLI-ERRORS_sec_ticker_cik_map_cli_errors_tech_spec_2026_06_18.md) | source build `ValueError`를 CLI에서 friendly message로 출력 |
 | [R1m-SEC-CIK-MISSING-PATH](sources/R1m-SEC-CIK-MISSING-PATH_sec_ticker_cik_missing_path_tech_spec_2026_06_18.md) | missing ticker lookup 오류에 사용한 mapping file 경로 포함 |
 | [R1n-SEC-CIK-CLI-PATH-CONTRACT](sources/R1n-SEC-CIK-CLI-PATH-CONTRACT_sec_ticker_cik_cli_path_contract_tech_spec_2026_06_18.md) | `collect`/`run`/`backfill` CLI stderr 경로 계약을 테스트로 고정 |
-| [R1o-SEC-WATCHLIST-FILING-FEEDS](sources/R1o-SEC-WATCHLIST-FILING-FEEDS_sec_watchlist_filing_feeds_tech_spec_2026_06_28.md) | Draft: watchlist `us` symbols에서 SEC company filing feeds를 opt-in 생성하는 SEC-only slice |
+| [R1o-SEC-WATCHLIST-FILING-FEEDS](sources/R1o-SEC-WATCHLIST-FILING-FEEDS_sec_watchlist_filing_feeds_tech_spec_2026_06_28.md) | Implemented: watchlist `us` symbols에서 SEC company filing feeds를 opt-in 생성하는 SEC-only slice |
 
 ## storage
 
