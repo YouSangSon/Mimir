@@ -11,9 +11,9 @@ record decisions, commit locally, then reorder the backlog.
 
 ## Current Loop
 
-`GENERIC-RSS-DISCOVERY-BOUNDARY-RECHECK`
+`POST-RSS-DOCS-IMPLEMENTATION-SCAN`
 
-- Plan: `docs/superpowers/plans/2026-06-28-generic-rss-discovery-boundary-recheck.md`
+- Plan: `docs/superpowers/plans/2026-06-29-post-rss-docs-implementation-scan.md`
 - Backlog: `BACKLOG.md`
 - Work log: `WORKLOG.md`
 - Decisions: `DECISIONS.md`
