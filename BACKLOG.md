@@ -19,11 +19,15 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. Recheck the remaining generic provider RSS discovery boundary after R1o and
-   either keep it deferred with evidence or plan one official-source slice.
+1. Run a fresh docs/implementation consistency scan after the generic RSS
+   discovery boundary recheck and queue the next evidence-backed item.
 
 ## Done
 
+- `GENERIC-RSS-DISCOVERY-BOUNDARY-RECHECK` — generic live discovery, SEC 외
+  provider discovery, HTML RSS link crawling, and vendor URL pattern inference
+  remain deferred; current RSS paths stay static catalog ids, explicit manual
+  feeds, and official SEC helpers only.
 - `R1O-SEC-WATCHLIST-FILING-FEEDS-RECHECK` — `sources.rss.sec.watchlist_company_filings`
   now opt-in generates SEC Company Search filing feeds from watchlist `us`
   symbols while keeping generic provider discovery, HTML RSS crawling, and

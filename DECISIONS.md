@@ -3,6 +3,63 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-06-28 — GENERIC-RSS-DISCOVERY-BOUNDARY-RECHECK
+
+Decision: keep generic RSS discovery deferred.
+
+Reason:
+
+- Current code already covers the safe RSS paths: static `sources.rss.catalogs`,
+  explicit `sources.rss.feeds`, SEC company filing helpers, local SEC
+  ticker-to-CIK mapping, and default-false SEC watchlist filing feeds.
+- `resolve_rss_feeds()` still only combines configured catalog, SEC, and manual
+  feed inputs. It does not perform generic live discovery, SEC 외 provider
+  discovery, HTML RSS link crawling, or vendor URL pattern inference.
+- SEC official-source RSS slices are already covered by R1f/R1g/R1h/R1i-R1o.
+- Existing non-SEC families did not show a new bounded static RSS slice:
+  Finnhub, DART/OpenDART, ECOS, and Naver are API/auth surfaces; pykrx/KRX stays
+  GRAY/scraping-related; Stooq and St. Louis Fed RSS evidence was not strong
+  enough to promote without a separate compatibility proof.
+- Deferred scope remains: generic live discovery, SEC 외 provider discovery,
+  HTML RSS link crawling, vendor URL pattern inference.
+
+Sources:
+
+- SEC RSS Feeds:
+  https://www.sec.gov/about/rss-feeds
+- SEC Developer Resources:
+  https://www.sec.gov/about/developer-resources
+- SEC Webmaster FAQ:
+  https://www.sec.gov/about/webmaster-frequently-asked-questions
+- Stooq RSS/database pages:
+  https://stooq.com/rss/
+  https://stooq.com/db/
+- FRED/St. Louis Fed:
+  https://fred.stlouisfed.org/docs/api/fred/releases.html
+  https://fred.stlouisfed.org/docs/api/terms_of_use.html
+  https://www.stlouisfed.org/rss
+- Finnhub:
+  https://finnhub.io/docs/api/market-news
+  https://finnhub.io/docs/api/company-news
+- OpenDART:
+  https://opendart.fss.or.kr/guide/main.do
+  https://opendart.fss.or.kr/api/list.json
+- ECOS:
+  https://ecos.bok.or.kr/api/
+- pykrx:
+  https://github.com/sharebook-kr/pykrx
+  https://pykrx.readthedocs.io/en/latest/
+- Naver Developers News Search:
+  https://developers.naver.com/docs/serviceapi/search/news/news.md
+
+Rejected:
+
+- Adding generic provider RSS discovery now. It would require crawling,
+  guessing, auth-specific API behavior, or provider-specific policy work outside
+  the existing RSS resolver contract.
+- Promoting St. Louis Fed RSS immediately. An official RSS list exists, but the
+  fetch compatibility evidence was not strong enough for a Mimir source slice.
+
 ## 2026-06-28 — R1O-SEC-WATCHLIST-FILING-FEEDS-RECHECK
 
 Decision: implement only the SEC official-source watchlist company filing feed

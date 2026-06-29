@@ -1,5 +1,66 @@
 # Work Log
 
+## 2026-06-28 — GENERIC-RSS-DISCOVERY-BOUNDARY-RECHECK
+
+Goal: recheck the remaining generic provider RSS discovery boundary after R1o
+and either keep it deferred with evidence or plan one official-source slice.
+
+Plan: `docs/superpowers/plans/2026-06-28-generic-rss-discovery-boundary-recheck.md`
+
+Research:
+
+- Current code only supports static catalog ids, explicit manual RSS feeds, and
+  official SEC helper paths. `resolve_rss_feeds()` does not do generic live
+  discovery, SEC 외 provider discovery, HTML RSS link crawling, or vendor URL
+  pattern inference.
+- SEC official-source RSS coverage is already represented by the existing
+  R1f/R1g/R1h/R1i-R1o decisions.
+- Stooq official pages were not a clean static RSS promotion candidate because
+  the public pages returned browser-verification behavior during research.
+- FRED/St. Louis Fed has official RSS material, but compatibility evidence was
+  not strong enough to promote a Mimir source slice in this loop.
+- Finnhub, DART/OpenDART, ECOS, and Naver remain API/auth surfaces rather than
+  keyless static RSS catalog candidates; pykrx/KRX remains GRAY/scraping-related.
+- Deferred scope remains: generic live discovery, SEC 외 provider discovery,
+  HTML RSS link crawling, vendor URL pattern inference.
+
+TDD:
+
+- RED: `uv run pytest tests/test_readme_docs.py::test_generic_rss_discovery_recheck_keeps_policy_boundary_deferred -q`
+  failed because current docs did not yet record
+  `GENERIC-RSS-DISCOVERY-BOUNDARY-RECHECK`.
+
+Verification:
+
+- `uv run pytest tests/test_readme_docs.py::test_generic_rss_discovery_recheck_keeps_policy_boundary_deferred -q` — 1 passed
+- `uv run pytest tests/test_readme_docs.py -q` — 35 passed
+- `uv run pytest --collect-only -q | tail -1` — 668 tests collected
+- `uv run pytest -q` — 668 passed
+- `uv run ruff check .` — passed
+- `uv run mypy mimir` — passed
+- `git diff --check` — passed
+- Secrets scan on touched tracked files found no real secrets; matches were
+  limited to existing config, CI, test, and placeholder names.
+
+Agent card:
+
+- Owner: Codex
+- State: review -> commit
+- Merge gate: focused docs guard, docs suite, collect-only count, full pytest,
+  ruff, mypy, diff-check, secrets scan, and review pass.
+
+Review:
+
+- Spec reviewer approved with no Critical, Important, or Minor findings.
+- Quality reviewer found one Important docs-guard weakness and one Minor
+  worklog evidence gap; both were addressed and re-review approved.
+
+Result:
+
+- Generic RSS discovery remains deferred.
+- No production code changed.
+- `BACKLOG.md` now queues a fresh docs/implementation consistency scan.
+
 ## 2026-06-28 — R1O-SEC-WATCHLIST-FILING-FEEDS-RECHECK
 
 Goal: recheck the R1o SEC watchlist filing feeds Draft spec and promote only

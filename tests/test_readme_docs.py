@@ -506,6 +506,43 @@ def test_r1o_sec_watchlist_filing_feeds_recheck_promotes_implemented_slice() -> 
         assert phrase in decisions
 
 
+def test_generic_rss_discovery_recheck_keeps_policy_boundary_deferred() -> None:
+    improvements = Path("docs/IMPROVEMENTS.md").read_text(encoding="utf-8")
+    catalog = IMPROVEMENT_CATALOG.read_text(encoding="utf-8")
+    config_ref = Path("docs/reference/config/sources.md").read_text(encoding="utf-8")
+    decisions = Path("DECISIONS.md").read_text(encoding="utf-8")
+    worklog = Path("WORKLOG.md").read_text(encoding="utf-8")
+
+    for phrase in (
+        "GENERIC-RSS-DISCOVERY-BOUNDARY-RECHECK",
+        "generic live discovery",
+        "SEC 외 provider discovery",
+        "HTML RSS link crawling",
+        "vendor URL pattern inference",
+    ):
+        assert phrase in improvements
+        assert phrase in catalog
+        assert phrase in decisions
+        assert phrase in worklog
+
+    assert "Resolver는 코드 안의 정적 catalog만 읽는다" in config_ref
+    assert "Catalog를 해석하는 동안 네트워크를 호출하지 않으며" in config_ref
+    assert "generic provider discovery가 아니다" in config_ref
+    assert "Decision: keep generic RSS discovery deferred." in decisions
+    assert "Generic RSS discovery remains deferred." in worklog
+    for forbidden in (
+        "Decision: implement generic RSS discovery",
+        "generic RSS discovery is now implemented",
+        "generic live discovery is now implemented",
+        "HTML RSS link crawling 구현",
+        "vendor URL pattern inference 구현",
+        "generic live discovery 구현",
+    ):
+        assert forbidden not in improvements
+        assert forbidden not in catalog
+        assert forbidden not in decisions
+
+
 def test_captured_date_persistent_index_recheck_keeps_measurement_based_deferral() -> None:
     design = CAPTURED_DATE_PERSISTENT_INDEX_SPEC.read_text(encoding="utf-8")
     reader = Path("mimir/storage/reader.py").read_text(encoding="utf-8")
