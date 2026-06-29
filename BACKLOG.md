@@ -19,11 +19,18 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. Run a fresh docs/implementation consistency scan after the generic RSS
-   discovery boundary recheck and queue the next evidence-backed item.
+1. `CAPTURED-INDEX-MEASUREMENT-RECHECK` — recheck whether current
+   `DataReader._captured_date_index` measurement evidence proves
+   `read_captured_window()` rebuild cost has crossed the persistent-index
+   threshold; if not, keep the index deferred and queue the next bounded
+   docs-truth or verification cleanup.
 
 ## Done
 
+- `POST-RSS-DOCS-IMPLEMENTATION-SCAN` — current-state docs, CLI script
+  metadata, README reference links, workflow queue claims, RSS boundaries, and
+  test-count claims matched implementation; no stronger stale current-state
+  doc claim was found.
 - `GENERIC-RSS-DISCOVERY-BOUNDARY-RECHECK` — generic live discovery, SEC 외
   provider discovery, HTML RSS link crawling, and vendor URL pattern inference
   remain deferred; current RSS paths stay static catalog ids, explicit manual

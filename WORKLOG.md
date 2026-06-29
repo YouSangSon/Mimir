@@ -1,5 +1,71 @@
 # Work Log
 
+## 2026-06-29 — POST-RSS-DOCS-IMPLEMENTATION-SCAN
+
+Goal: run a fresh docs/implementation consistency scan after the generic RSS
+discovery boundary recheck and queue the next evidence-backed item.
+
+Plan: `docs/superpowers/plans/2026-06-29-post-rss-docs-implementation-scan.md`
+
+Scan:
+
+- Current-state stale-claim search across README, root state docs,
+  `docs/IMPROVEMENTS.md`, `docs/architecture`, `docs/reference`, and
+  `tests/test_readme_docs.py` found no contradictory current-state claim. Hits
+  were docs-health guard literals, true deferred/future boundaries, or dated
+  decision context.
+- Test-count search found current README EN/KO/ZH `668 passing` claims and the
+  docs guard regexes only; `uv run pytest --collect-only -q | tail -1`
+  confirmed `668 tests collected`.
+- `uv run pytest tests/test_pyproject_scripts.py -q` kept CLI script metadata
+  and source entry points in sync.
+- `uv run pytest tests/test_readme_docs.py::test_readme_links_all_reference_docs -q`
+  kept README reference links backed by existing files.
+- RSS boundary claims still match the resolver and builder contracts: static
+  catalog ids, explicit manual RSS feeds, and official SEC helpers only.
+- GitHub Actions `concurrency.queue: max` was checked against official GitHub
+  docs and remains supported with `cancel-in-progress: false`:
+  https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency
+
+Next queue:
+
+- `CAPTURED-INDEX-MEASUREMENT-RECHECK`: live catalog evidence says the
+  persistent captured-date/partition index is still deferred until
+  `DataReader._captured_date_index` measurements show rebuild cost crossing the
+  bottleneck threshold. The measurement hook exists, but this scan found no
+  current measurement proving the threshold has been crossed.
+
+Verification:
+
+- `uv run pytest tests/test_pyproject_scripts.py -q` — 3 passed
+- `uv run pytest tests/test_readme_docs.py::test_readme_links_all_reference_docs -q` — 1 passed
+- `uv run pytest tests/test_readme_docs.py -q` — 35 passed
+- `uv run pytest --collect-only -q | tail -1` — 668 tests collected
+- `uv run pytest -q` — 668 passed
+- `uv run ruff check .` — passed
+- `uv run mypy mimir` — passed
+- `git diff --check` — passed
+- Secrets scan on touched files found no real secrets; the only match was
+  existing WORKLOG placeholder/env-name wording.
+
+Agent card:
+
+- Owner: Codex
+- State: verify -> review -> commit
+- Merge gate: docs suite, collect-only count, full pytest, ruff, mypy,
+  diff-check, secrets scan, and review pass.
+
+Review:
+
+- Spec reviewer approved with no Critical, Important, or Minor findings.
+- Quality reviewer approved with no Critical, Important, or Minor findings.
+
+Result:
+
+- No production code changed.
+- No `DECISIONS.md` entry was added because the scan only queued the next
+  evidence-backed item and did not change durable scope.
+
 ## 2026-06-28 — GENERIC-RSS-DISCOVERY-BOUNDARY-RECHECK
 
 Goal: recheck the remaining generic provider RSS discovery boundary after R1o
