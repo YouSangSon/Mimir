@@ -3,6 +3,29 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-06-29 — CAPTURED-INDEX-MEASUREMENT-RECHECK
+
+Decision: keep the captured-date persistent index deferred.
+
+Reason:
+
+- `DataReader.read_captured_window()` still builds one in-memory captured-date
+  index per dataset per `DataReader` and reuses it for multiple captured-window
+  reads while `JsonlStore.revision` is unchanged.
+- `DataReader._captured_date_index()` still logs `records/days/elapsed_ms` at
+  DEBUG level, which is the intended unblock measurement for persistent-index
+  work.
+- Focused guards for rebuild logging, scan reuse, and docs deferral passed.
+- Local repo data has no JSONL corpus to measure, so current evidence does not
+  prove `read_captured_window()` rebuild cost crossed the persistent-index
+  threshold.
+
+Rejected:
+
+- Implementing an on-disk captured-date index now. Without measured rebuild
+  cost, it would add schema, rebuild command, stale-index fallback, and cache
+  invalidation behavior before they are justified.
+
 ## 2026-06-28 — GENERIC-RSS-DISCOVERY-BOUNDARY-RECHECK
 
 Decision: keep generic RSS discovery deferred.

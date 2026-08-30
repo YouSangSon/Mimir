@@ -19,14 +19,35 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. `CAPTURED-INDEX-MEASUREMENT-RECHECK` — recheck whether current
-   `DataReader._captured_date_index` measurement evidence proves
-   `read_captured_window()` rebuild cost has crossed the persistent-index
-   threshold; if not, keep the index deferred and queue the next bounded
-   docs-truth or verification cleanup.
+1. `SOURCE-LEGALITY-ATTRIBUTION` — align public reports and docs with current
+   official FRED/ECOS attribution and rights conditions, and stop presenting
+   manual RSS URLs as automatically verified official sources.
+2. `CONFIG-YAML-SYNTAX-ERROR-BOUNDARY` — normalize malformed YAML into the
+   existing sources/watchlist config errors so every affected CLI exits with
+   its documented prefix instead of a parser traceback.
+3. `CLI-DATE-ARGUMENT-BOUNDARY` — let argparse validate the six operator-facing
+   `--date`/`--since` inputs so invalid dates produce usage errors, not raw
+   `ValueError` exceptions.
+4. `REPORT-HTML-MOBILE-A11Y` — add viewport-safe tables, accessible dark/light
+   contrast, and scoped historical-table headers across the static report
+   renderers without JavaScript or new dependencies.
+5. `DOCTOR-MACRO-SINGLE-SCAN` — reuse the existing macro scan when computing
+   per-series freshness so doctor/dashboard do not rescan the full dataset for
+   every series.
+6. `DELIVERY-CADENCE-CONTRACT` — prove the existing digest/delivery path accepts
+   hourly, daily, weekly, and monthly cadence values with one parameterized
+   behavioral test.
+7. `CURRENT-HEALTH-DOC-TRUTH` — correct the exact `mimir/` coverage percentage,
+   the fixed maximum production-file size, the exhaustive remaining-work
+   conclusion in the catalog, and the GitHub schedule commit-back guarantee.
 
 ## Done
 
+- `CAPTURED-INDEX-MEASUREMENT-RECHECK` — `DataReader._captured_date_index`
+  still reuses one in-memory index per dataset per `DataReader` while the store
+  revision is unchanged and logs `records/days/elapsed_ms`; local repo evidence
+  does not prove `read_captured_window()` rebuild cost crossed the
+  persistent-index threshold.
 - `POST-RSS-DOCS-IMPLEMENTATION-SCAN` — current-state docs, CLI script
   metadata, README reference links, workflow queue claims, RSS boundaries, and
   test-count claims matched implementation; no stronger stale current-state

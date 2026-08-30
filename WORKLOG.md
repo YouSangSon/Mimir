@@ -1,5 +1,82 @@
 # Work Log
 
+## 2026-06-29 — CAPTURED-INDEX-MEASUREMENT-RECHECK
+
+Goal: recheck whether current `DataReader._captured_date_index` measurement
+evidence proves `read_captured_window()` rebuild cost has crossed the
+persistent-index threshold.
+
+Plan: `docs/superpowers/plans/2026-06-29-captured-index-measurement-recheck.md`
+
+Research:
+
+- `DataReader.read_captured_window()` still routes through
+  `_captured_date_index()` and filters the in-memory captured-date buckets.
+- `_captured_date_index()` still scans `JsonlStore.read_all(dataset)` once per
+  dataset per `DataReader` while the store revision is unchanged, groups records
+  by `captured_at.date()`, and logs `records/days/elapsed_ms`.
+- `tests/analysis/test_reader.py` still covers rebuild logging, one scan reused
+  across multiple captured windows, and cache invalidation after store changes.
+- Local `data/` has 0 JSONL files, so this checkout has no measured corpus that
+  proves rebuild cost crossed the persistent-index threshold.
+
+Post-loop audit:
+
+- `SOURCE-LEGALITY-ATTRIBUTION`: FRED API terms require a prominent
+  non-endorsement notice and preserve series-owner rights; ECOS terms require
+  source attribution, while `docs/reference/config/sources.md` accepts manual
+  RSS URLs that the operator must verify. Official evidence:
+  <https://fred.stlouisfed.org/docs/api/terms_of_use.html> and
+  <https://ecos.bok.or.kr/api/#/AuthKeyApply>.
+- `CONFIG-YAML-SYNTAX-ERROR-BOUNDARY`: `mimir/config.py` calls
+  `yaml.safe_load()` outside the existing typed config-error boundaries.
+- `CLI-DATE-ARGUMENT-BOUNDARY`: six CLI modules call `date.fromisoformat()`
+  after argparse instead of using its native `type` validation.
+- `REPORT-HTML-MOBILE-A11Y`: the static report renderers lack viewport metadata,
+  responsive table containment, and scoped historical-table headers.
+- `DOCTOR-MACRO-SINGLE-SCAN`: `mimir/doctor/checks.py` performs an initial macro
+  scan and then repeats full reads for per-series freshness.
+- `DELIVERY-CADENCE-CONTRACT`: delivery supports every `Cadence` value, but its
+  behavioral tests currently exercise only `daily`.
+- `CURRENT-HEALTH-DOC-TRUTH`: the audited stale set is limited to the exact
+  coverage, fixed file-size, exhaustive catalog, and GitHub commit-back claims.
+
+Verification:
+
+- `uv run pytest tests/analysis/test_reader.py::test_captured_index_rebuild_logs_scan_scale tests/analysis/test_reader.py::test_read_captured_window_reuses_one_dataset_scan_for_multiple_windows tests/test_readme_docs.py::test_captured_date_persistent_index_recheck_keeps_measurement_based_deferral -q` — 3 passed
+- `uv run pytest tests/test_readme_docs.py -q` — 35 passed
+- `uv run pytest --collect-only -q | tail -1` — 668 tests collected
+- `uv run pytest -q` — 668 passed
+- `uv run coverage run -m pytest` plus `coverage report --fail-under=80` —
+  668 passed, total coverage 98%
+- `uv run ruff check .` — passed
+- `uv run mypy mimir` — passed
+- `git diff --check` — passed
+- Secrets scan on touched files found no real secrets; matches were existing
+  `MIMIR_SEC_USER_AGENT` and WORKLOG placeholder/env-name wording.
+
+Agent card:
+
+- Owner: Codex
+- State: verify -> review -> commit
+- Merge gate: focused captured-index guards, docs suite, collect-only count,
+  full pytest, ruff, mypy, diff-check, secrets scan, and review pass.
+
+Review:
+
+- Spec review: approved after bounding the docs-truth candidate, restoring
+  priority order, and recording a candidate-to-evidence map.
+- Quality review: approved after correcting the dataset-scoped cache wording
+  and preserving the official FRED/ECOS evidence URLs.
+
+Result:
+
+- Persistent captured-date indexing remains deferred.
+- No production code changed.
+- A post-loop code, UI, docs, and official-source audit found stronger work than
+  another signal-weight deferral recheck, so `BACKLOG.md` now queues
+  `SOURCE-LEGALITY-ATTRIBUTION` first and preserves the other verified gaps.
+
 ## 2026-06-29 — POST-RSS-DOCS-IMPLEMENTATION-SCAN
 
 Goal: run a fresh docs/implementation consistency scan after the generic RSS
