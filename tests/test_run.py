@@ -56,6 +56,21 @@ def test_run_pipeline_runs_evaluation_before_delivery(tmp_path: Path, monkeypatc
     assert result["evaluation"] == 2
 
 
+def test_run_pipeline_uses_typed_runtime_config_for_lang(tmp_path: Path):
+    result = run_pipeline(
+        cadence="daily",
+        env={},
+        watchlist={"us": [], "kr": []},
+        data_root=tmp_path / "data",
+        reports_root=tmp_path / "reports",
+        sources_config={"disabled_ids": ["sec_edgar", "rss"], "lang": "ko"},
+        now=datetime(2026, 5, 31, tzinfo=UTC),
+    )
+
+    assert result["collect_failures"] is False
+    assert 'lang="ko"' in (tmp_path / "reports/2026/05/31.html").read_text(encoding="utf-8")
+
+
 def test_main_uses_default_env_path(tmp_path: Path, monkeypatch):
     (tmp_path / "sources.yaml").write_text("gray_enabled: true\n", encoding="utf-8")
     (tmp_path / "watchlist.yaml").write_text("us: []\nkr: []\n", encoding="utf-8")

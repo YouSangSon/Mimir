@@ -20,7 +20,14 @@ def _default_payload(dataset: Dataset, symbol: str | None) -> dict[str, Any]:
             "volume": 1.0, "currency": "USD", "interval": "1d",
         }
     if dataset is Dataset.MACRO:
-        return {"series_id": symbol or "DGS10", "value": 1.0, "period": "2026-01-15"}
+        return {
+            "stat_code": "722Y001",
+            "item_code": "0101000",
+            "item_name": None,
+            "value": 1.0,
+            "unit": None,
+            "time": "202601",
+        }
     if dataset is Dataset.NEWS:
         return {
             "title": "t", "url": "https://example.com/a", "publisher": "p",
@@ -48,11 +55,12 @@ def make_record(
     symbol: str | None = None,
     key: str,
     payload: dict[str, Any] | None = None,
+    market: Market = Market.US,
 ) -> Record:
     return Record(
         source="test",
         dataset=dataset,
-        market=Market.US,
+        market=market,
         symbol=symbol,
         ts=datetime(day.year, day.month, day.day, tzinfo=UTC),
         captured_at=datetime(day.year, day.month, day.day, tzinfo=UTC),
@@ -94,9 +102,17 @@ def write_fresh_tree(root: Path, now: datetime) -> JsonlStore:
             root, dataset, today,
             [make_record(dataset, today, key=f"{dataset.value}-{today}")],
         )
-    # macro: DGS10 (daily) fresh today.
+    # macro: ECOS base rate (monthly) fresh today.
     write_partition(
         root, Dataset.MACRO, today,
-        [make_record(Dataset.MACRO, today, symbol="DGS10", key=f"m-{today}")],
+        [
+            make_record(
+                Dataset.MACRO,
+                today,
+                symbol="722Y001.0101000",
+                key=f"m-{today}",
+                market=Market.KR,
+            )
+        ],
     )
     return store

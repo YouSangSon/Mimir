@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC2 (카탈로그 A4)
 > **작성일**: 2026-06-13
-> **상태**: ✅ 구현 완료 (Increment 2) — 4단계 롤아웃, 293 테스트 · 97% 커버리지 · mypy strict
+> **상태**: ✅ 구현 완료 (Increment 2 typed payload rollout). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다. 이후 `Dataset.EVALUATION`/`BucketStat`도 같은 typed payload boundary에 포함됐다.
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S1 Collector](2026-05-31-collector-design.md)
 
 ---
@@ -233,11 +233,15 @@ class Record(BaseModel):
 
 이로써 역직렬화가 §4.2의 `dataset` 판별자로 **결정적**이 된다(smart-union 휴리스틱 의존 제거) — 본 스펙 제목 "**판별 유니온 BY DATASET**"이 직렬화 경로에서도 일관되게 성립한다. 직렬화(`model_dump_json`)는 §3 규칙으로 동일 바이트.
 
+`Record.payload` 유니온화는 단계 4에서 완료된다.
+
 ### 4.4 insights / historical — 기존 모델 재사용 (재정의 금지)
 
 `Insight`(`analysis/schema.py`)와 `HistoricalInsight`(`historical/schema.py`)가 이미 페이로드 모델이다. `to_record`가 `model_dump(mode="json")`로 payload를 만들고, `deliver.py`가 `model_validate(r.payload)`로 되읽는다. **새 모델을 만들지 않고 이 둘을 `PAYLOAD_BY_DATASET`에 그대로 등록**한다 — 두 번째 진실원이 생겨 드리프트하는 것을 막는다.
 
 > 주의: insights/historical은 `_append_overwrite` 경로(매 실행 read→rewrite)다. 여기서 **재-dump 바이트 동일성이 실제로 git churn을 막는다**. 두 모델은 이미 `mode="json"` dump를 쓰므로 round-trip이 동일함을 골든 테스트로 고정(§8).
+
+`Dataset.EVALUATION`은 후속 구현에서 `BucketStat` typed payload로 같은 boundary에 합류했다.
 
 ### 4.5 시그널 측 타입드 접근 (mypy strict 내로잉)
 
@@ -259,6 +263,8 @@ def price_payload(rec: Record) -> PricePayload:
 ### 4.6 `RawRecord.payload`는 dict 유지
 
 수집 어댑터(`fetch`)는 외부 API의 가변 응답에서 dict를 조립한다. `RawRecord.payload`를 유니온으로 강제하면 어댑터마다 모델 생성 코드를 넣어야 하고 수집 경로가 무거워진다. **검증의 단일 지점은 `normalize()`**(경계)다 — 거기서 한 번 `parse_payload`로 드리프트를 잡는다(§4.7). `RawRecord.payload: dict[str, Any]`는 유지.
+
+`RawRecord.payload`는 `dict[str, Any]` 유지.
 
 ### 4.7 `normalize()` — 쓰기 시점 드리프트 차단
 
@@ -296,15 +302,16 @@ def normalize(raw, meta, *, captured_at) -> Record:
 
 ## 7. 수용 기준 (Acceptance)
 
-- [ ] `mimir/core/payloads.py`에 6개 페이로드 모델(`PricePayload`, `FredMacroPayload`, `EcosMacroPayload`, `NewsPayload`, `SecFilingPayload`, `DartFilingPayload`) + `MacroPayload`/`FilingPayload` 유니온 별칭 + `parse_payload`.
-- [ ] insights/historical은 **기존** `Insight`/`HistoricalInsight` 재사용(새 모델 없음).
-- [ ] **골든 round-trip(§8.1)**: 7개 어댑터 각각의 실제 페이로드 리터럴 → JSON 문자열 → `parse_payload` → `model_dump_json` → **원본 JSON 문자열과 바이트 동일**.
-- [ ] **드리프트 차단(§8.2)**: 미지의 키(`extra`)·키 누락·형 불일치가 `PayloadSchemaError`로 실패.
-- [ ] **소스별 분기(§8.3)**: `fred` dict는 `FredMacroPayload`로, `ecos` dict는 `EcosMacroPayload`로 해소(반대 모델로는 실패). FILINGS 동형.
-- [ ] **시그널 동치(§8.4)**: 4개 시그널 + `historical/series`가 타입드 접근으로 마이그레이션 후 기존 시그널 출력과 동일.
-- [ ] **봉투 통합(§8.5)**: `Record.payload` 유니온화 후 `Record.model_validate_json`/`model_dump_json` round-trip이 모든 데이터셋에서 바이트 동일.
-- [ ] `RawRecord.payload`는 `dict[str, Any]` 유지(§4.6).
-- [ ] 기존 테스트 전부 통과 · ruff · mypy strict 클린 · 커버리지 ≥ 80% · `payloads.py` < 800줄.
+- [x] `mimir/core/payloads.py`에 6개 소스 페이로드 모델(`PricePayload`, `FredMacroPayload`, `EcosMacroPayload`, `NewsPayload`, `SecFilingPayload`, `DartFilingPayload`) + `MacroPayload`/`FilingPayload` 유니온 별칭 + `parse_payload`가 있다.
+- [x] insights/historical은 기존 `Insight`/`HistoricalInsight`를 재사용한다.
+- [x] evaluation은 후속 구현에서 `BucketStat` typed payload로 같은 boundary에 합류했다.
+- [x] 골든 round-trip은 어댑터 페이로드 리터럴 → `parse_payload` → dump가 기존 dict 경로와 바이트 동일함을 고정한다.
+- [x] 미지의 키(`extra`)·키 누락·형 불일치가 `PayloadSchemaError` 또는 storage-boundary validation failure로 실패한다.
+- [x] `fred` dict는 `FredMacroPayload`, `ecos` dict는 `EcosMacroPayload`로 해소되며 반대 모델로는 실패한다. FILINGS도 SEC/DART 모델로 분기한다.
+- [x] 4개 시그널, LLM sentiment, historical series가 타입드 접근 helper로 기존 출력 의미를 유지한다.
+- [x] `Record.payload` 유니온화 후 `Record.model_validate_json`/`model_dump_json` round-trip이 주요 데이터셋에서 바이트 동일하다.
+- [x] `RawRecord.payload`는 `dict[str, Any]`를 유지한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

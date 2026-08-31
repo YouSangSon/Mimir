@@ -2,7 +2,7 @@
 
 > **스펙 ID**: S4
 > **작성일**: 2026-05-31
-> **상태**: 구현 완료
+> **상태**: 구현 완료. 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [S1 Collector](2026-05-31-collector-design.md) · [S2 Analysis](2026-05-31-analysis-design.md) · [로드맵](../../architecture/roadmap.md)
 
 ---
@@ -74,7 +74,7 @@ class HistoricalInsight(BaseModel):
 ```
 `Dataset` enum에 `HISTORICAL = "historical"` 추가.
 
-## 8. 테스트(TDD, 80%+)
+## 8. 테스트 전략 (TDD)
 - `events`: 합성 시계열에서 급락·거래량 급증 인덱스 정확 탐지.
 - `analog`: 알려진 시계열에서 forward return·중앙값·양비율 계산 검증; 룩어헤드 경계(범위 밖 제외).
 - `engine`: 시드 가격 이력 → MIN_OCCURRENCES 충족 시 인사이트 저장, 미만이면 생략.
@@ -85,4 +85,4 @@ class HistoricalInsight(BaseModel):
 2. 이벤트 2종 + analog 요약 + 엔진 단위/통합 테스트 통과.
 3. 표본 `n` 노출, MIN_OCCURRENCES 미만 생략, 룩어헤드 회피.
 4. 과거성과 면책 포함.
-5. 커버리지 80%+, ruff·mypy --strict clean.
+5. 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from mimir.report.i18n import DEFAULT_LANG, normalize_lang
 from mimir.sources.ecos import EcosSeries
 from mimir.sources.rss import RssFeed
 from mimir.sources.rss_catalog import RssCatalogSelection, SecCompanyFilingFeed
@@ -27,12 +28,20 @@ class TickerCikMapRefresh(BaseModel):
     max_age_hours: int = Field(default=168, ge=1)
 
 
+class SecWatchlistCompanyFilings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool = False
+    forms: list[str] = Field(default_factory=lambda: ["10-K", "10-Q", "8-K"])
+    count: int = Field(default=40, ge=10, le=100)
+    owner: Literal["exclude", "include", "only"] = "exclude"
+
+
 class SourcesConfig(BaseModel):
-    fred_series: list[str] | None = None
     ecos_series: list[EcosSeries] | None = None
     rss_feeds: list[RssFeed] | None = None
     rss_catalogs: list[RssCatalogSelection] | None = None
     rss_sec_company_filings: list[SecCompanyFilingFeed] | None = None
+    rss_sec_watchlist_company_filings: SecWatchlistCompanyFilings | None = None
     rss_sec_ticker_cik_map_path: Path | None = None
     rss_sec_ticker_cik_map_refresh: TickerCikMapRefresh | None = None
     plugin_settings: dict[str, dict[str, Any]] = Field(default_factory=dict)
@@ -45,6 +54,7 @@ class SourcesConfig(BaseModel):
     # anthropic package before it registers the signal.
     llm_sentiment_enabled: bool = False
     llm_sentiment_max_headlines: int = Field(default=50, ge=1, le=50)
+    analysis_plugin_settings: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
     def plugin_config(self, source_id: str) -> dict[str, Any]:
         """Return a copy of the plugin config block for ``source_id``."""
@@ -56,10 +66,15 @@ class SourcesConfig(BaseModel):
         """Validate a plugin config block with the plugin-owned pydantic model."""
         return model.model_validate(self.plugin_config(source_id))
 
+    def analysis_plugin_config(self, signal_id: str) -> dict[str, Any]:
+        """Return a copy of the analysis plugin config block for ``signal_id``."""
+        return dict(self.analysis_plugin_settings.get(signal_id, {}))
 
-class _FredBlock(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    series: list[str] | None = None
+    def parse_analysis_plugin_config(
+        self, signal_id: str, model: type[PluginConfig]
+    ) -> PluginConfig:
+        """Validate an analysis plugin config block with the plugin-owned model."""
+        return model.model_validate(self.analysis_plugin_config(signal_id))
 
 
 class _EcosBlock(BaseModel):
@@ -70,6 +85,7 @@ class _EcosBlock(BaseModel):
 class _RssSecBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
     company_filings: list[SecCompanyFilingFeed] | None = None
+    watchlist_company_filings: SecWatchlistCompanyFilings | None = None
     ticker_cik_map_path: Path | None = None
     ticker_cik_map_refresh: TickerCikMapRefresh | None = None
 
@@ -90,7 +106,6 @@ class _RssBlock(BaseModel):
 
 class _SourcesBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    fred: _FredBlock | None = None
     ecos: _EcosBlock | None = None
     rss: _RssBlock | None = None
     plugins: dict[str, dict[str, Any]] | None = None
@@ -111,6 +126,7 @@ class _AnalysisBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
     macro_regime: _MacroRegimeBlock | None = None
     news: _NewsBlock | None = None
+    plugins: dict[str, dict[str, Any]] | None = None
 
 
 class _TopLevelSourcesConfig(BaseModel):
@@ -122,6 +138,51 @@ class _TopLevelSourcesConfig(BaseModel):
     llm_sentiment_enabled: bool = False
     llm_sentiment_max_headlines: int = Field(default=50, ge=1, le=50)
     analysis: _AnalysisBlock | None = None
+
+
+class RuntimeSourcesConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    source_config: SourcesConfig = Field(default_factory=SourcesConfig)
+    gray_enabled: bool = True
+    disabled_ids: tuple[str, ...] = ()
+    lang: str = DEFAULT_LANG
+
+
+def _source_config_from_top_level(top_level: _TopLevelSourcesConfig) -> SourcesConfig:
+    block = top_level.sources or _SourcesBlock()
+    news_block = top_level.analysis.news if top_level.analysis and top_level.analysis.news else None
+    return SourcesConfig(
+        ecos_series=block.ecos.series if block.ecos else None,
+        rss_feeds=block.rss.feeds if block.rss else None,
+        rss_catalogs=block.rss.catalogs if block.rss else None,
+        rss_sec_company_filings=(
+            block.rss.sec.company_filings if block.rss and block.rss.sec else None
+        ),
+        rss_sec_watchlist_company_filings=(
+            block.rss.sec.watchlist_company_filings if block.rss and block.rss.sec else None
+        ),
+        rss_sec_ticker_cik_map_path=(
+            block.rss.sec.ticker_cik_map_path if block.rss and block.rss.sec else None
+        ),
+        rss_sec_ticker_cik_map_refresh=(
+            block.rss.sec.ticker_cik_map_refresh if block.rss and block.rss.sec else None
+        ),
+        plugin_settings=block.plugins or {},
+        analysis_plugin_settings=(
+            top_level.analysis.plugins if top_level.analysis and top_level.analysis.plugins else {}
+        ),
+        macro_regime_rate_series=(
+            top_level.analysis.macro_regime.rate_series
+            if top_level.analysis and top_level.analysis.macro_regime
+            else None
+        ),
+        news_aliases=news_block.aliases if news_block else None,
+        use_default_news_aliases=news_block.use_default_aliases if news_block else True,
+        # Top-level analysis-plane toggles (siblings of gray_enabled), not under `sources:`.
+        llm_sentiment_enabled=top_level.llm_sentiment_enabled,
+        llm_sentiment_max_headlines=top_level.llm_sentiment_max_headlines,
+    )
 
 
 def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
@@ -136,31 +197,14 @@ def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:
     # Collapse only an absent/None block to defaults; any other non-mapping
     # (0, false, [], "x") is malformed and must raise — not silently fall back.
     top_level = _TopLevelSourcesConfig.model_validate(raw)
-    block = top_level.sources or _SourcesBlock()
-    news_block = top_level.analysis.news if top_level.analysis and top_level.analysis.news else None
-    return SourcesConfig(
-        fred_series=block.fred.series if block.fred else None,
-        ecos_series=block.ecos.series if block.ecos else None,
-        rss_feeds=block.rss.feeds if block.rss else None,
-        rss_catalogs=block.rss.catalogs if block.rss else None,
-        rss_sec_company_filings=(
-            block.rss.sec.company_filings if block.rss and block.rss.sec else None
-        ),
-        rss_sec_ticker_cik_map_path=(
-            block.rss.sec.ticker_cik_map_path if block.rss and block.rss.sec else None
-        ),
-        rss_sec_ticker_cik_map_refresh=(
-            block.rss.sec.ticker_cik_map_refresh if block.rss and block.rss.sec else None
-        ),
-        plugin_settings=block.plugins or {},
-        macro_regime_rate_series=(
-            top_level.analysis.macro_regime.rate_series
-            if top_level.analysis and top_level.analysis.macro_regime
-            else None
-        ),
-        news_aliases=news_block.aliases if news_block else None,
-        use_default_news_aliases=news_block.use_default_aliases if news_block else True,
-        # Top-level analysis-plane toggles (siblings of gray_enabled), not under `sources:`.
-        llm_sentiment_enabled=top_level.llm_sentiment_enabled,
-        llm_sentiment_max_headlines=top_level.llm_sentiment_max_headlines,
+    return _source_config_from_top_level(top_level)
+
+
+def parse_runtime_sources_config(raw: dict[str, Any]) -> RuntimeSourcesConfig:
+    top_level = _TopLevelSourcesConfig.model_validate(raw)
+    return RuntimeSourcesConfig(
+        source_config=_source_config_from_top_level(top_level),
+        gray_enabled=top_level.gray_enabled,
+        disabled_ids=tuple(top_level.disabled_ids or ()),
+        lang=normalize_lang(top_level.lang),
     )

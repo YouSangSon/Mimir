@@ -1,8 +1,8 @@
 # RSS Feed Catalog Design
 
-> **상태**: ✅ 구현 완료. 438 tests · ruff · mypy · coverage gate 통과.
+> **상태**: ✅ 구현 완료 (`sources.rss.catalogs` + RSS resolver chain). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **날짜**: 2026-06-17
-> **범위**: `sources.rss.catalogs` 정적 catalog와 local resolver. Live endpoint discovery, HTML scraping, vendor URL 추측은 제외한다.
+> **범위**: `sources.rss.catalogs` 정적 catalog, `sources.rss.sec.company_filings` SEC Atom URL 조립, local resolver, off-by-default SEC mapping refresh prep. Live endpoint discovery, HTML scraping, vendor URL 추측은 제외한다.
 
 ---
 
@@ -81,6 +81,8 @@ sources:
 
 ### 6.1 설정 모델
 
+Catalog selection은 `RssCatalogSelection` 모델로 표현한다.
+
 ```python
 class RssCatalogSelection(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -111,6 +113,8 @@ class RssCatalogEntry(BaseModel):
 
 새 모듈 `mimir/sources/rss_catalog.py`가 catalog를 소유한다.
 
+Catalog-only resolver는 `resolve_rss_catalogs()`다.
+
 ```python
 def resolve_rss_catalogs(selections: Sequence[RssCatalogSelection] | None) -> list[RssFeed]:
     ...
@@ -126,6 +130,8 @@ def resolve_rss_catalogs(selections: Sequence[RssCatalogSelection] | None) -> li
 
 중복은 dedupe하지 않고 실패시킨다. Dedup은 운영자의 설정 오류를 숨길 수 있다. 특히 symbol-tagged feed에서는 같은 URL이라도 symbol이 다르면 서로 다른 관계를 뜻하므로 `(url, symbol)` 기준으로만 판단한다.
 
+현재 구현에는 상위 resolver인 `resolve_rss_feeds()`도 있다. 이 함수는 `resolve_rss_catalogs(selections)`, `resolve_sec_company_filing_feeds(sec.company_filings, sec_ticker_cik_map)`, manual `sources.rss.feeds`를 합친 뒤 같은 `(url, symbol)` 중복을 검증한다. Catalog-only resolver는 여전히 순수 함수이고, 통합 resolver도 네트워크를 호출하지 않는다.
+
 ---
 
 ## 8. Config와 Builder 흐름
@@ -137,23 +143,37 @@ def resolve_rss_catalogs(selections: Sequence[RssCatalogSelection] | None) -> li
 `build_sources()`의 RSS factory는 다음 순서로 feed를 만든다.
 
 1. `resolve_rss_catalogs(cfg.rss_catalogs)`
-2. `cfg.rss_feeds or []`
-3. 두 list를 합친 값이 비어 있으면 `None`을 넘겨 기존 `DEFAULT_FEEDS`를 유지한다.
-4. 하나라도 있으면 합친 list를 `RssSource(feeds=...)`에 넘긴다.
+2. `resolve_sec_company_filing_feeds(cfg.rss_sec_company_filings, sec_ticker_cik_map)`
+3. `cfg.rss_feeds or []`
+4. 세 list를 합친 값이 비어 있으면 `None`을 넘겨 기존 `DEFAULT_FEEDS`를 유지한다.
+5. 하나라도 있으면 합친 list를 `RssSource(feeds=..., user_agent=settings.sec_user_agent)`에 넘긴다.
 
-이 규칙은 기존 동작을 보존한다. `sources.rss`가 아예 없으면 기존 SEC press release default feed가 유지된다.
+즉 현재 ordering은 `catalogs`, `sec.company_filings`, `feeds` 순서다. `MIMIR_SEC_USER_AGENT`는 build된 RSS source의 모든 RSS HTTP 요청에 `User-Agent` header로 전달된다.
+
+`ticker_cik_map_refresh`는 resolver 안에서 실행되지 않는다. 설정에서 `sources.rss.sec.ticker_cik_map_refresh.enabled: true`와 `sources.rss.sec.ticker_cik_map_path`를 함께 둔 경우, `build_sources()`가 resolver 호출 전에 TTL/ETag 기반 best-effort refresh를 수행한다. 기본값은 disabled라서 표준 경로의 mapping download 요청은 0회다.
 
 ---
 
-## 9. 초기 Catalog 범위
+## 9. Catalog 범위와 후속 SEC RSS 증분
 
-초기 catalog는 SEC 공식 RSS 문서와 SEC 공식 newsroom page에서 확인 가능하고, 직접 HEAD 요청으로 RSS 응답이 확인된 feed만 포함한다.
+R1e 당시 초기 catalog는 SEC 공식 RSS 문서와 SEC 공식 newsroom page에서 확인 가능하고, 직접 HEAD 요청으로 RSS 응답이 확인된 feed만 포함했다.
 
 | id | feed URL | publisher | market | 근거 |
 |---|---|---|---|---|
 | `sec_press_releases` | `https://www.sec.gov/news/pressreleases.rss` | `SEC` | `US` | SEC RSS Feeds page와 Press Releases page |
 
-SEC RSS Feeds page는 press releases와 litigation releases를 공식 RSS feed 목록으로 설명한다. 다만 첫 증분은 `https://www.sec.gov/news/pressreleases.rss`처럼 현재 직접 RSS 응답이 확인된 feed만 코드 catalog에 넣는다. 이 page는 EDGAR 검색 결과도 RSS로 구독할 수 있다고 설명하지만, 검색 조건을 코드로 조립하는 것은 이번 범위가 아니다.
+현재 `RSS_CATALOG`에는 후속 R1g-SEC-STRUCTURED에서 추가된 SEC structured disclosure catalog도 포함된다.
+
+| id | 범위 |
+|---|---|
+| `sec_structured_usgaap` | US GAAP/IFRS tagged financial statement filings |
+| `sec_structured_risk_return` | mutual fund risk/return tagged filings |
+| `sec_structured_inline_xbrl` | Inline XBRL financial statement filings |
+| `sec_structured_all_xbrl` | all XBRL filings submitted to the SEC |
+
+이 네 feed는 broad SEC/XBRL feed다. 특정 watchlist symbol 전용 feed가 아니므로 `symbol`을 붙이지 않는다.
+
+SEC Company Search Atom feed 조립은 후속 R1f/R1h/R1i 흐름으로 구현되어 현재 `sources.rss.sec.company_filings` 아래에 있다. 사용자는 CIK 또는 ticker token을 명시하고, 필요하면 `ticker_cik_map_path`로 로컬 SEC mapping file을 읽어 ticker를 10자리 CIK로 바꿀 수 있다. Generic live discovery, watchlist 기반 feed 자동 생성, SEC 외 provider discovery, HTML scraping, vendor URL pattern inference는 여전히 제외한다.
 
 ---
 
@@ -225,7 +245,7 @@ SEC RSS Feeds page는 press releases와 litigation releases를 공식 RSS feed �
 - [x] RSS 설정이 없으면 기존 default feed가 유지된다.
 - [x] 기존 `sources.rss.feeds[].symbol` behavior는 바뀌지 않는다.
 - [x] 문서가 static catalog와 live discovery 제외 범위를 구분한다.
-- [x] 전체 test, ruff, mypy, coverage gate가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

@@ -13,7 +13,7 @@ repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 �
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-575%20passing%20%C2%B7%2098%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-662%20passing%20%C2%B7%2098%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -27,7 +27,7 @@ repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 �
 
 ---
 
-> **왜 필요한가** — 투자 판단의 재료(공시, 가격, 금리, 뉴스)는 여러 곳에 흩어져 있고, 유료 데이터 벤더나 ToS를 어기는 스크래핑에 의존하기 쉽다. Mimir는 *공식 무료 API 우선*으로 합법적으로만 모아, 상시 서버 없이 GitHub Actions에서 돌리고, 데이터를 repo에 버전 관리되는 JSONL로 쌓는다. 그 위에 ⭐별점 인사이트·과거 사례 분석·일일 HTML 리포트·텔레그램 전달을 올리고, 최종적으로 분석과 실행을 분리한 자동매매의 기반이 된다.
+> **왜 필요한가** — 투자 판단의 재료(공시, 가격, 금리, 뉴스)는 여러 곳에 흩어져 있고, 유료 데이터 벤더나 ToS를 어기는 스크래핑에 의존하기 쉽다. Mimir는 무료 공식 API와 소스별 권리 검토를 우선하고, 상시 서버 없이 GitHub Actions에서 돌리며, 허용된 데이터를 repo에 버전 관리되는 JSONL로 쌓는다. 그 위에 ⭐별점 인사이트·과거 사례 분석·일일 HTML 리포트·텔레그램 전달을 올리고, 최종적으로 분석과 실행을 분리한 자동매매의 기반이 된다.
 
 Mímir는 북유럽 신화에서 지혜의 샘을 지키는 존재다.
 
@@ -89,19 +89,19 @@ reports/status.html               # 소스별 수집 현황
 
 | 기능 | 동작 |
 | :--- | :--- |
-| **소스 어댑터** | 공통 `Source` 프로토콜 뒤에 7개 내장 소스를 격리 구현한다. RSS는 정적 feed catalog, SEC 회사 공시 feed helper, 종목별 feed를 지원한다. 외부 package는 `mimir.sources` entry point와 `sources.plugins.<source_id>` 설정 namespace로 source plugin을 등록할 수 있다 |
+| **소스 어댑터** | 공통 `Source` 프로토콜 뒤에 6개 내장 소스를 격리 구현한다. RSS는 정적 feed catalog, SEC 회사 공시 feed helper, 종목별 feed를 지원한다. 외부 package는 `mimir.sources` entry point와 `sources.plugins.<source_id>` 설정 namespace로 source plugin을 등록할 수 있다 |
 | **소스 격리** | 한 소스의 실패·포맷 변경이 다른 소스나 전체 실행을 멈추지 않음 |
 | **정규화 envelope** | 모든 소스가 pydantic으로 검증되는 공통 레코드로 수렴 (`prices`·`filings`·`macro`·`news`) |
 | **멱등 저장** | 같은 수집을 다시 돌려도 `idempotency_key`로 중복 없이 append |
-| **스로틀 + 합법성** | 소스별 `rate_limit`·`legal_status`를 코드로 강제 |
-| **백필** | Stooq·FRED·ECOS 등에서 과거 이력을 일괄 적재해 과거패턴 분석을 앞당김 |
+| **스로틀 + 합법성** | 스로틀러는 소스별 `rate_limit`을 강제하고, `Registry`는 정책에 따라 `legal_status`가 GRAY인 소스를 필터링 |
+| **백필** | Stooq·ECOS 같은 등록 소스에서 과거 이력을 일괄 적재해 과거패턴 분석을 앞당김 |
 
 ### ⏱️ 스케줄 & 전달
 
 | 기능 | 동작 |
 | :--- | :--- |
 | **무료 cron** | GitHub Actions `hourly/daily/weekly/monthly` 워크플로 (정시 혼잡을 피한 오프셋 분) |
-| **git-as-DB 커밋백** | 수집 후 데이터를 repo로 커밋(`concurrency` 가드 + rebase) |
+| **git-as-DB 커밋백** | 수집 후 데이터를 repo로 커밋(`concurrency.queue: max` 가드 + rebase) |
 | **최소 가시성** | 데이터 현황 HTML + (옵션) "수집 완료" 텔레그램 핑 |
 | **시크릿 분리** | API 키·봇 토큰은 GitHub Actions Secrets로만, 절대 커밋하지 않음 |
 
@@ -109,19 +109,22 @@ reports/status.html               # 소스별 수집 현황
 
 ## 🗃️ 데이터 소스
 
-모든 소스는 무료이며, 합법성을 *소스 단위*로 판단한다. 공식 API를 우선하고, 스크래핑(pykrx)은 ⚠️로 명시하고 토글 가능하게 둔다.
+내장 어댑터는 유료 구독이 필요 없지만, 사용 가능하거나 `official`로 표시됐다는 사실이 법적 허가를 뜻하지는 않는다. 권리와 약관은 소스·시리즈·feed별로 검증해야 하며, 스크래핑(pykrx)은 ⚠️로 명시하고 토글 가능하게 둔다.
 
 | 소스 | 시장 | 데이터셋 | cadence | 인증 | 합법성 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **SEC EDGAR** | 🇺🇸 US | filings (10-K/Q·8-K) | daily | User-Agent만 (가입 불필요) | ✅ 공식(스크립트 접근 명시 허용) |
-| **RSS** | 🌐 | news 헤드라인 | hourly | 불필요 (공식 피드) | ✅ 공식 |
+| **RSS** | 🌐 | news 헤드라인 | hourly | 불필요 | 내장 catalog는 공식 feed; 수동 URL은 운영자 검토 필요 |
 | **Stooq** | 🇺🇸 US | EOD 가격(OHLCV) | daily | 무료 `apikey`(캡차 발급) | ✅ 무료 |
 | **DART** | 🇰🇷 KR | 공시 | daily | 무료 API 키 | ✅ 공식 |
-| **FRED** | 🇺🇸 US | 거시 시계열 | daily | 무료 API 키 | ✅ 공식 |
-| **ECOS** | 🇰🇷 KR | 거시 시계열 | daily | 무료 API 키 | ✅ 공식 |
+| **ECOS** | 🇰🇷 KR | 거시 시계열 | daily | 무료 API 키 | runtime 지원 유지; 내장/사용자 시리즈 provenance·권리는 미검증 |
 | **pykrx** | 🇰🇷 KR | OHLCV 가격 | daily | 불필요 (`pip install -e '.[kr]'`) | ⚠️ 그레이(스크래핑) |
 
-키·패키지가 없으면 **SEC EDGAR + RSS**만 즉시 동작한다. 무료 키를 넣으면 Stooq/DART/FRED/ECOS가 켜지고, `[kr]` extra를 설치하면 pykrx가 켜진다. `yfinance`(야후)는 ToS가 자동수집을 금지하므로 1차 가격원에서 제외했다.
+키·패키지가 없으면 **SEC EDGAR + RSS**만 즉시 동작한다. 무료 키를 넣으면 Stooq/DART/ECOS가 켜지고, `[kr]` extra를 설치하면 pykrx가 켜진다. `yfinance`(야후)는 ToS가 자동수집을 금지하므로 1차 가격원에서 제외했다.
+
+> **FRED 제거:** 내장 FRED 지원은 제거되었습니다. 현재 [FRED Services Terms](https://fred.stlouisfed.org/legal/terms/)와 [FRED API Terms of Use](https://fred.stlouisfed.org/docs/api/terms_of_use.html)가 Mimir의 software/ML 연계 영구 수집 모델과 충돌하며, 출처 표시만으로 이 충돌이 해소되지는 않는다. 의도한 사용에 대한 서면 허가와 각 시리즈 소유자의 권리를 확인한 뒤, 적용되는 고지·약관·개인정보·인용 의무를 모두 구현한 경우에만 다시 활성화한다. 기존 설치는 수집과 사용을 멈추고 FRED 원본·파생 산출물을 식별해야 한다. 임시 격리는 가능하지만 삭제나 재구축에는 운영자의 명시적 승인이 필요하다.
+
+수동 `sources.rss.feeds` URL은 운영자가 제공한다. Mimir가 소유권이나 약관을 검증하지 않으므로, 수집·사용 전 허용 여부 확인은 운영자 책임이다.
 
 ---
 
@@ -131,7 +134,7 @@ reports/status.html               # 소스별 수집 현황
 flowchart LR
     Cron["GitHub Actions<br/>hourly · daily · weekly · monthly"]
     Config["config/<br/>watchlist · sources"]
-    Sources["sources/<br/>EDGAR · RSS · Stooq · DART<br/>FRED · ECOS · pykrx"]
+    Sources["sources/<br/>EDGAR · RSS · Stooq · DART<br/>ECOS · pykrx"]
     Core["core/<br/>registry · orchestrator · throttle · normalize"]
     Store["storage/<br/>JSONL (git-as-DB)"]
     Manifest["manifest/<br/>실행 로그"]
@@ -179,8 +182,9 @@ flowchart LR
 
 | 경계 | 동작 |
 | :--- | :--- |
-| **소스 단위 합법성** | 각 소스가 `legal_status`(official/gray)·`rate_limit`을 메타로 들고 스로틀러가 강제 |
-| **공식 API 우선** | DART·SEC EDGAR·FRED·ECOS 같은 공식 무료 API를 1차로 사용 |
+| **소스 단위 합법성** | 각 소스가 `legal_status`(official/gray)·`rate_limit`을 메타로 가진다. 스로틀러는 `rate_limit`만 강제하고 `Registry`가 GRAY 소스 정책을 적용 |
+| **공식 API 우선** | 공식 표시는 법적 허가가 아니다. ECOS runtime 지원은 유지하지만 내장/사용자 시리즈의 provenance, 작성 기관, 적용 약관, 상업적 이용 권리, attribution, 파생 산출물 의무는 `ECOS-PROVENANCE-RIGHTS-BOUNDARY`에서 유한하게 검증할 미해결 범위 |
+| **수동 RSS** | 운영자가 모든 수동 `sources.rss.feeds` URL의 소유권·약관·허용된 사용을 확인해야 함 |
 | **GRAY 토글** | pykrx(스크래핑)는 스로틀 + 짧은 backoff 재시도 + 내부분석 한정, `sources.yaml`의 `gray_enabled: false`로 차단 가능 |
 | **시크릿 분리** | 모든 키/토큰은 `.env`(로컬)·Actions Secrets(CI)로만, 커밋 금지 |
 | **무침묵 실패** | `collect`와 `backfill` 실패는 매니페스트에 기록하고 비제로 종료로 신호 — 조용히 삼키지 않음 |
@@ -228,9 +232,9 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 
 | 항목 | 값 |
 | :--- | :--- |
-| **테스트** | 575 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
+| **테스트** | 662 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
 | **커버리지** | `mimir/` 98% (게이트 80%) |
-| **lint/type** | ruff + mypy `--strict` clean |
+| **lint/type** | ruff + mypy (`pyproject.toml` strict config) clean |
 | **CI** | `.github/workflows/ci.yml` — push/PR마다 lint·type·test·coverage |
 
 TDD를 따르며, HTTP 소스는 `responses`로, pykrx 같은 라이브러리 소스는 함수 주입으로 결정론적으로 테스트한다.
@@ -241,8 +245,8 @@ TDD를 따르며, HTTP 소스는 `responses`로, pykrx 같은 라이브러리 �
 
 | 스펙 | 내용 | 상태 |
 | :--- | :--- | :--- |
-| **S1 Collector** | 데이터 수집 & 저장 (7개 소스, git-as-DB, cron) | ✅ 완료 (Inc 1+2) |
-| **S2 Analysis & Scoring** | 규칙 기반 → 하이브리드 ⭐별점(방향성+확신도) 인사이트 | ✅ 구현 (규칙 기반, LLM 후속) |
+| **S1 Collector** | 데이터 수집 & 저장 (6개 내장 소스, git-as-DB, cron) | ✅ 완료 (Inc 1+2; FRED는 2026-08-31 제거) |
+| **S2 Analysis & Scoring** | 규칙 기반 + off-by-default LLM ⭐별점(방향성+확신도) 인사이트 | ✅ 구현 완료 (규칙 기반 + off-by-default LLM seam: 설정 플래그 `llm_sentiment_enabled` + `ANTHROPIC_API_KEY` + `[llm]` 추가 설치가 모두 있을 때만 활성화) |
 | **S3 Delivery & Reporting** | 풍부한 일일 HTML 리포트 + 매시간/매일/매주/매월 텔레그램 다이제스트 | ✅ 구현 |
 | **S4 Historical / Event-Analog** | "과거 비슷한 일이 있었을 때 어떤 종목이 올랐/내렸나" | ✅ 구현 (event-study) |
 | **S5 Automated Trading** | 전략·체결·리스크(페이퍼 먼저). 분석은 시그널만 발행, 실행 엔진이 소비 | 미래 |
@@ -266,14 +270,20 @@ TDD를 따르며, HTTP 소스는 `responses`로, pykrx 같은 라이브러리 �
 
 ## 📚 더 읽기
 
+`docs/` 아래 상세 문서는 Korean-first로 유지하고, 루트 README 3종을 English/Korean/Chinese 진입점으로 관리한다.
+
 | 문서 | 내용 |
 | :--- | :--- |
 | [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) | 전체 프로그램 분해와 단계별 가치 전달 |
 | [`docs/architecture/extensibility/README.md`](docs/architecture/extensibility/README.md) | 현재 확장 지점, source-spec 등록, macro series registry, 재생성 데이터 정책 |
 | [`docs/architecture/improvement-catalog.md`](docs/architecture/improvement-catalog.md) | 확장성·견고성 개선 카탈로그(증분별 결정) |
 | [`docs/decisions/tech-spec/README.md`](docs/decisions/tech-spec/README.md) | 도메인별 결정 tech-spec 색인 |
+| [`docs/decisions/tech-spec/analysis/AN1_signal_plugin_entrypoints_tech_spec_2026_06_23.md`](docs/decisions/tech-spec/analysis/AN1_signal_plugin_entrypoints_tech_spec_2026_06_23.md) | 분석 signal plugin seam 계약: `mimir.analysis_signals`, opt-in 설정, 순서, 실패 정책 |
+| [`docs/reference/cli.md`](docs/reference/cli.md) | CLI 명령 매트릭스, 설정 경계, 운영자용 오류 계약 |
 | [`docs/reference/config/sources.md`](docs/reference/config/sources.md) | `config/sources.yaml` 운영 레퍼런스 |
 | [`docs/reference/config/watchlist.md`](docs/reference/config/watchlist.md) | `config/watchlist.yaml` 운영 레퍼런스 |
+| [`docs/reference/analysis/scoring.md`](docs/reference/analysis/scoring.md) | 분석 시그널 & ⭐별점 스코어링 모델 레퍼런스 |
+| [`docs/reference/storage/data-layout.md`](docs/reference/storage/data-layout.md) | git-as-DB 데이터 레이아웃 — 데이터셋, 날짜 파티션 경로, 쓰기 시맨틱 |
 | [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector 설계(아키텍처·소스 카탈로그·완료기준) |
 | [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring 설계(시그널·스코어러·Insight) |
 | [`docs/superpowers/specs/2026-05-31-delivery-design.md`](docs/superpowers/specs/2026-05-31-delivery-design.md) | S3 Delivery & Reporting 설계(HTML 리포트·다이제스트) |

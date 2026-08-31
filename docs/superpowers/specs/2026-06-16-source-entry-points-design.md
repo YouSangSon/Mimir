@@ -2,7 +2,7 @@
 
 > **스펙 ID**: A3b
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`mimir.sources` entry point + plugin `SourceSpec` loader). 397 테스트 · ruff · mypy · coverage gate 클린.
+> **상태**: ✅ 구현 완료 (`mimir.sources` entry point + plugin `SourceSpec` loader). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [A3 선언적 소스 등록](2026-06-16-declarative-source-registration-design.md) · [확장성 카탈로그](../../architecture/improvement-catalog.md)
 
 ---
@@ -70,6 +70,8 @@ acme_feed = "acme_mimir.sources:ACME_FEED_SPEC"
 ```
 
 entry point는 `SourceSpec` 객체 하나를 직접 로드한다. 이때 entry point 이름과 `SourceSpec.id`는 같아야 한다.
+
+현재 구현의 group 상수는 `SOURCE_ENTRY_POINT_GROUP = "mimir.sources"`이고, loader는 `_load_entry_point_source_specs()`다. 공개 helper `load_source_specs()`는 `BUILTIN_SOURCE_SPECS`를 먼저 두고 entry point `SourceSpec`들을 뒤에 붙인다. 테스트나 내부 조립에서는 `build_sources(..., specs=...)`로 직접 spec 목록을 주입할 수 있으며, 이 경로는 entry point discovery를 우회한다.
 
 ```python
 from mimir.core.builder import SourceSpec
@@ -141,7 +143,7 @@ SOURCE_SPECS = (
 - [x] broken plugin은 warning 후 skip된다.
 - [x] source id 중복은 `ValueError`로 실패한다.
 - [x] docs가 외부 source plugin 작성법과 실패 정책을 설명한다.
-- [x] ruff, mypy, pytest, coverage 80% gate가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 
@@ -149,4 +151,4 @@ SOURCE_SPECS = (
 
 entry point는 신뢰된 Python package를 로드한다. Mimir는 plugin 코드를 sandbox하지 않는다. 사용자는 plugin package를 설치하기 전에 배포 주체와 secret 사용 방식을 검토해야 한다.
 
-Plugin별 설정 스키마도 아직 없다. 첫 버전은 `Settings`와 `SourcesConfig`를 그대로 받는 `SourceSpec.factory`를 재사용한다. plugin이 복잡한 설정을 필요로 하면 별도 설정 namespace를 설계해야 한다.
+Plugin별 설정 schema는 core가 소유하지 않는다. 후속 A3c 구현 후 raw 설정은 `sources.plugins.<source_id>` 아래에 보존되고, plugin factory가 `cfg.parse_plugin_config("acme_news", AcmeNewsConfig)`처럼 자기 pydantic model로 검증한다. Built-in source 설정은 이 namespace를 읽지 않으며, built-in id를 `sources.plugins`에 넣으면 builder가 warning한다.

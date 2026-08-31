@@ -2,7 +2,7 @@
 
 > **스펙 ID**: S1
 > **작성일**: 2026-05-31
-> **상태**: 구현 완료
+> **상태**: 구현 완료. 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행 문서**: [프로그램 로드맵](../../architecture/roadmap.md)
 
 ---
@@ -347,7 +347,7 @@ class Source(Protocol):
 
 ---
 
-## 15. 테스트 전략 (TDD, 80%+)
+## 15. 테스트 전략 (TDD)
 
 - **단위** — 어댑터는 **녹화된 픽스처**(`tests/fixtures/`)로 네트워크 없이 파싱·정규화 검증(`responses`로 HTTP 모킹).
 - **스토리지** — append 라운드트립, 멱등 dedup, 날짜 파티션 경로 규칙.
@@ -376,7 +376,7 @@ class Source(Protocol):
 4. `reports/status.html`이 데이터 현황을 보여준다.
 5. cadence별 Actions 워크플로가 수집 후 데이터를 repo에 커밋한다(공개 repo, concurrency 가드, 시크릿 미커밋).
 6. 백필 진입점이 과거 가격 이력을 적재한다.
-7. 커버리지 80%+ , `ruff`·`mypy` 통과.
+7. 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 8. 소스별 `legal_status`/`rate_limit`이 메타데이터로 강제되고, GRAY 소스(pykrx)는 설정으로 off할 수 있다.
 
 ---

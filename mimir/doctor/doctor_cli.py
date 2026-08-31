@@ -55,7 +55,7 @@ def main(argv: list[str] | None = None) -> int:
 
     config_dir = Path(args.config_dir)
     try:
-        load_validated_sources_config(config_dir)
+        _, _runtime_config = load_validated_sources_config(config_dir)
     except ValidationError as exc:
         return report_invalid_sources(exc)
 

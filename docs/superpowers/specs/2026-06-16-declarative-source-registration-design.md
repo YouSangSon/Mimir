@@ -2,7 +2,7 @@
 
 > **스펙 ID**: A3
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`SourceSpec` built-in source table). 현재 364 테스트 · ruff · mypy · coverage gate 클린.
+> **상태**: ✅ 구현 완료 (`SourceSpec` built-in source table). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [설정 기반 소스 확장성](2026-06-13-config-driven-extensibility-design.md) · [A2 macro series registry](2026-06-16-macro-series-registry-design.md) · [확장성 카탈로그](../../architecture/improvement-catalog.md)
 
 ---
@@ -83,6 +83,7 @@ class SourceSpec:
     required_secret_name: str | None = None
     required_module: str | None = None
     missing_module_hint: str | None = None
+    meta: SourceMeta | None = None
 ```
 
 각 spec은 "이 소스를 만들 수 있는지"와 "어떻게 만들지"를 함께 가진다.
@@ -95,6 +96,7 @@ class SourceSpec:
 | `required_secret_name` | 로그에 표시할 환경변수 이름 |
 | `required_module` | optional dependency module. 없으면 package gate 없음 |
 | `missing_module_hint` | optional package가 없을 때 보여줄 설치 힌트 |
+| `meta` | registered-but-unavailable source를 manifest/preflight에서 설명할 때 쓰는 정적 `SourceMeta` |
 
 ### 4.2 내장 소스 테이블
 
@@ -212,6 +214,8 @@ flowchart TD
 - `docs/superpowers/specs/2026-06-13-config-driven-extensibility-design.md`: §8을 새 A3 스펙 링크로 바꾼다.
 - `docs/superpowers/specs/2026-06-16-macro-series-registry-design.md`: A3 비목표 문구를 historical context로 바꾼다.
 
+후속 A3c 구현 후 외부 source plugin 설정은 `sources.plugins.<source_id>` namespace에 보존된다. Built-in source 설정은 여전히 `sources.rss`, `sources.fred`, `sources.ecos` 같은 typed block을 사용하고, `sources.plugins.rss`처럼 built-in id를 plugin namespace에 넣으면 builder가 warning한다. 이 후속 namespace는 A3의 built-in `SourceSpec` table을 바꾸지 않고 plugin factory가 자기 pydantic model로 설정을 검증하게 하는 확장이다.
+
 불필요한 업데이트:
 
 - `docs/reference/config/sources.md`: 이번 작업은 새 YAML 키를 만들지 않는다.
@@ -231,4 +235,4 @@ flowchart TD
 - [x] FRED/ECOS/RSS 설정 인자가 기존처럼 생성자에 전달된다.
 - [x] doctor expected coverage는 A3 테이블에서 파생하지 않는다.
 - [x] README ×3, architecture guide, improvement catalog, 관련 specs가 현재 구현 기준으로 갱신된다.
-- [x] focused suite, ruff, mypy, 전체 coverage가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.

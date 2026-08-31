@@ -100,6 +100,15 @@ class LlmSentimentSignal:
         texts = [_headline_text(r) for r in capped]
         try:
             verdicts = self._classifier.classify(texts)
+            if len(verdicts) != len(texts):
+                logger.warning(
+                    "signal 'llm_sentiment' classifier returned %d verdicts for "
+                    "%d headlines for %s; skipping",
+                    len(verdicts),
+                    len(texts),
+                    symbol,
+                )
+                return None
         except Exception:
             # One bad LLM call must not crash the pipeline (source-isolation
             # spirit). Surface it loudly, then skip this symbol.

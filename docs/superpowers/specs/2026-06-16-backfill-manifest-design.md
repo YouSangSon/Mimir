@@ -2,7 +2,7 @@
 
 > **스펙 ID**: BF-MANIFEST
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`backfill` success/failure manifest recording). 368 테스트 · ruff · mypy · coverage gate 클린.
+> **상태**: ✅ 구현 완료 (`backfill` success/failure manifest recording). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [Collector 설계](2026-05-31-collector-design.md) · [개선 백로그](../../IMPROVEMENTS.md) · [발전 카탈로그](../../architecture/improvement-catalog.md)
 
 ---
@@ -65,7 +65,7 @@
 
 ### 4.1 성공 경로
 
-`run_backfill()`은 `JsonlStore`와 함께 `Manifest`를 만든다.
+`run_backfill()`은 `JsonlStore`와 함께 `Manifest(root=data_root)`를 만든다.
 
 ```python
 store = JsonlStore(root=data_root)
@@ -109,6 +109,8 @@ return stored
 
 `stored`는 유효 레코드 수가 아니라 이번 실행으로 저장 파일에 반영된 건수다. append-only 데이터셋은 이미 같은 key가 있으면 dedup 때문에 `fetched > 0`, `stored = 0`이 될 수 있다. `macro`처럼 공식 개정값을 last-write-wins로 받는 데이터셋은 같은 key라도 payload가 바뀌면 `stored = 1`로 기록된다.
 
+현재 `run_backfill()`은 저장 시 `append_overwrite_enabled(source.meta.dataset)`를 사용한다. 따라서 BF-MANIFEST의 `stored`는 source dataset별 저장 정책과 같은 의미를 갖는다. `macro` source는 `JsonlStore.append(overwrite=True)` 경로를 통해 개정 payload를 반영하고, `prices`/`filings`/`news`는 first-write-wins로 dedup된다.
+
 ### 4.2 실패 경로
 
 fetch, normalize, store 중 하나가 실패하면 `SourceResult.ok=False`를 기록한다.
@@ -135,11 +137,15 @@ except Exception as exc:
 
 실패 manifest 기록 자체가 실패하면, `backfill`은 경고 로그만 남기고 원래 fetch, normalize, store 예외를 다시 던진다. 실행 로그 쓰기 실패가 원래 원인을 가리면 운영자가 잘못된 문제를 보게 되기 때문이다.
 
-### 4.3 unknown source는 manifest에 쓰지 않는다
+현재 구현은 runtime failure와 BF-PREFLIGHT preflight failure 모두 작은 helper인 `_write_failure_manifest()`로 같은 `SourceResult` shape를 쓴다. Manifest schema는 여전히 `SourceResult`와 `RunRecord`를 그대로 사용하며, `mode`, `phase`, `duration` 같은 필드는 추가하지 않았다.
 
-`source_id`가 없거나 secret/package gate 때문에 사용할 수 없는 경우에는 현재처럼 `SystemExit("unknown or unavailable source: ...")`로 끝난다.
+### 4.3 unknown source와 registered-unavailable source의 현재 경계
 
-이 경우에는 `source.meta`가 없어서 cadence와 source id를 확정할 수 없다. 그래서 manifest를 쓰지 않는다.
+BF-MANIFEST 당시에는 `source_id`가 build 결과에 없으면 `SystemExit("unknown or unavailable source: ...")`만 올리고 manifest를 쓰지 않았다. 후속 BF-PREFLIGHT 구현 후 현재 경계는 더 좁다.
+
+현재 구현에서 registered-unavailable source는 BF-PREFLIGHT가 `ok=false` manifest로 기록한다. 예를 들어 `stooq`이 등록되어 있지만 `STOOQ_API_KEY`가 없거나, `pykrx`가 등록되어 있지만 optional package가 없으면 zero-count failure manifest를 남긴 뒤 기존 `SystemExit("unknown or unavailable source: <id>")`를 유지한다.
+
+반대로 진짜 unknown source id는 여전히 manifest 없이 argument error로 끝난다. 이 경우에는 registered `SourceSpec.meta`가 없어 `RunRecord.cadence`에 넣을 신뢰 가능한 cadence가 없기 때문이다.
 
 ---
 
@@ -163,7 +169,7 @@ except Exception as exc:
 - [x] 실패 manifest 기록이 실패해도 원래 backfill 예외를 보존한다.
 - [x] `run_backfill()` 반환값은 기존처럼 저장된 건수다.
 - [x] 개선 백로그, 발전 카탈로그, README 3종이 backfill manifest 동작을 설명한다.
-- [x] ruff, mypy, pytest, coverage gate가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

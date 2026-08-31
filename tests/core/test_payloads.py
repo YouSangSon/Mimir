@@ -21,7 +21,6 @@ from mimir.core.errors import PayloadSchemaError
 from mimir.core.payloads import (
     DartFilingPayload,
     EcosMacroPayload,
-    FredMacroPayload,
     NewsPayload,
     PricePayload,
     SecFilingPayload,
@@ -48,7 +47,6 @@ PRICE_PAYLOAD = {
     "currency": "USD",
     "interval": "1d",
 }
-FRED_PAYLOAD = {"series_id": "DGS10", "value": 4.5, "period": "2026-01-15"}
 ECOS_PAYLOAD = {
     "stat_code": "722Y001",
     "item_code": "0101000",
@@ -133,7 +131,6 @@ def _evaluation_payload() -> dict[str, Any]:
 # (dataset, payload dict, expected concrete model type)
 GOLDEN_CASES = [
     (Dataset.PRICES, PRICE_PAYLOAD, PricePayload),
-    (Dataset.MACRO, FRED_PAYLOAD, FredMacroPayload),
     (Dataset.MACRO, ECOS_PAYLOAD, EcosMacroPayload),
     (Dataset.NEWS, NEWS_PAYLOAD, NewsPayload),
     (Dataset.FILINGS, SEC_PAYLOAD, SecFilingPayload),
@@ -174,25 +171,25 @@ def test_golden_roundtrip_is_byte_identical(dataset, payload, model_type):
 
 def test_extra_key_raises():
     with pytest.raises(PayloadSchemaError):
-        parse_payload(Dataset.MACRO, {**FRED_PAYLOAD, "extra": 1})
+        parse_payload(Dataset.MACRO, {**ECOS_PAYLOAD, "extra": 1})
 
 
 def test_missing_key_raises():
-    bad = {k: v for k, v in FRED_PAYLOAD.items() if k != "value"}
+    bad = {k: v for k, v in ECOS_PAYLOAD.items() if k != "value"}
     with pytest.raises(PayloadSchemaError):
         parse_payload(Dataset.MACRO, bad)
 
 
 def test_wrong_type_raises():
     with pytest.raises(PayloadSchemaError):
-        parse_payload(Dataset.MACRO, {**FRED_PAYLOAD, "value": "not-a-number"})
+        parse_payload(Dataset.MACRO, {**ECOS_PAYLOAD, "value": "not-a-number"})
 
 
 def test_date_looking_string_stays_str():
-    parsed = parse_payload(Dataset.MACRO, FRED_PAYLOAD)
-    assert isinstance(parsed, FredMacroPayload)
-    assert isinstance(parsed.period, str)
-    assert parsed.period == "2026-01-15"
+    parsed = parse_payload(Dataset.MACRO, ECOS_PAYLOAD)
+    assert isinstance(parsed, EcosMacroPayload)
+    assert isinstance(parsed.time, str)
+    assert parsed.time == "202601"
 
 
 def test_unknown_dataset_for_payload_raises():
@@ -202,10 +199,6 @@ def test_unknown_dataset_for_payload_raises():
 
 
 # --- §8.3 source-branch resolution (structural via extra="forbid") ---
-
-
-def test_fred_dict_resolves_to_fred_model():
-    assert isinstance(parse_payload(Dataset.MACRO, FRED_PAYLOAD), FredMacroPayload)
 
 
 def test_ecos_dict_resolves_to_ecos_model():
@@ -218,16 +211,6 @@ def test_sec_dict_resolves_to_sec_model():
 
 def test_dart_dict_resolves_to_dart_model():
     assert isinstance(parse_payload(Dataset.FILINGS, DART_PAYLOAD), DartFilingPayload)
-
-
-def test_fred_dict_does_not_validate_as_ecos():
-    # the cross model must reject (disjoint required keys + extra="forbid").
-    # Direct model_validate raises pydantic ValidationError; only parse_payload
-    # wraps mismatches as PayloadSchemaError.
-    from pydantic import ValidationError
-
-    with pytest.raises(ValidationError):
-        EcosMacroPayload.model_validate(FRED_PAYLOAD)
 
 
 # --- §4.5 narrowing helpers (signal-side typed access) ---
@@ -252,8 +235,7 @@ def test_price_payload_narrows():
     assert price_payload(_rec(Dataset.PRICES, PRICE_PAYLOAD)).close == 196.3
 
 
-def test_macro_payload_narrows_both_sources():
-    assert macro_payload(_rec(Dataset.MACRO, FRED_PAYLOAD)).value == 4.5
+def test_macro_payload_narrows_ecos_payload():
     assert macro_payload(_rec(Dataset.MACRO, ECOS_PAYLOAD)).value == 3.5
 
 
@@ -269,7 +251,7 @@ def test_filing_payload_narrows_both_sources():
 def test_narrowing_helper_raises_on_wrong_dataset():
     # asking for a price payload on a macro record must raise, never silently coerce
     with pytest.raises(PayloadSchemaError):
-        price_payload(_rec(Dataset.MACRO, FRED_PAYLOAD))
+        price_payload(_rec(Dataset.MACRO, ECOS_PAYLOAD))
 
 
 def test_macro_payload_raises_on_non_macro_record():

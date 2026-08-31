@@ -2,7 +2,7 @@
 
 > **스펙 ID**: OPS1
 > **작성일**: 2026-06-17
-> **상태**: 구현 완료.
+> **상태**: ✅ 구현 완료 (`_pipeline.yml` scheduled dashboard publish). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [데이터 닥터 설계](2026-06-13-data-doctor-design.md) · [대시보드 CLI](../../architecture/improvement-catalog.md) · [GitHub Actions Node24 설계](2026-06-16-github-actions-node24-design.md)
 
 ---
@@ -141,6 +141,8 @@ Doctor CLI는 CRITICAL이면 exit code 1을 반환한다. 이 기능은 수동 �
 
 단, 이는 `python -m mimir.run` 자체의 실패 정책을 완화한다는 뜻이 아니다. 현재 `mimir.run`은 source 수집 실패가 있으면 비-0 종료를 반환한다. 이 동작은 이미 status report와 manifest 의미를 가진 별도 운영 계약이므로 이번 증분에서 손대지 않는다. 따라서 publish-first 정책은 "pipeline이 성공한 뒤 dashboard가 발견한 doctor WARN/CRITICAL을 이유로 commit을 막지 않는다"로 한정한다.
 
+이 문서에서 고정하는 정책은 publish-first다. `Run dashboard`는 `Run pipeline` 뒤와 `Commit data + reports` 앞에 오지만, `_pipeline.yml`은 `mimir.doctor`나 `--strict`를 직접 실행하지 않는다.
+
 ### 4.4 테스트 설계
 
 기존 `tests/test_workflows.py`는 workflow action major만 검증한다. 여기에 pipeline ordering test를 추가한다.
@@ -156,6 +158,8 @@ Doctor CLI는 CRITICAL이면 exit code 1을 반환한다. 이 기능은 수동 �
 5. `Run dashboard`는 `Commit data + reports`보다 앞에 있다.
 6. `_pipeline.yml`은 `python -m mimir.doctor`를 직접 실행하지 않는다.
 7. `_pipeline.yml`은 `--strict` hard gate를 포함하지 않는다.
+
+현재 guard는 `PIPELINE_WORKFLOW`를 읽는 `test_reusable_pipeline_publishes_dashboard_before_commit()`와 `test_reusable_pipeline_does_not_add_doctor_hard_gate()`다.
 
 ### 4.5 문서 갱신 범위
 
@@ -256,8 +260,7 @@ Caller workflow는 모두 reusable `_pipeline.yml`을 호출한다. 따라서 da
 - [x] Architecture/improvement docs가 OPS1 완료 상태와 doctor hard gate 보류 정책을 설명한다.
 - [x] Doctor WARN/CRITICAL은 dashboard에 표시되지만 workflow 실패 조건으로 쓰지 않는다는 정책이 문서에 남는다.
 - [x] 기존 `mimir.run` collect failure gate는 변경하지 않는다.
-- [x] `uv run pytest tests/test_workflows.py -q`가 통과한다.
-- [x] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

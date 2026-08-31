@@ -9,7 +9,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError, field_validator
 
-from mimir.sources.config import SourcesConfig, parse_sources_config
+from mimir.sources.config import RuntimeSourcesConfig, parse_runtime_sources_config
 
 DEFAULT_CONFIG_DIR = Path("config")
 
@@ -66,9 +66,9 @@ def load_sources_config(config_dir: Path = DEFAULT_CONFIG_DIR) -> Any:
 
 def load_validated_sources_config(
     config_dir: Path = DEFAULT_CONFIG_DIR,
-) -> tuple[dict[str, Any], SourcesConfig]:
+) -> tuple[dict[str, Any], RuntimeSourcesConfig]:
     raw = _resolve_sources_config_paths(load_sources_config(config_dir), config_dir)
-    return raw, parse_sources_config(raw)
+    return raw, parse_runtime_sources_config(raw)
 
 
 def _resolve_sources_config_paths(raw: Any, config_dir: Path) -> Any:

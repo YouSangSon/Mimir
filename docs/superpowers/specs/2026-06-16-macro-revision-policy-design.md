@@ -2,7 +2,7 @@
 
 > **스펙 ID**: MACRO-LWW
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`macro` source last-write-wins + source dataset별 저장 정책). 407 테스트 · ruff · mypy · coverage gate 클린.
+> **상태**: ✅ 구현 완료 (`macro` source last-write-wins + source dataset별 저장 정책). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [Backfill Manifest Recording](2026-06-16-backfill-manifest-design.md) · [R1b News Captured Window](2026-06-16-news-captured-window-design.md) · [개선 백로그](../../IMPROVEMENTS.md)
 
 ---
@@ -106,6 +106,8 @@ stored = store.append(
 
 기본 append-only 경로는 그대로다. 같은 key를 다시 받으면 저장하지 않고 `stored=0`을 유지한다.
 
+현재 구현에서 정책은 `mimir/storage/policy.py`의 `OVERWRITE_ON_APPEND_DATASETS`와 `append_overwrite_enabled(dataset)`에 있다. 현재 overwrite append 대상은 `Dataset.MACRO`뿐이며, source 수집과 backfill은 모두 `append_overwrite_enabled(source.meta.dataset)`로 같은 규칙을 쓴다. 실제 병합은 `JsonlStore.append(overwrite=True)`의 `_append_overwrite()` 경로에서 수행되고, `_same_stored_record()`가 `captured_at`만 다른 replay를 no-op으로 판정해 최초 capture time을 보존한다.
+
 ---
 
 ## 5. 실패와 예외 처리
@@ -145,7 +147,7 @@ stored = store.append(
 - [x] 저장 정책은 orchestrator와 backfill에 중복된 조건문으로 흩어지지 않는다.
 - [x] overwrite 저장 건수는 새 key와 교체된 key를 반영한다.
 - [x] README 3종과 확장성 문서가 macro revision 정책을 설명한다.
-- [x] ruff, mypy, pytest, coverage 80% gate를 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

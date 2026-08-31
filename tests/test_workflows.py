@@ -50,6 +50,16 @@ def test_reusable_pipeline_publishes_dashboard_before_commit() -> None:
     assert run_pipeline < run_dashboard < dashboard_command < commit_data
 
 
+def test_reusable_pipeline_queues_pending_collect_runs() -> None:
+    text = PIPELINE_WORKFLOW.read_text(encoding="utf-8")
+
+    assert re.search(
+        r"(?m)^concurrency:\n  group: collect\n  cancel-in-progress: false\n  queue: max\n",
+        text,
+    )
+    assert "cancel-in-progress: true" not in text
+
+
 def test_reusable_pipeline_does_not_add_doctor_hard_gate() -> None:
     text = PIPELINE_WORKFLOW.read_text(encoding="utf-8")
 

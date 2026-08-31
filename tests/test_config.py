@@ -10,6 +10,7 @@ from mimir.config import (
     load_watchlist,
     load_yaml,
 )
+from mimir.sources.config import RuntimeSourcesConfig
 
 
 def test_load_watchlist_returns_lists(tmp_path: Path):
@@ -88,7 +89,22 @@ def test_load_validated_sources_config_resolves_relative_sec_map_path(tmp_path: 
 
     expected = tmp_path / "company_tickers.json"
     assert raw["sources"]["rss"]["sec"]["ticker_cik_map_path"] == str(expected)
-    assert cfg.rss_sec_ticker_cik_map_path == expected
+    assert cfg.source_config.rss_sec_ticker_cik_map_path == expected
+
+
+def test_load_validated_sources_config_returns_runtime_config(tmp_path: Path):
+    (tmp_path / "sources.yaml").write_text(
+        "gray_enabled: false\ndisabled_ids: [rss]\nlang: ko\n",
+        encoding="utf-8",
+    )
+
+    raw, runtime = load_validated_sources_config(tmp_path)
+
+    assert raw["gray_enabled"] is False
+    assert isinstance(runtime, RuntimeSourcesConfig)
+    assert runtime.gray_enabled is False
+    assert runtime.disabled_ids == ("rss",)
+    assert runtime.lang == "ko"
 
 
 def test_load_validated_sources_config_preserves_absolute_sec_map_path(tmp_path: Path):
@@ -109,7 +125,7 @@ def test_load_validated_sources_config_preserves_absolute_sec_map_path(tmp_path:
 
     # An absolute path must pass through unchanged, never re-rooted under config_dir.
     assert raw["sources"]["rss"]["sec"]["ticker_cik_map_path"] == str(abs_map)
-    assert cfg.rss_sec_ticker_cik_map_path == abs_map
+    assert cfg.source_config.rss_sec_ticker_cik_map_path == abs_map
 
 
 def test_load_validated_sources_config_bad_sec_map_path_raises_validation_error(

@@ -3,9 +3,8 @@ from __future__ import annotations
 import importlib.metadata
 import importlib.util
 import logging
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import cast
 
 from mimir.config import SecTickerCikMapConfigError, SourcesConfigError
 from mimir.core.source import Source, SourceMeta
@@ -13,10 +12,13 @@ from mimir.settings import Settings
 from mimir.sources.config import SourcesConfig
 from mimir.sources.dart import DartSource
 from mimir.sources.ecos import EcosSource
-from mimir.sources.fred import FredSource
 from mimir.sources.pykrx_source import PykrxSource
 from mimir.sources.rss import RssFeed, RssSource
-from mimir.sources.rss_catalog import load_sec_ticker_cik_map, resolve_rss_feeds
+from mimir.sources.rss_catalog import (
+    SecCompanyFilingFeed,
+    load_sec_ticker_cik_map,
+    resolve_rss_feeds,
+)
 from mimir.sources.sec_edgar import SecEdgarSource
 from mimir.sources.sec_ticker_cik_refresh import refresh_sec_ticker_cik_map
 from mimir.sources.stooq import StooqSource
@@ -32,6 +34,45 @@ def _load_configured_sec_ticker_cik_map(config: SourcesConfig) -> dict[str, str]
         return load_sec_ticker_cik_map(config.rss_sec_ticker_cik_map_path)
     except ValueError as exc:
         raise SecTickerCikMapConfigError(str(exc)) from exc
+
+
+def _sec_watchlist_company_filings(
+    config: SourcesConfig,
+    watchlist: Mapping[str, Sequence[str]] | None,
+) -> list[SecCompanyFilingFeed]:
+    option = config.rss_sec_watchlist_company_filings
+    if option is None or not option.enabled or watchlist is None:
+        return []
+    feeds: list[SecCompanyFilingFeed] = []
+    for symbol in watchlist.get("us", ()):
+        ticker = SecCompanyFilingFeed(ticker=symbol).ticker or ""
+        feeds.append(
+            SecCompanyFilingFeed(
+                ticker=ticker,
+                symbol=ticker,
+                forms=option.forms,
+                count=option.count,
+                owner=option.owner,
+            )
+        )
+    return feeds
+
+
+def _config_with_sec_watchlist_company_filings(
+    config: SourcesConfig,
+    watchlist: Mapping[str, Sequence[str]] | None,
+) -> SourcesConfig:
+    generated = _sec_watchlist_company_filings(config, watchlist)
+    if not generated:
+        return config
+    return config.model_copy(
+        update={
+            "rss_sec_company_filings": [
+                *(config.rss_sec_company_filings or ()),
+                *generated,
+            ]
+        }
+    )
 
 
 def _resolve_configured_rss_feeds(config: SourcesConfig) -> list[RssFeed] | None:
@@ -98,16 +139,6 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
         meta=DartSource.meta,
     ),
     SourceSpec(
-        "fred",
-        lambda settings, cfg: FredSource(
-            api_key=_required_secret(settings.fred_api_key, "FRED_API_KEY"),
-            series=cfg.fred_series,
-        ),
-        required_secret_attr="fred_api_key",
-        required_secret_name="FRED_API_KEY",
-        meta=FredSource.meta,
-    ),
-    SourceSpec(
         "ecos",
         lambda settings, cfg: EcosSource(
             api_key=_required_secret(settings.ecos_api_key, "ECOS_API_KEY"),
@@ -126,7 +157,7 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
     ),
 )
 
-CONFIGURABLE_BUILTIN_SOURCE_IDS = frozenset({"ecos", "fred", "rss"})
+CONFIGURABLE_BUILTIN_SOURCE_IDS = frozenset({"ecos", "rss"})
 
 
 def _validate_unique_source_ids(specs: Sequence[SourceSpec]) -> None:
@@ -142,20 +173,7 @@ def _validate_unique_source_ids(specs: Sequence[SourceSpec]) -> None:
 
 
 def _entry_points_for_group(group: str) -> tuple[importlib.metadata.EntryPoint, ...]:
-    entry_points: Iterable[importlib.metadata.EntryPoint]
-    try:
-        entry_points = importlib.metadata.entry_points(group=group)
-    except TypeError:
-        all_entry_points = importlib.metadata.entry_points()
-        if hasattr(all_entry_points, "select"):
-            entry_points = all_entry_points.select(group=group)
-        elif isinstance(all_entry_points, Mapping):
-            entry_points = cast(
-                Iterable[importlib.metadata.EntryPoint],
-                all_entry_points.get(group, ()),
-            )
-        else:
-            entry_points = ()
+    entry_points = importlib.metadata.entry_points(group=group)
     return tuple(sorted(entry_points, key=lambda entry_point: entry_point.name))
 
 
@@ -257,13 +275,17 @@ def build_sources(
     config: SourcesConfig | None = None,
     *,
     specs: Sequence[SourceSpec] | None = None,
+    watchlist: Mapping[str, Sequence[str]] | None = None,
 ) -> list[Source]:
     if "@" not in settings.sec_user_agent:
         logger.warning(
             "MIMIR_SEC_USER_AGENT has no contact email; SEC EDGAR may return 403. "
             "Set it to e.g. 'Your Name you@example.com'."
     )
-    cfg = config or SourcesConfig()
+    try:
+        cfg = _config_with_sec_watchlist_company_filings(config or SourcesConfig(), watchlist)
+    except ValueError as exc:
+        raise SourcesConfigError(str(exc)) from exc
     # Off-by-default prep step: refresh the local SEC ticker->CIK map before sources
     # are built, so the RSS resolver still reads a plain local file (no network in the
     # resolver). Disabled by default -> zero network calls on the standard path.

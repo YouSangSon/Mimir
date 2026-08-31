@@ -2,7 +2,7 @@
 
 > **스펙 ID**: INC3 (카탈로그 C1)
 > **작성일**: 2026-06-13
-> **상태**: ✅ 구현 완료 (Increment 3, MVP §9.1–§9.5 · 179 테스트 · ruff·mypy strict 클린). §6.3 HTML/i18n + 워크플로 연결은 후속.
+> **상태**: ✅ 구현 완료 (Increment 3 doctor MVP + 후속 HTML/i18n/dashboard 통합). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다. scheduled workflow의 `mimir.doctor --strict` hard gate는 의도적으로 추가하지 않았다.
 > **선행**: [발전 카탈로그](../../architecture/improvement-catalog.md) · [S1 Collector](2026-05-31-collector-design.md)
 
 ---
@@ -23,7 +23,7 @@
 **비목표(이번 증분 아님).**
 
 - 데이터 *수정*·재수집·자동 백필 트리거(닥터는 진단만 — 치료는 사람/별도 잡).
-- 페이로드 **심층** 스키마 검증(타입·범위) → [타입드 페이로드 설계(A4)](2026-06-13-typed-payload-design.md)가 담당. 닥터는 **키 존재** 수준만 본다(§4.6).
+- 페이로드 스키마 drift 검증 → [타입드 페이로드 설계(A4)](2026-06-13-typed-payload-design.md)가 담당. INC2 이후 typed `Record.payload` union이 storage boundary에서 구조 drift를 실패시키므로 닥터는 별도 얕은 payload 검사를 중복하지 않는다(§4.7).
 - 파티션 인덱스(C2, 카탈로그에서 보류). 닥터는 `rglob` + 사전식 정렬로 충분(§3.2).
 - 휴장 캘린더 정밀 구현(공휴일 DB 의존성). 영업일 근사 + slack으로 흡수(§5).
 
@@ -157,21 +157,13 @@ DEFAULT_MACRO_CADENCE = Cadence.MONTHLY   # 미등록 시리즈 = 가장 느슨�
 2. 0건 → **CRITICAL(`empty`)**: 파일은 있는데 데이터가 없음(부분 실패의 전형적 흔적 — 매니페스트는 `ok`로 보일 수 있음).
 3. **비정상적으로 적음**(`short`) → WARN: 휴리스틱은 KISS로 — *동일 데이터셋 최근 N개 파티션 중앙값의 일정 비율 미만*(예: < 30%). 절대 임계 하드코딩 대신 **자기 기준선 대비 상대 비교**(데이터셋마다 규모가 다름). 표본이 부족하면(파티션 < 3개) `short` 점검은 **건너뛰고 그 사실을 INFO로** 남긴다(무음 금지).
 
-### 4.7 페이로드 스키마 이상 — 키 존재만 (얕게)
+### 4.7 페이로드 스키마 drift — storage boundary에서 enforced
 
-데이터셋별 **필수 키 집합**이 페이로드에 있는지만 본다:
+INC2/A4 이후 페이로드 구조 drift는 doctor check가 아니라 storage boundary 불변식이다. `Record.payload`는 데이터셋별 typed union으로 검증되며, 저장·정규화·읽기 경로에서 payload 모델이 맞지 않으면 실패한다.
 
-```python
-EXPECTED_PAYLOAD_KEYS: dict[Dataset, frozenset[str]] = {
-    Dataset.PRICES: frozenset({"close"}),
-    Dataset.MACRO:  frozenset({"series_id", "value"}),
-    # ...
-}
-```
-
-- 최신 파티션에서 표본 레코드의 키 누락 → WARN(`schema`). 메시지에 누락 키 명시.
-- **타입·범위·교차필드 검증은 하지 않는다** → [타입드 페이로드(A4)](2026-06-13-typed-payload-design.md)로 위임. 닥터는 "구조가 통째로 어긋남"의 조기 경보일 뿐, 그 스펙과 **중복 구현 금지**.
-- `historical`은 백필성·비정기라 **신선도 점검에서 제외**하되, 존재 시 키 점검은 수행(선택).
+- 닥터는 freshness, coverage, empty/short partition처럼 저장된 데이터 평면의 운영 상태를 보고한다.
+- payload schema drift는 typed `Record.payload` storage boundary에서 실패하므로 doctor가 dataset별 payload key map을 유지하거나 별도 schema finding을 만들지 않는다.
+- `historical`은 백필성·비정기라 신선도 점검에서 제외하지만, 레코드가 생성·읽기 경로를 통과할 때는 같은 typed payload boundary의 검증을 받는다.
 
 ---
 
@@ -215,7 +207,7 @@ class FindingKind(StrEnum):
     MISSING = "missing"      # 기대 데이터셋/심볼이 전혀 없음
     EMPTY = "empty"          # 파티션 존재하나 0건
     SHORT = "short"          # 레코드 수가 기준선 대비 비정상적으로 적음
-    SCHEMA = "schema"        # 필수 페이로드 키 누락
+    SCHEMA = "schema"        # legacy/report compatibility; current checks do not emit after INC2
     INFO = "info"            # 점검 건너뜀·동기화 힌트 등(무음 금지)
 
 class Finding(BaseModel):
@@ -294,7 +286,7 @@ if __name__ == "__main__":
 | 항목 | 내용 |
 |---|---|
 | **시리즈 메타 이중화** | 2026-06-16 A2에서 `mimir/core/macro_series.py`로 해소. doctor는 `macro_series_cadences()`를 읽는다. |
-| **기대 집합 수동** | `EXPECTED_DATASETS`/`EXPECTED_PAYLOAD_KEYS`는 코드 상수. A4(타입드 페이로드)가 데이터셋별 모델을 만들면 필수 키를 거기서 파생 가능. |
+| **기대 커버리지 수동** | `EXPECTED_DATASETS`는 코드 상수. payload schema map은 INC2 이후 제거됐고, typed `Record.payload` storage boundary가 schema drift를 담당한다. |
 | **공휴일 근사** | slack 흡수. 장기 연휴 오탐 가능성 — 필요 시 시장별 휴장 캘린더 seam(YAGNI). |
 | **`short` 휴리스틱** | 상대 기준선(중앙값 대비). 데이터 누적 후 임계 재보정 여지. |
 
@@ -302,21 +294,23 @@ if __name__ == "__main__":
 
 ## 8. 수용 기준 (Acceptance)
 
-- [ ] **신선 데이터** 합성 트리(모든 기대 데이터셋 최신 파티션 존재) + 고정 `now` → 모든 `Finding`이 OK, `exit_code == 0`.
-- [ ] **정체 데이터**: `prices` 최신이 6 영업일 전 → CRITICAL(`stale`), `exit_code == 1`.
-- [ ] **누락**: 기대 데이터셋 `macro` 파티션 전무 → CRITICAL(`missing`).
-- [ ] **빈 파티션**: 최신 `prices` 파티션 존재하나 0건 → CRITICAL(`empty`).
-- [ ] **짧은 파티션**: 최신 레코드 수가 최근 중앙값의 30% 미만 → WARN(`short`); 파티션 < 3개면 점검 건너뛰고 INFO.
-- [ ] **워치리스트 커버리지**: 워치리스트에 `XYZ` 추가했으나 `prices`에 전무 → CRITICAL(`missing`, "수집된 적 없음").
-- [ ] **영업일 오탐 방지**: 금요일 종가가 최신, `now`=월요일 → DAILY 나이 = 1 영업일 → OK(오탐 없음).
-- [ ] **매크로 cadence 이질성**: `CPIAUCSL`(MONTHLY 등록) 최신이 20일 전 → **OK**(DAILY 규칙이라면 CRITICAL일 상황) — 매일 오탐하지 않음을 회귀로 고정.
-- [ ] **미등록 매크로 시리즈**: 테이블에 없는 새 시리즈는 `DEFAULT_MACRO_CADENCE`(MONTHLY)로 평가 + 존재 사실 INFO.
-- [ ] **키 부재 ≠ 점검 소실**: 기대 집합이 `build_sources`가 아니라 명시 상수에서 옴을 단언 — FRED 키 없이도 `macro` 부재가 CRITICAL로 잡힘.
-- [ ] **스키마**: `prices` 페이로드에 `close` 누락 → WARN(`schema`, 누락 키 명시).
-- [ ] **읽기 전용**: 닥터 실행 전후 `data/` 바이트 동일(쓰기 0) — 테스트로 단언.
-- [ ] **출력**: `--format json`이 유효 `DoctorReport` JSON; `--html`이 3언어 라벨로 섹션 렌더.
-- [ ] **CLI 종료코드**: CRITICAL → 1, WARN → 0, `--strict` 시 WARN → 1.
-- [ ] 네트워크 호출 0 · ruff · mypy strict 클린 · 커버리지 ≥ 80%.
+- [x] **신선 데이터** 합성 트리(모든 기대 데이터셋 최신 파티션 존재) + 고정 `now` → 모든 `Finding`이 OK, `exit_code == 0`.
+- [x] **정체 데이터**: `prices` 최신이 6 영업일 전 → CRITICAL(`stale`), `exit_code == 1`.
+- [x] **누락**: 기대 데이터셋 `macro` 파티션 전무 → CRITICAL(`missing`).
+- [x] **빈 파티션**: 최신 `prices` 파티션 존재하나 0건 → CRITICAL(`empty`).
+- [x] **짧은 파티션**: 최신 레코드 수가 최근 중앙값의 30% 미만 → WARN(`short`); 파티션 < 3개면 점검 건너뛰고 INFO.
+- [x] **워치리스트 커버리지**: 워치리스트에 `XYZ` 추가했으나 `prices`에 전무 → CRITICAL(`missing`, "수집된 적 없음").
+- [x] **영업일 오탐 방지**: 금요일 종가가 최신, `now`=월요일 → DAILY 나이 = 1 영업일 → OK(오탐 없음).
+- [x] **매크로 cadence 이질성**: `CPIAUCSL`(MONTHLY 등록) 최신이 20일 전 → OK. doctor는 `macro_series_cadences()`를 사용한다.
+- [x] **미등록 매크로 시리즈**: 테이블에 없는 새 시리즈는 `DEFAULT_MACRO_CADENCE`(MONTHLY)로 평가 + 존재 사실 INFO.
+- [x] **키 부재 ≠ 점검 소실**: 기대 집합이 `build_sources`가 아니라 명시 상수에서 옴을 단언한다. FRED 키 없이도 `macro` 부재가 CRITICAL로 잡힌다.
+- [x] **스키마**: INC2 이후 typed `Record.payload` union이 storage boundary에서 payload schema drift를 실패시키므로 doctor의 얕은 key-existence check는 제거되었다.
+- [x] **읽기 전용**: 닥터 실행 전후 `data/` 바이트 동일(쓰기 0)을 테스트로 단언한다.
+- [x] **출력**: `--format json`이 유효 `DoctorReport` JSON을 출력하고, `--html`은 `render_doctor_html`로 3언어 라벨 섹션을 렌더한다.
+- [x] **Dashboard 통합**: `mimir.dashboard`는 doctor report를 읽기 전용으로 생성해 health 섹션에 포함한다.
+- [x] **CLI 종료코드**: CRITICAL → 1, WARN → 0, `--strict` 시 WARN → 1.
+- [x] scheduled workflow에는 `python -m mimir.doctor --strict` hard gate를 추가하지 않았다. 기존 collect failure gate와 dashboard publication flow를 유지한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ### 8.1 테스트 계획 (합성 `data/` 트리, 무네트워크)
 
@@ -332,7 +326,7 @@ if __name__ == "__main__":
 | `weekend_boundary` | prices 최신=금요일, now=월요일 | OK |
 | `monthly_macro` | CPIAUCSL 최신=20일 전 | OK |
 | `watchlist_gap` | 워치리스트 종목이 prices에 전무 | CRITICAL |
-| `schema_drift` | prices 페이로드에 `close` 없음 | WARN |
+| `typed_payload_boundary` | storage/core payload tests가 missing/extra/invalid payload를 생성·읽기 경로에서 거부 | validation failure outside doctor; no doctor WARN |
 
 `now`는 전 케이스 고정 주입. 어떤 테스트도 네트워크·실제 `data/`를 건드리지 않는다.
 
@@ -340,9 +334,9 @@ if __name__ == "__main__":
 
 ## 9. 구현 작업 분해 (plan 입력)
 
-1. **보고서·정책 모델**: `mimir/doctor/report.py`(`Severity`/`FindingKind`/`Finding`/`DoctorReport`), `mimir/doctor/policy.py`(cadence→임계 테이블), `mimir/doctor/expectations.py`(기대 데이터셋·매크로 cadence·페이로드 키) + 단위 테스트.
+1. **보고서·정책 모델**: `mimir/doctor/report.py`(`Severity`/`FindingKind`/`Finding`/`DoctorReport`), `mimir/doctor/policy.py`(cadence→임계 테이블), `mimir/doctor/expectations.py`(기대 데이터셋·매크로 cadence) + 단위 테스트.
 2. **영업일·신선도 유틸**: `business_days_between` + cadence 적용 순수 함수 + 단위 테스트(경계·주말).
-3. **점검 함수들**: 신선도·커버리지·빈/짧음·스키마 각각 `(reader, expectations, now) -> list[Finding]` + 테스트(§8.1 매트릭스).
+3. **점검 함수들**: 신선도·커버리지·빈/짧음 각각 `(reader, expectations, now) -> list[Finding]` + 테스트(§8.1 매트릭스). schema drift는 typed `Record.payload` storage boundary 테스트가 담당한다.
 4. **오케스트레이터**: `run_doctor(store, watchlist, now) -> DoctorReport`.
 5. **CLI**: `mimir/doctor.py`(`main(argv)->int`, 종료코드·`--strict`·`--format`) + 통합 테스트.
 6. **HTML·i18n(선택)**: `render_doctor_html` + 3언어 키 + 렌더 테스트.

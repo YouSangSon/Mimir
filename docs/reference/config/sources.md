@@ -1,7 +1,7 @@
 # `config/sources.yaml` 설정 레퍼런스
 
 > **상태**: 현재 구현 기준
-> **최종 업데이트**: 2026-06-18
+> **최종 업데이트**: 2026-08-31
 > **대상 독자**: 로컬 실행자, GitHub Actions 운영자, 새 데이터 커버리지를 추가하는 개발자
 
 ---
@@ -25,12 +25,10 @@ analysis:
       AAPL: ["Apple", "Apple Inc."]
       MSFT: ["Microsoft", "Microsoft Corp."]
   macro_regime:
-    rate_series: ["DGS10", "FEDFUNDS", "722Y001.0101000"]
+    rate_series: ["722Y001.0101000"]
 
 # Optional. Omit each source block to keep that source's code default.
 sources:
-  fred:
-    series: ["DGS10", "FEDFUNDS", "CPIAUCSL"]
   ecos:
     series:
       - { stat_code: "722Y001", cycle: "M", item_code: "0101000" }
@@ -42,12 +40,21 @@ sources:
       - { id: "sec_structured_inline_xbrl" }
       - { id: "sec_structured_all_xbrl" }
     sec:
+      ticker_cik_map_path: "cache/company_tickers.json"
+      ticker_cik_map_refresh:
+        enabled: true
+        max_age_hours: 168
       company_filings:
         - ticker: "AAPL"
           symbol: "AAPL"
           forms: ["10-K", "10-Q", "8-K"]
           count: 40
           owner: "exclude"
+      watchlist_company_filings:
+        enabled: false
+        forms: ["10-K", "10-Q", "8-K"]
+        count: 40
+        owner: "exclude"
     feeds:
       - { url: "https://www.sec.gov/news/pressreleases.rss", publisher: "SEC", market: "US" }
       - { url: "https://example.com/aapl.rss", publisher: "Example", market: "US", symbol: "AAPL" }
@@ -123,32 +130,50 @@ Alias는 너무 넓게 잡으면 오탐을 만들 수 있다. `Apple`, `Meta`, `
 ```yaml
 analysis:
   macro_regime:
-    rate_series: ["DGS10", "FEDFUNDS", "722Y001.0101000"]
+    rate_series: ["722Y001.0101000"]
 ```
 
 `rate_series`는 macro regime 시그널이 정책금리나 벤치마크 금리로 해석할 시리즈 id 목록이다. 이 목록에 있는 시리즈만 시장 전체의 risk-on/risk-off 방향 판단에 영향을 준다. `analysis:` 블록을 생략하면 `mimir/core/macro_series.py`의 registry 기본값을 사용한다.
 
-이 설정은 `sources.fred.series`와 다르다. `sources.fred.series`는 무엇을 수집할지 정한다. `analysis.macro_regime.rate_series`는 수집된 macro 데이터 중 무엇을 금리 regime 신호로 사용할지 정한다.
+`analysis.macro_regime.rate_series`는 수집된 macro 데이터 중 무엇을 금리 regime 신호로 사용할지 정한다. 현재 내장 기본값은 ECOS 시리즈 `722Y001.0101000` 하나다. 사용자 목록은 데이터 수집을 추가하지 않으므로, 실제 저장된 권리 적합 macro 시리즈 id만 지정해야 한다.
 
-예를 들어 `CPIAUCSL`은 수집할 수 있지만 기본 rate-series에는 없다. CPI는 물가지표이고, `MacroRegimeSignal`이 보는 정책금리 변화와 같은 의미로 해석하면 안 되기 때문이다.
+### 3.3 Analysis signal plugin settings
+
+외부 analysis signal plugin은 `mimir.analysis_signals` entry point로 등록한다. Signal plugin이 자체 설정을 필요로 하면 `analysis.plugins.<signal_id>` 아래에 둔다.
+
+```yaml
+analysis:
+  plugins:
+    acme_sentiment:
+      model: "v1"
+      lookback_days: 20
+```
+
+`analysis.plugins.<signal_id>`는 mapping이어야 한다. `signal_id`는 plugin이 등록한 entry point 이름과 같아야 하며, 기본 `build_signals()` 경로는 이 block이 비어 있으면 외부 plugin entry point를 읽지 않는다. 즉 installed package만으로 signal이 자동 실행되거나 import되지 않는다.
+
+`analysis.plugins`는 외부 analysis signal plugin 전용 namespace다. Built-in signal은 이 namespace를 읽지 않는다. Built-in 설정은 각 signal의 문서화된 key를 사용한다: `news_volume`은 `analysis.news`, `macro_regime`은 `analysis.macro_regime`, LLM 감성 signal은 top-level `llm_sentiment_enabled`를 사용한다.
+
+테스트나 임베디드 호출자는 `build_signals(..., specs=(SignalSpec(...),))`로 외부 plugin specs를 직접 주입할 수 있다. 이 경우 entry point discovery는 건너뛰지만, 주입된 spec도 `analysis.plugins.<signal_id>` 설정이 있어야 build된다. `specs`는 built-in replacement가 아니라 외부 plugin spec 목록이다.
+
+| 필드 | 의미 |
+|---|---|
+| `analysis.plugins` | 외부 analysis signal plugin 전용 namespace |
+| `analysis.plugins.<signal_id>` | signal id별 설정 mapping |
+| block 내부 key | plugin package가 소유한 설정 schema |
+
+Mimir core는 plugin block이 mapping인지까지만 검증한다. 실제 필드 이름과 타입은 plugin factory가 `parse_analysis_plugin_config()`로 자기 pydantic 모델을 검증해야 한다. Core는 외부 plugin schema를 모른 채 namespace와 opt-in 계약만 고정한다.
+
+민감한 값은 이 YAML에 넣지 않는다. API key, token, password는 환경변수나 GitHub Secrets에 둔다. Signal plugin은 Mimir 프로세스 안에서 실행되고 sandbox가 없으므로, 신뢰한 package만 설치해야 한다.
 
 ---
 
 ## 4. `sources:` 블록
 
-`sources:` 블록은 FRED, ECOS, RSS의 커버리지를 파이썬 코드 수정 없이 늘리는 설정이다. 블록을 생략하면 코드 기본값을 쓴다.
+`sources:` 블록은 ECOS와 RSS의 커버리지를 파이썬 코드 수정 없이 늘리는 설정이다. 블록을 생략하면 코드 기본값을 쓴다.
 
-### 4.1 FRED
+내장 FRED 지원은 2026-08-31 제거되었고, 폐기된 `fred` source id는 strict schema에서 거부된다. 현재 [FRED Services Terms](https://fred.stlouisfed.org/legal/terms/)와 [FRED API Terms of Use](https://fred.stlouisfed.org/docs/api/terms_of_use.html)에 맞춰, 의도한 사용에 대한 서면 허가와 시리즈별 소유자 권리를 확인하기 전에는 다시 추가하지 않는다.
 
-```yaml
-sources:
-  fred:
-    series: ["DGS10", "FEDFUNDS", "CPIAUCSL", "T10Y2Y", "UNRATE"]
-```
-
-`series`는 FRED series id 목록이다. FRED API key가 없으면 `fred` 소스 자체가 실행되지 않는다. key가 있고 `series`가 없으면 코드 기본값인 `DGS10`, `FEDFUNDS`, `CPIAUCSL`을 수집한다.
-
-### 4.2 ECOS
+### 4.1 ECOS
 
 ```yaml
 sources:
@@ -165,9 +190,9 @@ sources:
 | `cycle` | 주기. `D`, `M`, `Q`, `A` 형식을 사용한다 |
 | `item_code` | 통계 항목 코드 |
 
-ECOS API key가 없으면 `ecos` 소스 자체가 실행되지 않는다.
+ECOS API key가 없으면 `ecos` 소스 자체가 실행되지 않는다. Runtime 지원은 유지되지만 내장 기본값과 모든 사용자 지정 ECOS 시리즈의 provenance, 작성 기관, 적용 약관, 상업적 이용 권리, attribution, 파생 산출물 의무는 아직 검증되지 않았다. 이 유한 검증은 `ECOS-PROVENANCE-RIGHTS-BOUNDARY`로 추적한다.
 
-### 4.3 RSS
+### 4.2 RSS
 
 ```yaml
 sources:
@@ -197,6 +222,8 @@ sources:
 
 RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 전문을 가져오지 않는다. LLM 뉴스 감성 시그널도 저장된 제목과 요약만 사용한다.
 
+`sources.rss.feeds`에 직접 넣는 URL의 소유권, 약관, 허용된 수집·저장·분석 범위는 운영자 책임이다. 이 책임 고지는 완료됐다. `MANUAL-RSS-LEGAL-OWNERSHIP`의 남은 결과는 URL별 publisher/owner, 적용 약관, 허용/상업적 이용 결정, 근거 확인일을 provenance record로 만들고, 검증 불가능한 URL을 거부·제거하며, 모든 configured manual URL에 record가 있는지 guard로 고정하는 것이다.
+
 `build_sources()`로 만든 RSS source는 `MIMIR_SEC_USER_AGENT` 값을 모든 RSS HTTP 요청의 `User-Agent` header로 보낸다. 이 header는 SEC feed뿐 아니라 manual RSS feed에도 같이 적용된다.
 
 | 필드 | 필수 | 의미 |
@@ -204,7 +231,9 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 | `catalogs` | 아니오 | Mimir가 코드에 담아 둔 검증된 RSS feed catalog 선택 목록 |
 | `catalogs[].id` | 예 | catalog id. 아래 표의 내장 id 중 하나 |
 | `sec.company_filings` | 아니오 | SEC EDGAR Company Search Atom feed를 CIK 또는 ticker token과 form 설정에서 조립하는 목록 |
+| `sec.watchlist_company_filings` | 아니오 | 켜진 경우 `watchlist.yaml`의 `us` symbols에서 SEC company filing feeds를 생성하는 opt-in 설정 |
 | `sec.ticker_cik_map_path` | 아니오 | SEC `company_tickers.json` 로컬 파일 경로. 설정하면 ticker 입력을 10자리 CIK로 바꾼 뒤 URL을 만든다 |
+| `sec.ticker_cik_map_refresh` | 아니오 | 로컬 SEC mapping file을 build 전에 best-effort로 갱신하는 opt-in 설정. 기본값은 disabled |
 | `feeds` | 아니오 | 운영자가 직접 지정하는 RSS feed 목록 |
 | `url` | 예 | RSS feed URL |
 | `publisher` | 예 | payload에 저장할 발행자 이름 |
@@ -223,15 +252,47 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 | `sec_structured_inline_xbrl` | Inline XBRL financial statement filings |
 | `sec_structured_all_xbrl` | all XBRL filings submitted to the SEC |
 
-`sec_structured_*` catalog는 SEC가 공식으로 공개한 broad SEC/XBRL feed다. 특정 watchlist symbol 전용 feed가 아니므로 `symbol`을 설정하지 않는다. 특정 종목의 SEC filing feed가 필요하면 사용자가 CIK 또는 ticker token을 명시하는 `sources.rss.sec.company_filings`를 쓴다. 운영자가 SEC `company_tickers.json` 파일을 로컬에 두고 `sec.ticker_cik_map_path`를 설정하면, Mimir는 ticker를 10자리 CIK로 바꾼 뒤 URL을 만든다. SEC mapping file live download/cache와 generic discovery는 아직 보류되어 있다.
+`sec_structured_*` catalog는 SEC가 공식으로 공개한 broad SEC/XBRL feed다. 특정 watchlist symbol 전용 feed가 아니므로 `symbol`을 설정하지 않는다. 특정 종목의 SEC filing feed가 필요하면 사용자가 CIK 또는 ticker token을 명시하는 `sources.rss.sec.company_filings`를 쓰거나, `sources.rss.sec.watchlist_company_filings.enabled: true`로 watchlist `us` symbols에서 opt-in 생성한다. 운영자가 SEC `company_tickers.json` 파일을 로컬에 두고 `sec.ticker_cik_map_path`를 설정하면, Mimir는 ticker를 10자리 CIK로 바꾼 뒤 URL을 만든다. Generic live discovery는 여전히 보류지만, SEC mapping file refresh 자체는 `ticker_cik_map_refresh`로 opt-in 구현되어 있다.
 
 `catalogs`, `sec.company_filings`, `feeds`를 함께 쓰면 catalog feed, SEC EDGAR feed, manual feed 순서로 붙는다. 같은 `(url, symbol)` 쌍이 두 번 나오면 실패한다. 중복을 조용히 제거하면 운영자가 같은 feed를 두 경로로 설정했다는 사실을 놓칠 수 있기 때문이다. 같은 URL이라도 symbol이 다르면 서로 다른 종목 관계를 뜻하므로 허용한다.
 
 #### SEC EDGAR company filing feeds
 
-`sources.rss.sec.company_filings`는 SEC EDGAR Company Search가 제공하는 Atom feed URL을 설정에서 조립한다. 이 기능은 SEC 페이지를 크롤링하지 않고, SEC ticker mapping file을 resolver 단계에서 다운로드하지도 않는다. 사용자는 `cik` 또는 `ticker` 중 정확히 하나를 명시하고, Mimir가 `browse-edgar?action=getcompany&output=atom` URL을 만든다.
+`sources.rss.sec.company_filings`는 SEC EDGAR Company Search가 제공하는 Atom feed URL을 설정에서 조립한다. 이 기능은 SEC 페이지를 크롤링하지 않는다. 사용자는 `cik` 또는 `ticker` 중 정확히 하나를 명시하고, Mimir가 `browse-edgar?action=getcompany&output=atom` URL을 만든다.
 
-`sources.rss.sec.ticker_cik_map_path`를 설정하면 `ticker` 입력의 의미가 달라진다. Mimir는 지정한 로컬 JSON 파일을 SEC `company_tickers.json` 형태로 읽고, ticker를 10자리 CIK로 정규화한다. 이 파일은 SEC가 제공하지만, SEC는 파일의 정확성과 범위를 보장하지 않는다고 설명한다. 그래서 Mimir는 파일을 자동으로 다운로드하거나 stale 여부를 판단하지 않는다. 파일이 없거나 읽을 수 없거나 유효한 JSON object가 아니면 경로가 포함된 설정 오류로 실패한다. 개별 entry가 object가 아니거나 `ticker`/`cik_str` 값이 잘못되면 파일 경로와 entry key가 포함된 설정 오류로 실패한다. 같은 ticker가 서로 다른 CIK로 두 번 나오면 모호한 매핑으로 보고 실패한다. 파일을 정상적으로 읽은 뒤에도 요청한 ticker가 mapping에 없으면 `SEC ticker CIK map has no entry for ticker <ticker> in <path>`처럼 실제 lookup에 사용한 파일 경로를 포함해 실패한다. `collect`, `run`, `backfill` CLI에서는 이런 source build 오류를 raw traceback이 아니라 `[mimir] invalid sources.yaml:` 메시지로 보여준다.
+`sources.rss.sec.ticker_cik_map_path`를 설정하면 `ticker` 입력의 의미가 달라진다. Mimir는 지정한 로컬 JSON 파일을 SEC `company_tickers.json` 형태로 읽고, ticker를 10자리 CIK로 정규화한다. 이 파일은 SEC가 제공하지만, SEC는 파일의 정확성과 범위를 보장하지 않는다고 설명한다. 파일이 없거나 읽을 수 없거나 유효한 JSON object가 아니면 경로가 포함된 설정 오류로 실패한다. 개별 entry가 object가 아니거나 `ticker`/`cik_str` 값이 잘못되면 파일 경로와 entry key가 포함된 설정 오류로 실패한다. 같은 ticker가 서로 다른 CIK로 두 번 나오면 모호한 매핑으로 보고 실패한다. 파일을 정상적으로 읽은 뒤에도 요청한 ticker가 mapping에 없으면 `SEC ticker CIK map has no entry for ticker <ticker> in <path>`처럼 실제 lookup에 사용한 파일 경로를 포함해 실패한다. `collect`, `run`, `backfill` CLI에서는 이런 source build 오류를 raw traceback이 아니라 `[mimir] invalid sources.yaml:` 메시지로 보여준다.
+
+#### `ticker_cik_map_refresh`
+
+```yaml
+sources:
+  rss:
+    sec:
+      ticker_cik_map_path: "cache/company_tickers.json"
+      ticker_cik_map_refresh:
+        enabled: true
+        url: "https://www.sec.gov/files/company_tickers.json"
+        max_age_hours: 168
+```
+
+| 필드 | 기본값 | 의미 |
+|---|---|---|
+| `enabled` | `false` | refresh를 켤지 정한다. 기본 경로는 `false`라서 SEC mapping download 요청을 0회 보낸다 |
+| `url` | `https://www.sec.gov/files/company_tickers.json` | 가져올 SEC mapping file URL |
+| `max_age_hours` | `168` | 로컬 cache file이 이 시간보다 오래됐을 때만 refresh를 시도한다 |
+
+이 refresh는 RSS resolver 안이 아니라 **source build 직전 준비 단계**에서 실행된다. 그래서 resolver의 "로컬 파일만 읽고 네트워크는 하지 않는다" 계약은 그대로 유지된다.
+
+구현 동작은 아래와 같다.
+
+- `enabled: false`면 바로 반환한다. 표준 경로는 Tasks 1~2 이전과 같게 수동 파일 관리 + 네트워크 0회다.
+- 로컬 file이 있고 mtime이 `max_age_hours` 이내면 TTL gate가 작동해 HTTP 요청을 보내지 않는다.
+- stale file이면 저장된 `.etag` 값을 `If-None-Match`로 보내 조건부 GET을 시도한다.
+- `304 Not Modified`에 로컬 file이 있으면 file mtime을 현재 시각으로 touch해 다음 build가 같은 TTL 창 안에서 재요청하지 않게 한다.
+- `304 Not Modified`인데 `.etag`만 있고 실제 file이 없는 orphaned cache 상태면 warning만 남기고 계속 진행한다. collection 전체를 crash시키지 않는다.
+- `200` download는 temp sibling file에 먼저 쓰고, resolver가 쓰는 canonical loader로 JSON object/entry/ticker ambiguity를 같은 규칙으로 검증한다.
+- 검증을 통과한 temp file만 `os.replace()`로 atomically 채택한다.
+- 네트워크 실패, invalid JSON, non-object JSON, entry validation 실패는 모두 기존 cache를 유지하고 warning만 남긴다.
 
 | 필드 | 필수 | 기본값 | 의미 |
 |---|---|---|---|
@@ -248,11 +309,46 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 
 SEC fair-access 정책은 자동화 도구가 자신을 식별하고 필요한 요청만 보내기를 요구한다. SEC feed를 쓰는 환경에서는 `MIMIR_SEC_USER_AGENT`를 `서비스명 이메일` 형식으로 설정한다.
 
+#### SEC watchlist company filing feeds
+
+`sources.rss.sec.watchlist_company_filings`는 `watchlist.yaml`의 `us` symbols를
+기존 `SecCompanyFilingFeed` 입력으로 바꾸는 얇은 opt-in 설정이다. 기본값은
+`enabled: false`라서 기존 설정은 새 RSS 요청을 만들지 않는다.
+
+```yaml
+sources:
+  rss:
+    sec:
+      watchlist_company_filings:
+        enabled: true
+        forms: ["10-K", "10-Q", "8-K"]
+        count: 40
+        owner: "exclude"
+```
+
+| 필드 | 기본값 | 의미 |
+|---|---|---|
+| `enabled` | `false` | 켜진 경우에만 watchlist `us` symbols에서 SEC filing feeds를 만든다 |
+| `forms` | `["10-K", "10-Q", "8-K"]` | 각 symbol마다 생성할 SEC form feed 목록 |
+| `count` | `40` | SEC Atom feed의 count. 허용 범위는 10~100 |
+| `owner` | `exclude` | SEC owner filter. `exclude`, `include`, `only` 중 하나 |
+
+이 설정은 generic provider discovery가 아니다. HTML RSS link crawling이나
+vendor URL pattern inference를 하지 않고, `build_sources(..., watchlist=...)`
+시점에 watchlist `us` symbols만 `SecCompanyFilingFeed(ticker=symbol,
+symbol=symbol)`로 변환한 뒤 기존 `resolve_rss_feeds()`에 합친다. `kr`
+watchlist symbols는 SEC feed 생성에 쓰지 않는다.
+
+`ticker_cik_map_path`가 있으면 generated ticker도 같은 로컬
+`company_tickers.json` lookup을 통과한다. 파일에 해당 ticker가 없으면 기존
+missing ticker 설정 오류를 그대로 낸다. Manual `company_filings`와 generated
+feed가 같은 `(url, symbol)`을 만들면 기존 `duplicate RSS feed` 오류로 실패한다.
+
 `symbol`이 없으면 기존처럼 일반 뉴스 feed로 저장한다. idempotency key도 기존 형식인 `rss:{link}`를 유지한다.
 
 `symbol`이 있으면 `RawRecord.symbol`에 그 값을 넣고, idempotency key는 `rss:{symbol}:{link}`가 된다. 같은 URL이 `AAPL` feed와 `MSFT` feed에 동시에 있어도 두 symbol 관계가 dedup으로 사라지지 않는다.
 
-### 4.4 Source plugin settings
+### 4.3 Source plugin settings
 
 외부 source plugin은 `mimir.sources` entry point로 `SourceSpec`을 등록한다. Plugin이 자체 설정을 필요로 하면 `sources.plugins.<source_id>` 아래에 둔다.
 
@@ -289,7 +385,7 @@ Built-in source 설정은 이 namespace에 넣지 않는다. 예를 들어 RSS f
 disabled_ids: ["rss", "dart"]
 ```
 
-이 규칙은 설정의 뜻을 하나로 유지하기 위한 것이다. `sources.fred.series`는 "어떤 시리즈를 수집할지"를 말하고, `disabled_ids`는 "소스 자체를 실행하지 말지"를 말한다.
+이 규칙은 설정의 뜻을 하나로 유지하기 위한 것이다. `sources.ecos.series`는 "어떤 시리즈를 수집할지"를 말하고, `disabled_ids`는 "소스 자체를 실행하지 말지"를 말한다.
 
 ---
 
@@ -311,19 +407,13 @@ LLM 감성 시그널은 세 조건이 모두 맞을 때만 켜진다.
 
 ```yaml
 sources:
-  fred:
-    serie: ["DGS10"]     # 오타. series가 맞다.
-```
-
-```yaml
-sources:
   ecos:
     series:
       - { cycle: "M", item_code: "0101000" }  # stat_code 누락
 ```
 
 ```yaml
-sources: "fred"          # sources는 mapping이어야 한다.
+sources: "rss"           # sources는 mapping이어야 한다.
 ```
 
 ```yaml
@@ -396,13 +486,13 @@ sources:
 ```yaml
 analysis:
   macro_regime:
-    rate_seriez: ["DGS10"]  # 오타. rate_series가 맞다.
+    rate_seriez: ["722Y001.0101000"]  # 오타. rate_series가 맞다.
 ```
 
 ```yaml
 analysys:
   macro_regime:
-    rate_series: ["DGS10"]  # 오타. analysis가 맞다.
+    rate_series: ["722Y001.0101000"]  # 오타. analysis가 맞다.
 ```
 
 ```yaml

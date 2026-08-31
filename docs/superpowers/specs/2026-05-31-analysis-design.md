@@ -2,7 +2,7 @@
 
 > **스펙 ID**: S2
 > **작성일**: 2026-05-31
-> **상태**: 구현 완료 · LLM seam/A2 macro registry 확장 반영
+> **상태**: 구현 완료 · LLM seam/A2 macro registry 확장 반영. 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [S1 Collector](2026-05-31-collector-design.md) · [로드맵](../../architecture/roadmap.md)
 
 ---
@@ -13,7 +13,7 @@ S2는 S1이 저장한 정규화 JSONL을 읽어, 워치리스트 종목별로 **
 
 **한 줄 요약**: 저장된 데이터 → 시그널 플러그인 → 방향성 가중 스코어러 → ⭐1~5 인사이트(근거 포함) → `insights` JSONL.
 
-**확정 결정(사용자)**: 스코어링은 **하이브리드**(규칙 기반 우선, LLM은 나중에 시그널 하나로 추가). ⭐는 **방향성 포함**(강세/약세 + 확신도). 첫 시그널 4종: 공시 이벤트·뉴스 볼륨 급증·가격 모멘텀/거래량·거시 레짐.
+**확정 결정(사용자)**: 스코어링은 **하이브리드**(규칙 기반 우선, LLM은 off-by-default 방향성 시그널로 현재 존재). ⭐는 **방향성 포함**(강세/약세 + 확신도). 첫 시그널 4종: 공시 이벤트·뉴스 볼륨 급증·가격 모멘텀/거래량·거시 레짐.
 
 ---
 
@@ -27,11 +27,11 @@ S2는 S1이 저장한 정규화 JSONL을 읽어, 워치리스트 종목별로 **
 - `AnalysisEngine` — 종목별 시그널 수집 → 스코어 → 저장 (데이터 없는 시그널 graceful skip)
 - `analyze` CLI (`python -m mimir.analyze --date YYYY-MM-DD`)
 - 면책 문구 포함
+- `llm_sentiment` 시그널 seam — `llm_sentiment_enabled` + `ANTHROPIC_API_KEY` + `[llm]` extra가 모두 있을 때만 활성화되는 off-by-default 방향성 시그널
 
 ### 제외 (다음 스펙)
 - 풍부한 HTML 리포트·텔레그램 다이제스트 → S3
 - 과거 유사사례 매칭 → S4
-- LLM 시그널 → 하이브리드 후속(시그널 하나로 추가; 인터페이스만 열어둠)
 
 ---
 
@@ -43,7 +43,7 @@ S2는 S1이 저장한 정규화 JSONL을 읽어, 워치리스트 종목별로 **
 | **시그널 격리** | 각 시그널은 독립 단위. 데이터 없으면 `None` 반환(graceful skip) |
 | **투명성** | 모든 시그널이 `reason`을 남기고, 인사이트는 근거 목록을 보존 |
 | **방향성** | direction은 주로 가격·거시에서, 공시·뉴스는 주목도(confidence) 기여 |
-| **확장(하이브리드)** | LLM은 같은 `Signal` 인터페이스를 구현하는 한 시그널로 후속 추가 |
+| **확장(하이브리드)** | LLM 감성은 같은 `Signal` 인터페이스의 `llm_sentiment`로 구현되어 있으며, 비용/키 조건을 만족할 때만 활성화 |
 | **면책** | 인사이트에 "not financial advice" 고지 항상 포함 |
 
 ---
@@ -59,7 +59,7 @@ analysis/
     news_volume.py     심볼 언급 뉴스 급증 -> 주목도(NEUTRAL)
     price_momentum.py  최근 수익률 부호 -> 강세/약세, 거래량 급등 -> confidence
     macro_regime.py    정책금리 추세 -> 시장 lean(상승=약세, 하락=강세)
-  scorer.py        score(results) -> InsightScore(direction, stars, confidence, reasons)
+  scorer.py        score(results) -> InsightScore(direction, stars, confidence, attention, reasons)
   schema.py        Insight + to_record
   engine.py        AnalysisEngine.run(watchlist, as_of) -> list[Insight] (+저장)
   builder.py       build_signals()
@@ -97,13 +97,15 @@ class Signal(Protocol):
 
 ### 스코어링 (방향성 가중)
 ```
-net       = Σ sign(dir)·strength·confidence·weight / Σ weight     # -1..1 방향 확신
-attention = Σ strength·confidence·weight / Σ weight               # 0..1 전체 주목도
+directional_weight = Σ weight  (방향 시그널만; bullish/bearish)
+total_weight       = Σ weight  (모든 시그널)
+net       = Σ sign(dir)·strength·confidence·weight / directional_weight   # -1..1 방향 확신
+attention = Σ strength·confidence·weight / total_weight                   # 0..1 전체 활동량
 direction = BULLISH(net>ε) | BEARISH(net<-ε) | NEUTRAL
-stars     = clamp(round(1 + 4·max(|net|, attention)), 1, 5)
-confidence= Σ confidence·weight / Σ weight
+stars     = clamp(round(1 + 4·|net|), 1, 5)
+confidence= Σ confidence·weight / total_weight
 ```
-`sign`: BULLISH=+1, BEARISH=-1, NEUTRAL=0. 가격(weight 1.0)·거시(0.3)는 방향 기여, 공시(0.8)·뉴스(0.5)는 NEUTRAL로 주목도만 기여.
+`sign`: BULLISH=+1, BEARISH=-1, NEUTRAL=0. 가격(weight 1.0)·거시(0.3)·LLM 감성(0.8, off-by-default)은 방향 기여, 공시(0.8)·뉴스(0.5)는 NEUTRAL로 attention만 기여한다. 별점은 방향 확신 `|net|`만 반영하므로, 방향 없는 활동(공시·뉴스량)이 많아도 stars는 올라가지 않는다.
 
 ---
 
@@ -145,7 +147,7 @@ confidence= Σ confidence·weight / Σ weight
 
 ---
 
-## 9. 테스트 (TDD, 80%+)
+## 9. 테스트 전략 (TDD)
 - **reader**: 시드된 store에서 dataset/symbol/윈도우 필터.
 - **시그널 4종**: tmp store + DataReader에 크래프트 레코드 → direction/strength/None 케이스.
 - **scorer**: 강세/약세/중립 혼합 입력 → direction·stars 검증.
@@ -159,9 +161,10 @@ confidence= Σ confidence·weight / Σ weight
 2. 4종 시그널 + 스코어러 + 엔진 단위/통합 테스트 통과.
 3. 데이터 없는 시그널은 graceful skip(예외 없음), 모든 시그널 None이면 종목 스킵.
 4. 인사이트에 방향성·⭐(1~5)·confidence·근거·면책 포함.
-5. 커버리지 80%+, ruff·mypy --strict clean.
+5. 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 
-## 11. 미래 (하이브리드 LLM)
-LLM 요약/방향 분류는 `Signal` 인터페이스를 구현하는 `llm_sentiment` 시그널로 후속 추가한다(공시·뉴스에 방향을 부여). 규칙 기반 골격은 그대로 유지되고, 비용/키가 있을 때만 활성화한다.
+## 11. 현재 LLM seam과 남은 운영 고도화
+
+`llm_sentiment`는 같은 `Signal` 인터페이스를 구현하는 off-by-default 방향성 시그널로 현재 코드에 존재한다. 기본 경로는 유료 LLM 호출 0건이며, `llm_sentiment_enabled`, `ANTHROPIC_API_KEY`, `[llm]` extra가 모두 있을 때만 build된다. 현재 구현은 persistent LLM sentiment cache dataset을 제공하지 않는다. 남은 미래 작업은 모델 품질 개선, 비용 관측, cache 설계처럼 별도 spec이 필요한 운영 고도화다.

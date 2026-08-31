@@ -10,7 +10,7 @@ from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
 
 WINDOW_DAYS = 60
-# Policy/benchmark rate series: FRED FEDFUNDS/DGS10, ECOS base rate (stat.item).
+# Policy/benchmark rate series are configured from ECOS macro metadata.
 RATE_SERIES = DEFAULT_MACRO_RATE_SERIES
 FULL_DELTA = 1.0  # a 1.0 percentage-point change -> full (mild) strength
 WEIGHT = 0.3

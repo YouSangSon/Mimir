@@ -81,10 +81,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        sources_config, _ = load_validated_sources_config(Path(args.config_dir))
+        _, runtime_config = load_validated_sources_config(Path(args.config_dir))
     except ValidationError as exc:
         return report_invalid_sources(exc)
-    lang = sources_config.get("lang", DEFAULT_LANG)
+    lang = runtime_config.lang
     as_of = date.fromisoformat(args.date) if args.date else None
     result = run_deliver(
         cadence=args.cadence,

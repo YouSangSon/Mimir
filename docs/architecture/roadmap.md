@@ -2,6 +2,7 @@
 
 > **상태**: 승인됨 (2026-05-31)
 > **목적**: 무료·합법으로 수집한 정보에서 투자 인사이트를 길어 올려, 정기적으로(매시간/매일/매주/매월) 텔레그램과 HTML 리포트로 전달한다. 향후 자동매매의 기반이 된다.
+> **현재 소스 경계**: 2026-08-31 `FRED-TERMS-SAFETY-BOUNDARY`가 이전 FRED 지원 요약을 대체한다. 내장 지원은 제거됐으며, 재활성화에는 의도한 사용에 대한 서면 허가와 시리즈별 권리 검증이 필요하다([Services Terms](https://fred.stlouisfed.org/legal/terms/), [API Terms](https://fred.stlouisfed.org/docs/api/terms_of_use.html)).
 
 Mímir는 북유럽 신화에서 지혜의 샘을 지키는 존재다. 이 프로젝트는 흩어진 공개 데이터를 모아 판단의 재료로 바꾼다.
 
@@ -10,7 +11,7 @@ Mímir는 북유럽 신화에서 지혜의 샘을 지키는 존재다. 이 프�
 ## 1. 제품 원칙
 
 1. **무료(free)** — 상시 서버 없이 GitHub Actions 무료 cron으로 돌리고, 데이터는 repo에 저장한다(git-as-DB).
-2. **합법(legal)** — 합법성은 *소스 단위*로 판단한다. 공식 API(SEC EDGAR, DART, FRED, ECOS)를 우선하고, 스크래핑 의존(pykrx)은 ⚠️ 표시·스로틀·내부분석 한정으로 명시 관리한다.
+2. **합법(legal)** — 공식 표시는 법적 허가가 아니다. SEC EDGAR·DART 같은 공식 API를 우선하고, 스크래핑 의존(pykrx)은 ⚠️ 표시·스로틀·내부분석 한정으로 관리한다. ECOS runtime 지원은 유지하지만 내장 기본값과 사용자 지정 시리즈의 provenance, 작성 기관, 적용 약관, 상업적 이용 권리, attribution, 파생 산출물 의무는 `ECOS-PROVENANCE-RIGHTS-BOUNDARY`에서 검증할 미해결 범위다. 수동 RSS의 책임 고지는 완료됐고, URL별 근거 record와 guard는 `MANUAL-RSS-LEGAL-OWNERSHIP`에 남아 있다.
 3. **투명한 평가** — 인사이트에는 ⭐별점을 붙이되 근거를 함께 남긴다. 모든 평가에 "투자 권유가 아님" 면책 문구를 포함한다.
 4. **분석과 실행의 분리** — Mimir는 *시그널만 발행*한다. 주문 실행은 별도 엔진이 소비한다. 이 경계를 처음부터 긋는다.
 5. **점진적 가치 전달** — 각 단계가 끝날 때마다 손에 잡히는 결과가 나온다.
@@ -24,7 +25,7 @@ Mímir는 북유럽 신화에서 지혜의 샘을 지키는 존재다. 이 프�
 ```
                   ┌─────────────────────────────────────────────┐
                   │  S1. Collector  (데이터 수집 & 저장)          │
-                  │  Stooq·EDGAR·pykrx·DART·FRED·ECOS·RSS         │
+                  │  Stooq·EDGAR·pykrx·DART·ECOS·RSS              │
                   │  → 정규화 JSONL(git-as-DB) + 백필(과거이력)   │
                   └───────────────┬─────────────────────────────┘
                                   │ 원천 데이터 + 누적 이력
@@ -81,9 +82,9 @@ Mímir는 북유럽 신화에서 지혜의 샘을 지키는 존재다. 이 프�
 
 - **스케줄링** — 별도 스펙이 아니다. cadence 오케스트레이터를 S1에서 세우고, 각 스펙이 자기 워크플로를 추가한다.
 - **문서화** — 스펙마다 설계문서와 사용자 문서를 남긴다. S1–S4 단계 설계문서는 `docs/superpowers/specs/`에 있고, 그 위에 쌓인 최신 결정 spec은 `docs/decisions/tech-spec/`에도 위치할 수 있다([tech-spec 색인](../decisions/tech-spec/README.md)).
-- **테스트** — TDD, 커버리지 80%+ (단위·통합·E2E).
+- **테스트** — TDD를 기본으로 하고, 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 - **시크릿** — API 키·봇 토큰은 GitHub Actions Secrets로만 관리하고 절대 커밋하지 않는다.
-- **합법성 레지스트리** — 소스마다 `legal_status`와 `rate_limit`을 메타데이터로 들고 코드로 강제한다.
+- **합법성 레지스트리** — 소스마다 `legal_status`와 `rate_limit`을 메타데이터로 둔다. 스로틀러는 `rate_limit`을 강제하고, `Registry`는 GRAY 소스 정책을 적용한다.
 - **면책** — 모든 인사이트·평가에 "투자 권유가 아님"을 명시한다.
 
 ---
@@ -102,7 +103,7 @@ Mímir는 북유럽 신화에서 지혜의 샘을 지키는 존재다. 이 프�
 
 | 시장 | 가격 | 공시/기업 | 거시지표 | 뉴스 | 합법성 |
 |---|---|---|---|---|---|
-| 🇺🇸 US | Stooq (무료 apikey, 캡차 발급) | SEC EDGAR (10 req/s, UA 헤더) | FRED (무료 키, 2 req/s) | SEC RSS, IR RSS | ✅ 깨끗 |
-| 🇰🇷 KR | pykrx (OHLCV) | DART OpenAPI (무료 키) | 한국은행 ECOS (무료 키) | 공식 RSS, Naver 검색 API | ⚠️ pykrx만 그레이존 |
+| 🇺🇸 US | Stooq (무료 apikey, 캡차 발급) | SEC EDGAR (10 req/s, UA 헤더) | — | SEC RSS, 수동 RSS | 수동 RSS는 URL별 provenance record/guard 미구현 |
+| 🇰🇷 KR | pykrx (OHLCV) | DART OpenAPI (무료 키) | 한국은행 ECOS (runtime 지원 유지) | 수동 RSS | ⚠️ pykrx는 GRAY; ECOS 내장/사용자 시리즈 provenance·권리 검증 미완료 |
 
 소스별 상세(인증·한도·라이선스·라이브러리)는 S1 설계문서의 "데이터 소스 카탈로그" 참고.

@@ -1,9 +1,12 @@
 from datetime import UTC, datetime
+from pathlib import Path
+from typing import cast
 
 import pytest
 
 from mimir.core.errors import NormalizationError
 from mimir.core.normalize import normalize
+from mimir.core.payloads import PricePayload
 from mimir.core.source import (
     Cadence,
     Dataset,
@@ -48,6 +51,16 @@ def test_normalize_builds_record_from_meta():
     assert rec.dataset is Dataset.PRICES
     assert rec.market is Market.US
     assert rec.captured_at == CAPTURED
+    assert isinstance(rec.payload, PricePayload)
+
+
+def test_payload_boundary_does_not_need_type_ignore_comments():
+    for path in (
+        Path("mimir/core/normalize.py"),
+        Path("mimir/core/payloads.py"),
+        Path("tests/core/test_normalize.py"),
+    ):
+        assert "type: " "ignore" not in path.read_text(encoding="utf-8")
 
 
 def test_normalize_rejects_payload_drift():
@@ -70,4 +83,4 @@ def test_normalize_wraps_validation_failure():
         payload: dict = {}
 
     with pytest.raises(NormalizationError):
-        normalize(Bad(), META, captured_at=CAPTURED)  # type: ignore[arg-type]
+        normalize(cast(RawRecord, Bad()), META, captured_at=CAPTURED)

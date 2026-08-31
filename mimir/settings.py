@@ -12,7 +12,6 @@ DEFAULT_SEC_UA = "Mimir/0.1 (set MIMIR_SEC_USER_AGENT to your contact email)"
 class Settings(BaseModel):
     stooq_api_key: str | None = None
     dart_api_key: str | None = None
-    fred_api_key: str | None = None
     ecos_api_key: str | None = None
     sec_user_agent: str = DEFAULT_SEC_UA
     telegram_bot_token: str | None = None
@@ -31,7 +30,6 @@ class Settings(BaseModel):
         return cls(
             stooq_api_key=env.get("STOOQ_API_KEY"),
             dart_api_key=env.get("DART_API_KEY"),
-            fred_api_key=env.get("FRED_API_KEY"),
             ecos_api_key=env.get("ECOS_API_KEY"),
             sec_user_agent=env.get("MIMIR_SEC_USER_AGENT", DEFAULT_SEC_UA),
             telegram_bot_token=env.get("TELEGRAM_BOT_TOKEN"),

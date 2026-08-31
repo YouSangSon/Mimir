@@ -13,7 +13,7 @@
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-575%20passing%20%C2%B7%2098%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-662%20passing%20%C2%B7%2098%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -27,7 +27,7 @@
 
 ---
 
-> **为什么需要它** — 投资判断所需的素材（公告、价格、利率、新闻）散落在各处，很容易依赖收费的数据供应商或违反 ToS 的爬取。Mimir *以官方免费 API 为优先*，只做合法收集，无需常驻服务器即可在 GitHub Actions 上运行，并将数据以受版本管理的 JSONL 形式堆积在 repo 中。在此之上叠加 ⭐星级洞见·历史案例分析·每日 HTML 报告·Telegram 投递，最终成为将分析与执行分离的自动交易的基础。
+> **为什么需要它** — 投资判断所需的素材（公告、价格、利率、新闻）散落在各处，很容易依赖收费的数据供应商或违反 ToS 的爬取。Mimir 优先采用免费的官方 API 并逐数据源审查权利，无需常驻服务器即可在 GitHub Actions 上运行，并将获准使用的数据以受版本管理的 JSONL 形式存入 repo。在此之上叠加 ⭐星级洞见·历史案例分析·每日 HTML 报告·Telegram 投递，最终成为将分析与执行分离的自动交易的基础。
 
 Mímir 是北欧神话中守护智慧之泉的存在。
 
@@ -89,19 +89,19 @@ reports/status.html               # 各数据源采集状况
 
 | 功能 | 行为 |
 | :--- | :--- |
-| **数据源适配器** | 在统一的 `Source` 协议背后隔离实现 7 个内置数据源。RSS 支持静态 feed catalog、SEC 公司公告 feed helper 和带 symbol 的 feed。外部 package 可通过 `mimir.sources` entry point 与 `sources.plugins.<source_id>` 配置 namespace 注册 source plugin |
+| **数据源适配器** | 在统一的 `Source` 协议背后隔离实现 6 个内置数据源。RSS 支持静态 feed catalog、SEC 公司公告 feed helper 和带 symbol 的 feed。外部 package 可通过 `mimir.sources` entry point 与 `sources.plugins.<source_id>` 配置 namespace 注册 source plugin |
 | **数据源隔离** | 单个数据源的失败·格式变更不会让其他数据源或整次运行停下 |
 | **规范化 envelope** | 所有数据源汇聚为经 pydantic 校验的统一记录（`prices`·`filings`·`macro`·`news`） |
 | **幂等存储** | 即便重跑同一次采集，也通过 `idempotency_key` 无重复地 append |
-| **限流 + 合法性** | 通过代码强制各数据源的 `rate_limit`·`legal_status` |
-| **回填** | 从 Stooq·FRED·ECOS 等批量回填历史数据，提前用于历史模式分析 |
+| **限流 + 合法性** | 限流器强制各数据源的 `rate_limit`；`Registry` 按策略过滤 `legal_status` 为 GRAY 的数据源 |
+| **回填** | 从 Stooq、ECOS 等已注册数据源批量回填历史数据，提前用于历史模式分析 |
 
 ### ⏱️ 调度 & 投递
 
 | 功能 | 行为 |
 | :--- | :--- |
 | **免费 cron** | GitHub Actions `hourly/daily/weekly/monthly` 工作流（避开整点拥堵的偏移分钟） |
-| **git-as-DB 提交回写** | 采集后将数据提交到 repo（`concurrency` 守卫 + rebase） |
+| **git-as-DB 提交回写** | 采集后将数据提交到 repo（`concurrency.queue: max` 守卫 + rebase） |
 | **最小可见性** | 数据状况 HTML +（可选）“采集完成” Telegram 推送 |
 | **密钥隔离** | API 密钥·机器人令牌仅放在 GitHub Actions Secrets，绝不提交 |
 
@@ -109,19 +109,22 @@ reports/status.html               # 各数据源采集状况
 
 ## 🗃️ 数据源
 
-所有数据源均为免费，且*以数据源为单位*判断合法性。优先使用官方 API，对爬取（pykrx）以 ⚠️ 明确标注并设为可切换。
+内置适配器无需付费订阅，但“可用”或 `official` 标签不等于法律许可。权利与条款必须按数据源、系列和 feed 分别验证；对爬取（pykrx）以 ⚠️ 明确标注并设为可切换。
 
 | 数据源 | 市场 | 数据集 | cadence | 认证 | 合法性 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **SEC EDGAR** | 🇺🇸 US | filings (10-K/Q·8-K) | daily | 仅需 User-Agent（无需注册） | ✅ 官方（明确允许脚本访问） |
-| **RSS** | 🌐 | news 头条 | hourly | 不需要（官方订阅源） | ✅ 官方 |
+| **RSS** | 🌐 | news 头条 | hourly | 不需要 | 内置 catalog 为官方 feed；手动 URL 需操作员审查 |
 | **Stooq** | 🇺🇸 US | EOD 价格(OHLCV) | daily | 免费 `apikey`（验证码发放） | ✅ 免费 |
 | **DART** | 🇰🇷 KR | 公告 | daily | 免费 API 密钥 | ✅ 官方 |
-| **FRED** | 🇺🇸 US | 宏观时间序列 | daily | 免费 API 密钥 | ✅ 官方 |
-| **ECOS** | 🇰🇷 KR | 宏观时间序列 | daily | 免费 API 密钥 | ✅ 官方 |
+| **ECOS** | 🇰🇷 KR | 宏观时间序列 | daily | 免费 API 密钥 | 保留 runtime 支持；内置/自定义系列的来源与权利尚未验证 |
 | **pykrx** | 🇰🇷 KR | OHLCV 价格 | daily | 不需要（`pip install -e '.[kr]'`） | ⚠️ 灰色（爬取） |
 
-无密钥·无安装包时，只有 **SEC EDGAR + RSS** 可即时运行。填入免费密钥即可开启 Stooq/DART/FRED/ECOS，安装 `[kr]` extra 即可开启 pykrx。`yfinance`（雅虎）的 ToS 禁止自动采集，因此已将其排除在一级价格源之外。
+无密钥·无安装包时，只有 **SEC EDGAR + RSS** 可即时运行。填入免费密钥即可开启 Stooq/DART/ECOS，安装 `[kr]` extra 即可开启 pykrx。`yfinance`（雅虎）的 ToS 禁止自动采集，因此已将其排除在一级价格源之外。
+
+> **FRED 移除：** 内置 FRED 支持已移除。现行 [FRED Services Terms](https://fred.stlouisfed.org/legal/terms/) 与 [FRED API Terms of Use](https://fred.stlouisfed.org/docs/api/terms_of_use.html) 和 Mimir 的软件/ML 连接式持久采集模型冲突；仅添加署名不能消除该冲突。只有在取得涵盖预期用途的书面许可、核实每个系列所有者的权利，并落实所有适用的声明、条款、隐私与引用义务后才能重新启用。现有安装应停止采集与使用，识别原始及派生 FRED 产物；可暂时隔离，但删除或重建需要操作员明确批准。
+
+手动 `sources.rss.feeds` URL 由操作员提供。Mimir 不验证其所有权或条款，操作员必须在采集和使用前确认许可。
 
 ---
 
@@ -131,7 +134,7 @@ reports/status.html               # 各数据源采集状况
 flowchart LR
     Cron["GitHub Actions<br/>hourly · daily · weekly · monthly"]
     Config["config/<br/>watchlist · sources"]
-    Sources["sources/<br/>EDGAR · RSS · Stooq · DART<br/>FRED · ECOS · pykrx"]
+    Sources["sources/<br/>EDGAR · RSS · Stooq · DART<br/>ECOS · pykrx"]
     Core["core/<br/>registry · orchestrator · throttle · normalize"]
     Store["storage/<br/>JSONL (git-as-DB)"]
     Manifest["manifest/<br/>运行日志"]
@@ -179,8 +182,9 @@ flowchart LR
 
 | 边界 | 行为 |
 | :--- | :--- |
-| **数据源级合法性** | 各数据源以元数据携带 `legal_status`（official/gray）·`rate_limit`，由限流器强制执行 |
-| **官方 API 优先** | 优先使用 DART·SEC EDGAR·FRED·ECOS 等官方免费 API |
+| **数据源级合法性** | 各数据源以元数据携带 `legal_status`（official/gray）与 `rate_limit`；限流器只强制 `rate_limit`，`Registry` 负责应用 GRAY 数据源策略 |
+| **官方 API 优先** | “官方”只是元数据，不等于法律许可。ECOS runtime 支持予以保留，但内置/自定义系列的来源、创作机构、控制条款、商业使用权、署名及派生产物义务仍是 `ECOS-PROVENANCE-RIGHTS-BOUNDARY` 的有限待验证范围 |
+| **手动 RSS** | 操作员必须核实每个手动 `sources.rss.feeds` URL 的所有权、条款与许可用途 |
 | **GRAY 切换** | pykrx（爬取）限于限流、短 backoff 重试和内部分析，可通过 `sources.yaml` 的 `gray_enabled: false` 阻断 |
 | **密钥隔离** | 所有密钥/令牌仅放在 `.env`（本地）·Actions Secrets（CI），禁止提交 |
 | **无静默失败** | `collect` 和 `backfill` 的失败都会记录到清单并以非零退出发出信号——绝不悄悄吞掉 |
@@ -228,9 +232,9 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 
 | 项目 | 值 |
 | :--- | :--- |
-| **测试** | 575 passing（适配器以录制的 fixture 在无网络下验证） |
+| **测试** | 662 passing（适配器使用录制 fixture 验证，无需网络） |
 | **覆盖率** | `mimir/` 98%（门槛 80%） |
-| **lint/type** | ruff + mypy `--strict` clean |
+| **lint/type** | ruff + mypy (`pyproject.toml` strict config) clean |
 | **CI** | `.github/workflows/ci.yml` — 每次 push/PR 执行 lint·type·test·coverage |
 
 遵循 TDD，HTTP 数据源用 `responses`，pykrx 这类库数据源通过函数注入做确定性测试。
@@ -241,8 +245,8 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 
 | 规格 | 内容 | 状态 |
 | :--- | :--- | :--- |
-| **S1 Collector** | 数据采集 & 存储（7 个数据源，git-as-DB，cron） | ✅ 完成 (Inc 1+2) |
-| **S2 Analysis & Scoring** | 规则驱动 → 混合 ⭐星级（方向性+确信度）洞见 | ✅ 已实现（规则驱动，LLM 后续） |
+| **S1 Collector** | 数据采集 & 存储（6 个内置数据源，git-as-DB，cron） | ✅ 完成（Inc 1+2；FRED 于 2026-08-31 移除） |
+| **S2 Analysis & Scoring** | 规则 + off-by-default LLM ⭐星级（方向性+确信度）洞见 | ✅ 已实现（规则 + off-by-default LLM seam：仅在配置开关 `llm_sentiment_enabled` + `ANTHROPIC_API_KEY` + `[llm]` 额外安装同时满足时激活） |
 | **S3 Delivery & Reporting** | 丰富的每日 HTML 报告 + 每小时/每日/每周/每月 Telegram 摘要 | ✅ 已实现 |
 | **S4 Historical / Event-Analog** | “过去发生类似情况时，哪些标的涨了/跌了” | ✅ 已实现 (event-study) |
 | **S5 Automated Trading** | 策略·成交·风险（先做纸面交易）。分析只发布信号，由执行引擎消费 | 未来 |
@@ -266,14 +270,20 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 
 ## 📚 延伸阅读
 
+`docs/` 下的详细文档保持 Korean-first；根 README 三种语言是维护中的 English/Korean/Chinese 入口。
+
 | 文档 | 内容 |
 | :--- | :--- |
 | [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) | 整体项目分解与分阶段价值交付 |
 | [`docs/architecture/extensibility/README.md`](docs/architecture/extensibility/README.md) | 当前扩展点、source-spec 注册、macro series registry、再生成数据策略 |
 | [`docs/architecture/improvement-catalog.md`](docs/architecture/improvement-catalog.md) | 扩展性·健壮性改进目录（按增量决策） |
 | [`docs/decisions/tech-spec/README.md`](docs/decisions/tech-spec/README.md) | 按领域分组的决策 tech-spec 索引 |
+| [`docs/decisions/tech-spec/analysis/AN1_signal_plugin_entrypoints_tech_spec_2026_06_23.md`](docs/decisions/tech-spec/analysis/AN1_signal_plugin_entrypoints_tech_spec_2026_06_23.md) | 分析 signal plugin seam 契约：`mimir.analysis_signals`、opt-in 配置、顺序与失败策略 |
+| [`docs/reference/cli.md`](docs/reference/cli.md) | CLI 命令矩阵、配置边界与面向运维的错误契约 |
 | [`docs/reference/config/sources.md`](docs/reference/config/sources.md) | `config/sources.yaml` 运维参考 |
 | [`docs/reference/config/watchlist.md`](docs/reference/config/watchlist.md) | `config/watchlist.yaml` 运维参考 |
+| [`docs/reference/analysis/scoring.md`](docs/reference/analysis/scoring.md) | 分析信号 & ⭐评分模型参考 |
+| [`docs/reference/storage/data-layout.md`](docs/reference/storage/data-layout.md) | git-as-DB 数据布局 — 数据集、日期分区路径与写入语义 |
 | [`docs/superpowers/specs/2026-05-31-collector-design.md`](docs/superpowers/specs/2026-05-31-collector-design.md) | S1 Collector 设计（架构·数据源目录·完成标准） |
 | [`docs/superpowers/specs/2026-05-31-analysis-design.md`](docs/superpowers/specs/2026-05-31-analysis-design.md) | S2 Analysis & Scoring 设计（信号·评分器·Insight） |
 | [`docs/superpowers/specs/2026-05-31-delivery-design.md`](docs/superpowers/specs/2026-05-31-delivery-design.md) | S3 Delivery & Reporting 设计（HTML 报告·摘要） |

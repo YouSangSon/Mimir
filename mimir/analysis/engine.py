@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+import logging
 from datetime import UTC, date, datetime
 
 from mimir.analysis.schema import Insight, to_record
 from mimir.analysis.scorer import score
-from mimir.analysis.signals.base import Signal
+from mimir.analysis.signals.base import Signal, SignalResult
 from mimir.core.source import Dataset, Market
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.reader import DataReader
 
 MARKET_BY_KEY = {"us": Market.US, "kr": Market.KR}
+logger = logging.getLogger(__name__)
+
+
+def _signal_id(signal: Signal) -> str:
+    return getattr(signal, "id", signal.__class__.__name__)
 
 
 class AnalysisEngine:
@@ -31,9 +37,29 @@ class AnalysisEngine:
             for symbol in watchlist.get(key, []):
                 results = []
                 for sig in self._signals:
-                    result = sig.evaluate(symbol, market, as_of, self._reader)
-                    if result is not None:
-                        results.append(result)
+                    try:
+                        result = sig.evaluate(symbol, market, as_of, self._reader)
+                    except Exception:
+                        logger.exception(
+                            "analysis signal '%s' failed for %s/%s; skipping",
+                            _signal_id(sig),
+                            key,
+                            symbol,
+                        )
+                        continue
+                    if result is None:
+                        continue
+                    if not isinstance(result, SignalResult):
+                        logger.error(
+                            "analysis signal '%s' returned invalid result type %s "
+                            "for %s/%s; skipping",
+                            _signal_id(sig),
+                            type(result).__name__,
+                            key,
+                            symbol,
+                        )
+                        continue
+                    results.append(result)
                 if not results:
                     continue
                 sc = score(results)

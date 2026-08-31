@@ -1,6 +1,6 @@
 # Runtime `.env` Autoload Design
 
-> **상태**: 구현 완료. 492 tests · 98% coverage · ruff · mypy · diff-check 통과.
+> **상태**: ✅ 구현 완료 (`Settings.from_env(env=None)` runtime `.env` autoload). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **작성일**: 2026-06-18
 > **범위**: CLI로 실행되는 수집·백필·파이프라인·전달 경로가 로컬 `.env`를 실제로 읽게 한다. 테스트와 라이브러리 호출에서 명시적으로 넘긴 `env` mapping은 그대로 우선한다.
 
@@ -59,12 +59,19 @@ mimir deliver --cadence daily
 
 ## 5. 구현 설계
 
-`run_collect`, `run_pipeline`, `run_deliver`, `run_backfill`의 `env` 인자를 선택값으로 바꾼다.
+현재 구현은 `Settings.from_env(env=None)`의 기본 경로를 runtime CLI 경계에서
+사용한다. `env=None`이면 `load_dotenv(find_dotenv(usecwd=True), override=False)`가
+실행되어 현재 작업 디렉터리 기준 `.env`를 찾고, `override=False` 때문에 이미
+존재하는 실제 환경변수가 `.env` 값보다 우선한다.
+
+`run_collect`, `run_pipeline`, `run_deliver`, `run_backfill`의 `env` 인자는 선택값이다.
 
 - 기본값 `env=None`: `Settings.from_env()`가 `.env`를 로드하고 `os.environ`을 읽는다.
-- 명시값 `env={...}`: 테스트와 library caller가 제공한 mapping만 읽는다.
+- 명시값 `env={...}`: `Settings.from_env(env)`가 테스트와 library caller가 제공한 mapping만 읽으므로 dotenv loading을 우회한다.
 
-CLI `main()` 함수들은 `os.environ`을 직접 넘기지 않는다. 대신 runtime 함수의 기본 `env=None` 경로를 사용한다.
+CLI `main()` 함수들은 `os.environ`을 직접 넘기지 않는다. 대신 runtime 함수의
+기본 `env=None` 경로를 사용하고, runtime 함수 내부에서 `Settings.from_env(env)`를
+호출한다.
 
 ---
 
@@ -92,5 +99,4 @@ CLI `main()` 함수들은 `os.environ`을 직접 넘기지 않는다. 대신 run
 - [x] CLI collect 경로가 `.env` key를 읽는다.
 - [x] 실제 환경변수가 `.env`보다 우선한다.
 - [x] 명시 `env` mapping을 넘기는 테스트와 library 사용은 `.env` 자동 로드에 영향받지 않는다.
-- [x] `uv run pytest tests/test_settings.py tests/test_collect.py tests/test_run.py tests/test_deliver.py tests/test_backfill.py -q`가 통과한다.
-- [x] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`, coverage gate, `git diff --check`가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.

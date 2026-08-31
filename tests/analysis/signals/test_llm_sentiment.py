@@ -54,6 +54,18 @@ class BoomClassifier:
         raise RuntimeError("upstream API exploded")
 
 
+class CardinalityMismatchClassifier:
+    """Returns a scripted batch length to simulate malformed structured output."""
+
+    def __init__(self, verdicts: list[HeadlineVerdict]) -> None:
+        self._verdicts = verdicts
+        self.calls: list[list[str]] = []
+
+    def classify(self, headlines: list[str]) -> list[HeadlineVerdict]:
+        self.calls.append(list(headlines))
+        return list(self._verdicts)
+
+
 def _news(title: str | None, summary: str) -> dict:
     return {
         "title": title,
@@ -256,6 +268,52 @@ def test_cap_logs_and_marks_partial(tmp_path: Path, caplog):
     assert sum(len(c) for c in fake.calls) == 2
     assert "2 unclassified" in r.reason
     assert any("cap" in m.lower() for m in caplog.messages)
+
+
+def test_classifier_too_few_verdicts_returns_none(tmp_path: Path, caplog):
+    recs = [
+        _rec(None, 31, _news("AAPL item 1", "")),
+        _rec(None, 31, _news("AAPL item 2", "")),
+    ]
+    classifier = CardinalityMismatchClassifier(
+        [_verdict(SignalDirection.BULLISH, 0.8)]
+    )
+    sig = LlmSentimentSignal(classifier=classifier, max_headlines=50)
+
+    with caplog.at_level(logging.WARNING):
+        r = sig.evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
+
+    assert r is None
+    assert classifier.calls == [["AAPL item 1", "AAPL item 2"]]
+    assert any(
+        "returned 1 verdicts for 2 headlines" in message
+        and "llm_sentiment" in message
+        and "AAPL" in message
+        for message in caplog.messages
+    )
+
+
+def test_classifier_too_many_verdicts_returns_none(tmp_path: Path, caplog):
+    recs = [_rec(None, 31, _news("AAPL item 1", ""))]
+    classifier = CardinalityMismatchClassifier(
+        [
+            _verdict(SignalDirection.BULLISH, 0.8),
+            _verdict(SignalDirection.BEARISH, 0.4),
+        ]
+    )
+    sig = LlmSentimentSignal(classifier=classifier, max_headlines=50)
+
+    with caplog.at_level(logging.WARNING):
+        r = sig.evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
+
+    assert r is None
+    assert classifier.calls == [["AAPL item 1"]]
+    assert any(
+        "returned 2 verdicts for 1 headlines" in message
+        and "llm_sentiment" in message
+        and "AAPL" in message
+        for message in caplog.messages
+    )
 
 
 def test_runtime_classifier_error_returns_none(tmp_path: Path, caplog):

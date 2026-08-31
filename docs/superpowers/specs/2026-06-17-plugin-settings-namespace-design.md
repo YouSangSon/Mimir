@@ -2,7 +2,7 @@
 
 > **스펙 ID**: A3c
 > **작성일**: 2026-06-17
-> **상태**: ✅ 구현 완료 (`sources.plugins.<source_id>` namespace + plugin-owned pydantic validation helper). 424 테스트 · ruff · mypy · coverage gate 클린.
+> **상태**: ✅ 구현 완료 (`sources.plugins.<source_id>` namespace + plugin-owned pydantic validation helper). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [A3 선언적 소스 등록](2026-06-16-declarative-source-registration-design.md) · [A3b Source Plugin Entry Points](2026-06-16-source-entry-points-design.md) · [확장성 카탈로그](../../architecture/improvement-catalog.md)
 
 ---
@@ -12,6 +12,10 @@
 외부 package는 `mimir.sources` entry point로 source를 추가할 수 있다. 하지만 plugin별 설정을 `sources.yaml`에 안전하게 넣을 곳이 아직 없다.
 
 이번 변경은 `sources.plugins.<source_id>` namespace를 추가한다. Mimir core는 이 namespace를 mapping으로 검증하고 `SourcesConfig.plugin_settings`에 보존한다.
+
+이 문서는 source plugin config의 저장과 검증 경계를 정의한다.
+source plugin config는 core가 아니라 plugin이 소유한다.
+`source plugin config`는 core가 아니라 plugin이 소유한다.
 
 Plugin factory는 `SourcesConfig.plugin_config()`로 raw 설정을 읽거나, `SourcesConfig.parse_plugin_config()`로 자신이 정의한 pydantic 모델을 검증한다. Core는 외부 plugin의 schema를 알 필요가 없다.
 
@@ -99,6 +103,8 @@ class SourcesConfig(BaseModel):
 ```
 
 `plugin_config()`는 shallow copy를 반환한다. Plugin factory가 반환 dict를 mutate해도 `SourcesConfig` 내부 상태는 바뀌지 않는다.
+`_SourcesBlock.plugins`는 parser가 허용하는 namespaced plugin block이다.
+`dict[str, dict[str, Any]]` 형태로 raw plugin settings를 보존한다.
 
 ### 4.3 Parser
 
@@ -119,11 +125,14 @@ class _SourcesBlock(BaseModel):
 
 `build_sources()`는 `BUILTIN_SOURCE_SPECS`와 entry point source specs를 합친 뒤 plugin config key를 검사한다.
 
+이 경고 문구는 `source plugin config`로 시작한다.
+
 | 상황 | 처리 |
 |---|---|
 | `sources.plugins.acme_news`가 있고 `SourceSpec("acme_news", ...)`도 있음 | warning 없음 |
 | `sources.plugins.acme_news`가 있는데 plugin이 설치되지 않았거나 load 실패 | warning |
-| `sources.plugins.rss`처럼 built-in source id를 사용 | warning |
+| `sources.plugins.rss`가 configurable built-in `rss`를 가리키는 경우 | warning: `source plugin config`로 시작하고 `sources.rss`를 사용하라고 안내한다. |
+| `sources.plugins.sec_edgar`가 built-in source namespace를 가리키는 경우 | warning: `source plugin config`로 시작하고 built-in sources do not read `sources.plugins`라고 안내한다. |
 
 Warning은 설정을 fail-fast로 막지 않는다. Plugin이 선택 설치일 수 있기 때문이다. 다만 사용자는 typo나 미설치 plugin을 로그에서 볼 수 있다.
 
@@ -190,7 +199,7 @@ Plugin이 설정을 필요로 하지 않으면 helper를 호출하지 않아도 
 - [x] Matching `SourceSpec.id`가 없는 plugin config는 warning을 남긴다.
 - [x] Built-in source id가 `sources.plugins`에 있으면 warning을 남긴다.
 - [x] README, config reference, extensibility guide, improvement catalog가 새 namespace를 설명한다.
-- [x] ruff, mypy, pytest, coverage 80% gate를 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

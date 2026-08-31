@@ -2,7 +2,7 @@
 
 > **스펙 ID**: C3
 > **작성일**: 2026-06-16
-> **상태**: ✅ 구현 완료 (`pykrx` retry/backoff + `FetchError` manifest surface). 368 테스트 · ruff · mypy · coverage gate 클린.
+> **상태**: ✅ 구현 완료 (`PykrxSource` retry/backoff + `FetchError` manifest surface). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **선행**: [Collector 설계](2026-05-31-collector-design.md) · [확장성 카탈로그](../../architecture/improvement-catalog.md)
 
 ---
@@ -62,6 +62,8 @@ yield from self._parse(code, df)
 
 `PykrxSource`는 테스트와 운영 튜닝을 위해 세 옵션을 받는다.
 
+현재 구현은 `DEFAULT_MAX_RETRIES = 2`, `DEFAULT_BACKOFF = 0.5`, `max_retries`, `backoff`, `sleep` 주입점을 유지한다.
+
 | 옵션 | 기본값 | 의미 |
 |---|---:|---|
 | `max_retries` | `2` | 첫 시도 후 추가 재시도 횟수 |
@@ -86,6 +88,9 @@ flowchart TD
 
 Throttle은 upstream 호출마다 적용한다. 재시도도 실제 호출이므로 호출량 제한 대상이다.
 
+구현은 `PykrxSource._fetch_ohlcv()`에서 각 시도마다 `Throttle.wait()`를 먼저 호출하고, 실패 시 `backoff * (2 ** attempt)`만큼 `sleep`한 뒤 재시도한다.
+`_fetch_ohlcv()`는 retry 가능한 upstream 호출 경계다.
+
 ### 4.3 실패 메시지
 
 재시도 소진 후 메시지는 아래 정보를 담는다.
@@ -102,7 +107,8 @@ Throttle은 upstream 호출마다 적용한다. 재시도도 실제 호출이므
 pykrx OHLCV failed after 3 attempts for 005930: temporary upstream error
 ```
 
-이 메시지는 orchestrator가 manifest에 기록한다.
+소진된 실패는 `FetchError`로 감싸며, orchestrator가 이 오류 문자열을 source failure manifest에 남긴다.
+`pykrx OHLCV failed after`는 manifest에 남는 failure message의 시작 부분이다.
 
 ---
 
@@ -126,4 +132,4 @@ pykrx OHLCV failed after 3 attempts for 005930: temporary upstream error
 - [x] retry를 포함한 각 upstream 호출 전에 throttle이 적용된다.
 - [x] retry 소진 시 `FetchError`가 발생하고 ticker와 마지막 오류가 메시지에 들어간다.
 - [x] 기존 pykrx 파싱 테스트와 GRAY metadata 테스트가 계속 통과한다.
-- [x] 전체 ruff, mypy, pytest, coverage gate가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.

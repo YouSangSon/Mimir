@@ -22,24 +22,26 @@ from mimir.core.orchestrator import Orchestrator, RunSummary
 from mimir.core.registry import Registry
 from mimir.core.source import Cadence, FetchContext
 from mimir.manifest.manifest import Manifest, RunRecord
-from mimir.report.i18n import DEFAULT_LANG
 from mimir.report.status_html import render_status_html
 from mimir.report.telegram import send_ping
 from mimir.settings import Settings
-from mimir.sources.config import parse_sources_config
+from mimir.sources.config import RuntimeSourcesConfig, parse_runtime_sources_config
 from mimir.storage.jsonl_store import JsonlStore
 
 DEFAULT_DATA_ROOT = Path("data")
 DEFAULT_STATUS_PATH = Path("reports/status.html")
 
 
-def _build_source_registry(settings: Settings, cfg: dict[str, Any]) -> Registry:
-    parsed_config = parse_sources_config(cfg)
-    sources = build_sources(settings, parsed_config)
+def _build_source_registry(
+    settings: Settings,
+    cfg: RuntimeSourcesConfig,
+    watchlist: dict[str, list[str]],
+) -> Registry:
+    sources = build_sources(settings, cfg.source_config, watchlist=watchlist)
     return Registry(
         sources,
-        gray_enabled=cfg.get("gray_enabled", True),
-        disabled_ids=set(cfg.get("disabled_ids", [])),
+        gray_enabled=cfg.gray_enabled,
+        disabled_ids=set(cfg.disabled_ids),
     )
 
 
@@ -50,14 +52,17 @@ def run_collect(
     watchlist: dict[str, list[str]],
     data_root: Path = DEFAULT_DATA_ROOT,
     status_path: Path = DEFAULT_STATUS_PATH,
-    sources_config: dict[str, Any] | None = None,
+    sources_config: dict[str, Any] | RuntimeSourcesConfig | None = None,
     now: datetime | None = None,
 ) -> RunSummary:
     now = now or datetime.now(UTC)
     settings = Settings.from_env(env)
-    cfg = sources_config or {}
-    lang = cfg.get("lang", DEFAULT_LANG)
-    registry = _build_source_registry(settings, cfg)
+    runtime = (
+        sources_config
+        if isinstance(sources_config, RuntimeSourcesConfig)
+        else parse_runtime_sources_config(sources_config or {})
+    )
+    registry = _build_source_registry(settings, runtime, watchlist)
     store = JsonlStore(root=data_root)
     manifest = Manifest(root=data_root)
     orchestrator = Orchestrator(registry, store, manifest)
@@ -66,7 +71,9 @@ def run_collect(
     summary = orchestrator.run(Cadence(cadence), ctx)
 
     render_status_html(
-        RunRecord(ran_at=now, cadence=Cadence(cadence), results=summary.results), status_path, lang
+        RunRecord(ran_at=now, cadence=Cadence(cadence), results=summary.results),
+        status_path,
+        runtime.lang,
     )
 
     ok = sum(1 for r in summary.results if r.ok)
@@ -87,7 +94,7 @@ def main(argv: list[str] | None = None) -> int:
 
     config_dir = Path(args.config_dir)
     try:  # validate config upfront; keep the except narrow so a downstream
-        sources_config, _ = load_validated_sources_config(config_dir)
+        _, runtime_config = load_validated_sources_config(config_dir)
     except ValidationError as exc:
         return report_invalid_sources(exc)
     try:
@@ -98,7 +105,7 @@ def main(argv: list[str] | None = None) -> int:
         summary = run_collect(
             cadence=args.cadence,
             watchlist=watchlist,
-            sources_config=sources_config,
+            sources_config=runtime_config,
         )
     except SourcesConfigError as exc:
         return report_invalid_sources(exc)

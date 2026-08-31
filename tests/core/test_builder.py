@@ -1,8 +1,10 @@
 import logging
+from pathlib import Path
 
 import pytest
 from pydantic import BaseModel, ConfigDict
 
+from mimir.config import SourcesConfigError
 from mimir.core.builder import (
     BUILTIN_SOURCE_SPECS,
     SourceSpec,
@@ -15,9 +17,7 @@ from mimir.core.source import Cadence, Dataset, LegalStatus, Market, RateLimit, 
 from mimir.settings import Settings
 from mimir.sources.config import SourcesConfig
 from mimir.sources.ecos import DEFAULT_SERIES as ECOS_DEFAULT_SERIES
-from mimir.sources.ecos import EcosSource
-from mimir.sources.fred import DEFAULT_SERIES as FRED_DEFAULT_SERIES
-from mimir.sources.fred import FredSource
+from mimir.sources.ecos import EcosSeries, EcosSource
 from mimir.sources.rss import DEFAULT_FEEDS as RSS_DEFAULT_FEEDS
 from mimir.sources.rss import RssFeed, RssSource
 from mimir.sources.rss_catalog import RssCatalogSelection, SecCompanyFilingFeed
@@ -112,10 +112,16 @@ def test_builtin_source_specs_keep_existing_order():
         "rss",
         "stooq",
         "dart",
-        "fred",
         "ecos",
         "pykrx",
     ]
+
+
+def test_legacy_fred_key_does_not_register_or_build_a_source():
+    builtin_fred = "fred" in {spec.id for spec in BUILTIN_SOURCE_SPECS}
+    sources = build_sources(Settings.from_env({"FRED_API_KEY": "legacy"}))
+    built_fred = "fred" in {source.meta.id for source in sources}
+    assert (builtin_fred, built_fred) == (False, False)
 
 
 def test_builtin_source_specs_expose_static_metadata_for_preflight_manifest():
@@ -208,6 +214,15 @@ def test_entry_point_source_specs_are_loaded_in_name_order(monkeypatch):
         "alpha_plugin",
         "zulu_plugin",
     ]
+
+
+def test_source_entry_point_loader_does_not_keep_legacy_cast() -> None:
+    text = Path("mimir/core/builder.py").read_text(encoding="utf-8")
+    loader = text.split("def _entry_points_for_group", 1)[1].split(
+        "def _source_specs_from_entry_point", 1
+    )[0]
+
+    assert "cast(" not in loader
 
 
 def test_entry_point_source_spec_id_must_match_entry_point_name(monkeypatch):
@@ -353,10 +368,10 @@ def test_builder_skips_key_gated_sources_and_logs(caplog):
     with caplog.at_level(logging.WARNING):
         sources = build_sources(Settings.from_env({}))
     ids = {s.meta.id for s in sources}
-    for gated in ("stooq", "dart", "fred", "ecos"):
+    for gated in ("stooq", "dart", "ecos"):
         assert gated not in ids
     messages = " ".join(r.message.lower() for r in caplog.records)
-    for gated in ("stooq", "dart", "fred", "ecos"):
+    for gated in ("stooq", "dart", "ecos"):
         assert gated in messages  # skips are logged, not silent
 
 
@@ -370,11 +385,9 @@ def test_builder_includes_dart_with_key():
     assert "dart" in {s.meta.id for s in sources}
 
 
-def test_builder_includes_macro_sources_with_keys():
-    sources = build_sources(Settings.from_env({"FRED_API_KEY": "a", "ECOS_API_KEY": "b"}))
-    ids = {s.meta.id for s in sources}
-    assert "fred" in ids
-    assert "ecos" in ids
+def test_builder_includes_ecos_with_key():
+    sources = build_sources(Settings.from_env({"ECOS_API_KEY": "b"}))
+    assert "ecos" in {source.meta.id for source in sources}
 
 
 # --- config-driven extensibility ---
@@ -382,10 +395,8 @@ def test_builder_includes_macro_sources_with_keys():
 
 def test_no_config_carries_defaults():
     # Invariant 1: absent config -> each source uses exactly its DEFAULT_*.
-    settings = Settings.from_env({"FRED_API_KEY": "a", "ECOS_API_KEY": "b"})
+    settings = Settings.from_env({"ECOS_API_KEY": "b"})
     by_id = _by_id(build_sources(settings))
-    assert isinstance(by_id["fred"], FredSource)
-    assert by_id["fred"]._series == FRED_DEFAULT_SERIES
     assert isinstance(by_id["ecos"], EcosSource)
     assert by_id["ecos"]._series == ECOS_DEFAULT_SERIES
     assert isinstance(by_id["rss"], RssSource)
@@ -394,20 +405,19 @@ def test_no_config_carries_defaults():
 
 def test_explicit_empty_config_still_carries_defaults():
     # Invariant 1: SourcesConfig() (all None) is equivalent to no config.
-    settings = Settings.from_env({"FRED_API_KEY": "a", "ECOS_API_KEY": "b"})
+    settings = Settings.from_env({"ECOS_API_KEY": "b"})
     by_id = _by_id(build_sources(settings, SourcesConfig()))
-    assert by_id["fred"]._series == FRED_DEFAULT_SERIES
     assert by_id["ecos"]._series == ECOS_DEFAULT_SERIES
     assert by_id["rss"]._feeds == RSS_DEFAULT_FEEDS
 
 
-def test_config_overrides_fred_series():
-    settings = Settings.from_env({"FRED_API_KEY": "a", "ECOS_API_KEY": "b"})
-    cfg = SourcesConfig(fred_series=["X"])
+def test_config_overrides_ecos_series():
+    settings = Settings.from_env({"ECOS_API_KEY": "b"})
+    series = [EcosSeries(stat_code="X", cycle="M", item_code="Y")]
+    cfg = SourcesConfig(ecos_series=series)
     by_id = _by_id(build_sources(settings, cfg))
-    assert by_id["fred"]._series == ["X"]
+    assert by_id["ecos"]._series == series
     # Unconfigured sources keep their defaults.
-    assert by_id["ecos"]._series == ECOS_DEFAULT_SERIES
     assert by_id["rss"]._feeds == RSS_DEFAULT_FEEDS
 
 
@@ -416,6 +426,93 @@ def test_config_overrides_rss_feeds():
     feed = RssFeed(url="https://x/feed.rss", publisher="P", market="US")
     by_id = _by_id(build_sources(settings, SourcesConfig(rss_feeds=[feed])))
     assert by_id["rss"]._feeds == [feed]
+
+
+def test_build_sources_does_not_generate_sec_watchlist_feeds_by_default(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+
+    sources = build_sources(
+        Settings.from_env({}),
+        SourcesConfig(),
+        watchlist={"us": ["AAPL"], "kr": ["005930"]},
+    )
+    rss = _by_id(sources)["rss"]
+
+    assert isinstance(rss, RssSource)
+    assert rss._feeds == RSS_DEFAULT_FEEDS
+
+
+def test_build_sources_generates_sec_watchlist_company_filing_feeds(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    cfg = SourcesConfig(
+        rss_sec_watchlist_company_filings={
+            "enabled": True,
+            "forms": ["10-K"],
+        }
+    )
+
+    sources = build_sources(
+        Settings.from_env({"MIMIR_SEC_USER_AGENT": "Mimir Test test@example.com"}),
+        cfg,
+        watchlist={"us": ["aapl"], "kr": ["005930"]},
+    )
+    rss = _by_id(sources)["rss"]
+
+    assert isinstance(rss, RssSource)
+    assert rss._feeds == [
+        RssFeed(
+            url=(
+                "https://www.sec.gov/cgi-bin/browse-edgar?"
+                "action=getcompany&CIK=AAPL&type=10-K&owner=exclude&count=40&output=atom"
+            ),
+            publisher="SEC",
+            market="US",
+            symbol="AAPL",
+        )
+    ]
+
+
+def test_build_sources_rejects_duplicate_manual_and_watchlist_sec_feed(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    cfg = SourcesConfig(
+        rss_sec_company_filings=[
+            SecCompanyFilingFeed(ticker="AAPL", symbol="AAPL", forms=["10-K"])
+        ],
+        rss_sec_watchlist_company_filings={"enabled": True, "forms": ["10-K"]},
+    )
+
+    with pytest.raises(ValueError, match="duplicate RSS feed"):
+        build_sources(
+            Settings.from_env({}),
+            cfg,
+            watchlist={"us": ["AAPL"], "kr": []},
+        )
+
+
+def test_build_sources_wraps_invalid_watchlist_sec_ticker(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    cfg = SourcesConfig(rss_sec_watchlist_company_filings={"enabled": True})
+
+    with pytest.raises(SourcesConfigError, match="SEC filing feed ticker"):
+        build_sources(
+            Settings.from_env({}),
+            cfg,
+            watchlist={"us": ["BAD TICKER"], "kr": []},
+        )
+
+
+def test_build_sources_wraps_invalid_watchlist_sec_form(monkeypatch):
+    monkeypatch.setattr("mimir.core.builder.importlib.util.find_spec", lambda name: None)
+    cfg = SourcesConfig(
+        rss_sec_watchlist_company_filings={"enabled": True, "forms": [" "]}
+    )
+
+    with pytest.raises(SourcesConfigError, match="SEC form type must not be blank"):
+        build_sources(
+            Settings.from_env({}),
+            cfg,
+            watchlist={"us": ["AAPL"], "kr": []},
+        )
 
 
 def test_build_sources_resolves_rss_catalog_feeds(monkeypatch):

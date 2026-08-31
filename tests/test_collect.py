@@ -62,6 +62,46 @@ def test_run_collect_explicit_env_does_not_load_dotenv(tmp_path: Path, monkeypat
 
 
 @responses.activate
+def test_legacy_fred_key_collects_no_fred_data(tmp_path: Path):
+    summary = run_collect(
+        cadence="daily",
+        env={"FRED_API_KEY": "legacy"},
+        watchlist={"us": [], "kr": []},
+        data_root=tmp_path / "data",
+        status_path=tmp_path / "reports/status.html",
+        sources_config={
+            "gray_enabled": False,
+            "disabled_ids": ["sec_edgar", "rss"],
+        },
+        now=datetime(2026, 8, 31, tzinfo=UTC),
+    )
+    assert len(responses.calls) == 0
+    assert all(result.source != "fred" for result in summary.results)
+    assert not (tmp_path / "data/macro").exists()
+
+
+def test_run_collect_uses_typed_runtime_config_for_registry_and_lang(tmp_path: Path):
+    summary = run_collect(
+        cadence="daily",
+        env={},
+        watchlist={"us": [], "kr": []},
+        data_root=tmp_path / "data",
+        status_path=tmp_path / "reports/status.html",
+        sources_config={
+            "gray_enabled": False,
+            "disabled_ids": ["sec_edgar", "rss"],
+            "lang": "ko",
+        },
+        now=datetime(2026, 5, 31, tzinfo=UTC),
+    )
+
+    html = (tmp_path / "reports/status.html").read_text(encoding="utf-8")
+    assert summary.had_failures is False
+    assert 'lang="ko"' in html
+    assert "source(s)" not in html
+
+
+@responses.activate
 def test_collect_cli_auto_loads_dotenv(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / ".env").write_text("STOOQ_API_KEY=fromdotenv\n", encoding="utf-8")
@@ -155,3 +195,33 @@ def test_collect_cli_reports_missing_sec_ticker_mapping(tmp_path: Path, capsys):
     err = capsys.readouterr().err
     assert err.startswith("[mimir] invalid sources.yaml:")
     assert f"SEC ticker CIK map has no entry for ticker MSFT in {map_path}" in err
+
+
+def test_collect_cli_uses_watchlist_for_sec_watchlist_filing_feeds(
+    tmp_path: Path, capsys
+):
+    (tmp_path / "sources.yaml").write_text(
+        """
+        sources:
+          rss:
+            sec:
+              ticker_cik_map_path: company_tickers.json
+              watchlist_company_filings:
+                enabled: true
+                forms: ["10-K"]
+        """,
+        encoding="utf-8",
+    )
+    (tmp_path / "company_tickers.json").write_text(
+        '{"0": {"cik_str": 789019, "ticker": "MSFT"}}',
+        encoding="utf-8",
+    )
+    (tmp_path / "watchlist.yaml").write_text("us: [AAPL]\nkr: []\n", encoding="utf-8")
+
+    map_path = tmp_path / "company_tickers.json"
+    rc = main(["--cadence", "daily", "--config-dir", str(tmp_path)])
+
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert err.startswith("[mimir] invalid sources.yaml:")
+    assert f"SEC ticker CIK map has no entry for ticker AAPL in {map_path}" in err

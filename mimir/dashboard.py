@@ -111,14 +111,14 @@ def main(argv: list[str] | None = None) -> int:
 
     config_dir = Path(args.config_dir)
     try:
-        sources_config, _ = load_validated_sources_config(config_dir)
+        _, runtime_config = load_validated_sources_config(config_dir)
     except ValidationError as exc:
         return report_invalid_sources(exc)
     try:
         watchlist = load_watchlist(config_dir)
     except WatchlistConfigError as exc:
         return report_invalid_watchlist(exc)
-    lang = args.lang or sources_config.get("lang", DEFAULT_LANG)
+    lang = args.lang or runtime_config.lang
     as_of = date.fromisoformat(args.date) if args.date else None
     out_path = run_dashboard(
         config_dir=config_dir,

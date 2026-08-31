@@ -1,7 +1,7 @@
 # R1g-SEC-STRUCTURED. SEC Structured Disclosure RSS Catalog — 설계
 
 > **스펙 ID**: R1g-SEC-STRUCTURED
-> **상태**: 구현 완료
+> **상태**: ✅ 구현 완료 (`RSS_CATALOG` SEC structured disclosure ids). 최신 검증은 README 테스트 배지와 docs health guard가 추적한다.
 > **작성일**: 2026-06-18
 > **선행**: [정적 RSS feed catalog](2026-06-17-rss-feed-catalog-design.md) · [R1f-SEC EDGAR RSS provider](2026-06-17-sec-edgar-rss-provider-design.md) · [발전 카탈로그](../../architecture/improvement-catalog.md) · [개선 백로그](../../IMPROVEMENTS.md)
 
@@ -60,6 +60,8 @@ SEC Structured Disclosure RSS Feeds 문서는 EDGAR structured disclosure submis
 | `sec_structured_inline_xbrl` | `https://www.sec.gov/Archives/edgar/xbrl-inline.rss.xml` | Inline XBRL financial statement filing |
 | `sec_structured_all_xbrl` | `https://www.sec.gov/Archives/edgar/xbrlrss.all.xml` | SEC에 제출된 all XBRL filing |
 
+이 항목들은 broad SEC/XBRL feed이며 symbol-specific feed가 아니다.
+
 각 feed는 broad SEC/XBRL feed다. 특정 watchlist symbol 전용 feed가 아니므로 `symbol`을 설정하지 않는다. 뉴스 matcher는 이 feed를 제목·요약·alias 기반으로만 해석한다.
 
 ---
@@ -74,6 +76,8 @@ flowchart TD
   D --> E[RssFeed list]
   E --> F[RssSource.fetch]
 ```
+
+현재 구현은 `RSS_CATALOG`의 정적 entries와 `RssCatalogSelection` model을 사용한다. `resolve_rss_catalogs()`는 catalog id를 `RssFeed`로 확장하고, `resolve_rss_feeds()`는 catalog/manual/SEC company filing feed를 같은 중복 정책으로 조립한다.
 
 `mimir/sources/rss_catalog.py`의 `RSS_CATALOG`만 확장한다. 새 resolver, 새 source, 새 network client는 만들지 않는다.
 
@@ -123,8 +127,7 @@ README 3개 언어는 수정하지 않는다. Structured disclosure feed는 고�
 - [x] Unknown id, 기존 `sec_press_releases`, SEC company filing URL 조립 동작은 회귀하지 않는다.
 - [x] Config reference와 architecture docs는 structured feed가 broad feed이며 symbol-specific feed가 아니라고 설명한다.
 - [x] Improvement catalog와 backlog는 SEC structured disclosure RSS catalog는 해소됐고 ticker→CIK/generic discovery는 보류라고 말한다.
-- [x] `uv run pytest tests/sources/test_rss_catalog.py tests/sources/test_config.py -q`가 통과한다.
-- [x] `uv run ruff check .`, `uv run mypy mimir`, `uv run pytest -q`, `git diff --check`가 통과한다.
+- [x] 최신 전체 검증 상태는 README 테스트 배지와 docs health guard가 추적한다.
 
 ---
 

@@ -78,7 +78,7 @@ def _run() -> RunRecord:
         cadence=Cadence.DAILY,
         results=[
             SourceResult(source="sec_edgar", ok=True, fetched=10, stored=10),
-            SourceResult(source="fred", ok=False, error="timeout"),
+            SourceResult(source="ecos", ok=False, error="timeout"),
         ],
     )
 
@@ -146,7 +146,7 @@ def test_historical_section_renders():
 def test_collection_status_shows_sources():
     html = _full()
     assert "sec_edgar" in html
-    assert "fred" in html
+    assert "ecos" in html
 
 
 def test_badges_reflect_state():
