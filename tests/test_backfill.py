@@ -14,8 +14,6 @@ CSV = (
     "2018-01-03,1.5,2.5,1.0,2.0,200\n"
 )
 
-FRED_OBS = {"observations": [{"date": "2024-01-02", "value": "4.00"}]}
-FRED_REVISED_OBS = {"observations": [{"date": "2024-01-02", "value": "4.25"}]}
 CSV_REVISED = (
     "Date,Open,High,Low,Close,Volume\n"
     "2018-01-02,9.0,9.0,9.0,9.5,900\n"
@@ -48,104 +46,51 @@ def test_backfill_stooq_loads_history(tmp_path: Path):
 
 
 @responses.activate
-def test_backfill_fred_honors_configured_series(tmp_path: Path):
-    # A FRED series supplied via sources_config flows end-to-end; the persisted
-    # record's idempotency_key keeps the canonical `fred:{series}:{day}` format
-    # regardless of whether the series came from config or the code default.
+def test_backfill_fred_fails_before_network_or_storage(tmp_path: Path):
+    data_root = tmp_path / "data"
+    map_path = tmp_path / "company_tickers.json"
+    refresh_url = "https://www.sec.gov/files/company_tickers.json"
     responses.add(
         responses.GET,
-        "https://api.stlouisfed.org/fred/series/observations",
-        body=json.dumps(FRED_OBS),
+        refresh_url,
+        json={"0": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc."}},
         status=200,
     )
-    appended = run_backfill(
-        source_id="fred",
-        since=date(2024, 1, 1),
-        env={"FRED_API_KEY": "test-key"},
-        watchlist={"us": [], "kr": []},
-        data_root=tmp_path / "data",
-        sources_config={"sources": {"fred": {"series": ["DGS10"]}}},
-        now=datetime(2026, 5, 31, tzinfo=UTC),
+    with pytest.raises(BaseException) as exc_info:
+        run_backfill(
+            source_id="fred",
+            since=date(2024, 1, 1),
+            env={"FRED_API_KEY": "legacy"},
+            watchlist={"us": [], "kr": []},
+            data_root=data_root,
+            sources_config={
+                "sources": {
+                    "rss": {
+                        "sec": {
+                            "ticker_cik_map_path": map_path,
+                            "ticker_cik_map_refresh": {
+                                "enabled": True,
+                                "url": refresh_url,
+                                "max_age_hours": 1,
+                            },
+                        }
+                    }
+                }
+            },
+        )
+    assert (
+        type(exc_info.value).__name__,
+        str(exc_info.value),
+        len(responses.calls),
+        map_path.exists(),
+        data_root.exists(),
+    ) == (
+        "SystemExit",
+        "unknown or unavailable source: fred",
+        0,
+        False,
+        False,
     )
-    assert appended == 1
-    partition = tmp_path / "data/macro/2024/01/02.jsonl"
-    assert partition.exists()
-    record = json.loads(partition.read_text(encoding="utf-8").strip())
-    assert record["idempotency_key"] == "fred:DGS10:2024-01-02"  # invariant 2
-    assert record["payload"]["series_id"] == "DGS10"
-
-
-@responses.activate
-def test_backfill_fred_revisions_overwrite_existing_observation(tmp_path: Path):
-    responses.add(
-        responses.GET,
-        "https://api.stlouisfed.org/fred/series/observations",
-        body=json.dumps(FRED_OBS),
-        status=200,
-    )
-    responses.add(
-        responses.GET,
-        "https://api.stlouisfed.org/fred/series/observations",
-        body=json.dumps(FRED_REVISED_OBS),
-        status=200,
-    )
-    kwargs = {
-        "source_id": "fred",
-        "since": date(2024, 1, 1),
-        "env": {"FRED_API_KEY": "test-key"},
-        "watchlist": {"us": [], "kr": []},
-        "data_root": tmp_path / "data",
-        "sources_config": {"sources": {"fred": {"series": ["DGS10"]}}},
-        "now": datetime(2026, 5, 31, tzinfo=UTC),
-    }
-
-    run_backfill(**kwargs)
-    revised = run_backfill(**kwargs)
-
-    partition = tmp_path / "data/macro/2024/01/02.jsonl"
-    lines = partition.read_text(encoding="utf-8").strip().splitlines()
-    record = json.loads(lines[0])
-    latest = Manifest(root=tmp_path / "data").latest_run()
-    assert revised == 1
-    assert len(lines) == 1
-    assert record["payload"]["value"] == 4.25
-    assert latest is not None
-    assert latest.results[0].stored == 1
-
-
-@responses.activate
-def test_backfill_fred_unchanged_observation_does_not_update_capture_time(tmp_path: Path):
-    responses.add(
-        responses.GET,
-        "https://api.stlouisfed.org/fred/series/observations",
-        body=json.dumps(FRED_OBS),
-        status=200,
-    )
-    responses.add(
-        responses.GET,
-        "https://api.stlouisfed.org/fred/series/observations",
-        body=json.dumps(FRED_OBS),
-        status=200,
-    )
-    kwargs = {
-        "source_id": "fred",
-        "since": date(2024, 1, 1),
-        "env": {"FRED_API_KEY": "test-key"},
-        "watchlist": {"us": [], "kr": []},
-        "data_root": tmp_path / "data",
-        "sources_config": {"sources": {"fred": {"series": ["DGS10"]}}},
-    }
-
-    run_backfill(**kwargs, now=datetime(2026, 5, 31, tzinfo=UTC))
-    stored = run_backfill(**kwargs, now=datetime(2026, 6, 1, tzinfo=UTC))
-
-    partition = tmp_path / "data/macro/2024/01/02.jsonl"
-    record = json.loads(partition.read_text(encoding="utf-8").strip())
-    latest = Manifest(root=tmp_path / "data").latest_run()
-    assert stored == 0
-    assert record["captured_at"] == "2026-05-31T00:00:00Z"
-    assert latest is not None
-    assert latest.results[0].stored == 0
 
 
 @responses.activate
@@ -208,8 +153,11 @@ def test_backfill_records_invalid_count_in_manifest(tmp_path: Path, monkeypatch)
     assert result.invalid == 1
 
 
-def test_backfill_records_failure_manifest_before_reraising(tmp_path: Path, monkeypatch):
+def test_backfill_meta_less_plugin_reaches_fetch_and_records_runtime_failure(
+    tmp_path: Path, monkeypatch
+):
     from mimir import backfill as backfill_mod
+    from mimir.core.builder import SourceSpec
     from mimir.core.source import (
         Cadence,
         Dataset,
@@ -237,6 +185,11 @@ def test_backfill_records_failure_manifest_before_reraising(tmp_path: Path, monk
         backfill_mod,
         "build_sources",
         lambda settings, config, **kwargs: [FailSource()],
+    )
+    monkeypatch.setattr(
+        backfill_mod,
+        "load_source_specs",
+        lambda: (SourceSpec("fail", lambda settings, config: FailSource()),),
     )
 
     with pytest.raises(RuntimeError, match="upstream down"):
@@ -368,11 +321,11 @@ def test_main_reports_invalid_sources_yaml(tmp_path: Path, capsys):
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     (config_dir / "sources.yaml").write_text(
-        "sources:\n  fred:\n    serie: [DGS10]\n", encoding="utf-8"
+        "sources:\n  ecos:\n    serie: [invalid]\n", encoding="utf-8"
     )
     (config_dir / "watchlist.yaml").write_text("us: []\nkr: []\n", encoding="utf-8")
 
-    rc = main(["--source", "fred", "--since", "2024-01-01", "--config-dir", str(config_dir)])
+    rc = main(["--source", "ecos", "--since", "2024-01-01", "--config-dir", str(config_dir)])
 
     assert rc != 0
     assert "[mimir] invalid sources.yaml:" in capsys.readouterr().err
@@ -498,7 +451,7 @@ def test_main_uses_default_env_path(tmp_path: Path, monkeypatch):
     rc = main(
         [
             "--source",
-            "fred",
+            "stooq",
             "--since",
             "2024-01-01",
             "--config-dir",

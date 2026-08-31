@@ -3,6 +3,50 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-08-31 — FRED-TERMS-SAFETY-BOUNDARY
+
+Decision: remove FRED as a built-in source and fail closed across registration,
+settings, config, workflow, backfill, stored payload, default metadata, and
+current operator documentation.
+
+Reason:
+
+- The current FRED Services Terms and integrated API terms conflict with the
+  intended software/ML-connected collection and persistent JSONL storage model;
+  attribution alone does not cure that conflict. The documents do not establish
+  a priority or exception for Mimir.
+- The existing strict config schema, unknown-source backfill exit, and typed
+  payload boundary can reject retired inputs without a compatibility adapter.
+- ECOS and the provider-neutral macro analysis path remain; their provenance and
+  rights are a separate bounded review, not proof that every configured series
+  is already cleared.
+
+Sources:
+
+- https://fred.stlouisfed.org/legal/terms/
+- https://fred.stlouisfed.org/docs/api/terms_of_use.html
+
+Re-enable only after written permission covers the intended API, storage,
+software, analysis, redistribution, and publication paths; verify every series
+owner's rights; then implement all applicable notice, terms, privacy, and
+citation obligations in a new design with tests.
+
+Existing installations must stop collection and use, identify raw and derived
+FRED artifacts, and may quarantine them temporarily. Deletion or rebuild is a
+separate destructive action requiring explicit operator approval. This checkout
+contained no tracked or local `data/` or `reports/` files, so none were deleted.
+
+Follow-ups:
+
+- `ECOS-PROVENANCE-RIGHTS-BOUNDARY`: preserve runtime support while verifying
+  the built-in default and every custom series' provenance, authoring
+  institution, controlling terms, commercial-use rights, attribution, and
+  derived-output obligations.
+- `MANUAL-RSS-LEGAL-OWNERSHIP`: operator responsibility is already documented;
+  inventory every configured URL, record publisher/owner, controlling terms,
+  permission/commercial-use decision and evidence date, reject or remove
+  unverifiable URLs, and guard that every manual URL has a provenance record.
+
 ## 2026-06-29 — CAPTURED-INDEX-MEASUREMENT-RECHECK
 
 Decision: keep the captured-date persistent index deferred.

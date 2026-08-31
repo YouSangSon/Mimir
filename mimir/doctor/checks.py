@@ -90,11 +90,11 @@ def check_macro_series(store: JsonlStore, now: datetime) -> list[Finding]:
     }
     for series, cadence in MACRO_SERIES_CADENCE.items():
         latest = _latest_ts_date(reader, Dataset.MACRO, series)
-        # Registered-but-absent is NOT per-series CRITICAL: the table mixes FRED and
-        # ECOS series, so requiring all of them would force every operator to hold
-        # both keys. Total macro absence is caught at the dataset level (§4.1). The
-        # registered table exists to apply the CORRECT cadence to series that ARE
-        # present (e.g. CPIAUCSL as MONTHLY, not the DAILY floor).
+        # Registered-but-absent is NOT per-series CRITICAL: requiring every series
+        # would force operators to collect optional macro data. Total macro absence is
+        # caught at the dataset level (§4.1). The
+        # registered table exists to apply the correct cadence to series that are
+        # present, rather than applying the DAILY dataset floor to monthly data.
         if latest is None:
             continue
         finding = _series_freshness_finding(series, cadence, latest, now.date())
@@ -210,5 +210,3 @@ def check_short_partition(store: JsonlStore, dataset: Dataset) -> list[Finding]:
             )
         ]
     return []
-
-

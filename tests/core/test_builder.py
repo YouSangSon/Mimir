@@ -17,9 +17,7 @@ from mimir.core.source import Cadence, Dataset, LegalStatus, Market, RateLimit, 
 from mimir.settings import Settings
 from mimir.sources.config import SourcesConfig
 from mimir.sources.ecos import DEFAULT_SERIES as ECOS_DEFAULT_SERIES
-from mimir.sources.ecos import EcosSource
-from mimir.sources.fred import DEFAULT_SERIES as FRED_DEFAULT_SERIES
-from mimir.sources.fred import FredSource
+from mimir.sources.ecos import EcosSeries, EcosSource
 from mimir.sources.rss import DEFAULT_FEEDS as RSS_DEFAULT_FEEDS
 from mimir.sources.rss import RssFeed, RssSource
 from mimir.sources.rss_catalog import RssCatalogSelection, SecCompanyFilingFeed
@@ -114,10 +112,16 @@ def test_builtin_source_specs_keep_existing_order():
         "rss",
         "stooq",
         "dart",
-        "fred",
         "ecos",
         "pykrx",
     ]
+
+
+def test_legacy_fred_key_does_not_register_or_build_a_source():
+    builtin_fred = "fred" in {spec.id for spec in BUILTIN_SOURCE_SPECS}
+    sources = build_sources(Settings.from_env({"FRED_API_KEY": "legacy"}))
+    built_fred = "fred" in {source.meta.id for source in sources}
+    assert (builtin_fred, built_fred) == (False, False)
 
 
 def test_builtin_source_specs_expose_static_metadata_for_preflight_manifest():
@@ -364,10 +368,10 @@ def test_builder_skips_key_gated_sources_and_logs(caplog):
     with caplog.at_level(logging.WARNING):
         sources = build_sources(Settings.from_env({}))
     ids = {s.meta.id for s in sources}
-    for gated in ("stooq", "dart", "fred", "ecos"):
+    for gated in ("stooq", "dart", "ecos"):
         assert gated not in ids
     messages = " ".join(r.message.lower() for r in caplog.records)
-    for gated in ("stooq", "dart", "fred", "ecos"):
+    for gated in ("stooq", "dart", "ecos"):
         assert gated in messages  # skips are logged, not silent
 
 
@@ -381,11 +385,9 @@ def test_builder_includes_dart_with_key():
     assert "dart" in {s.meta.id for s in sources}
 
 
-def test_builder_includes_macro_sources_with_keys():
-    sources = build_sources(Settings.from_env({"FRED_API_KEY": "a", "ECOS_API_KEY": "b"}))
-    ids = {s.meta.id for s in sources}
-    assert "fred" in ids
-    assert "ecos" in ids
+def test_builder_includes_ecos_with_key():
+    sources = build_sources(Settings.from_env({"ECOS_API_KEY": "b"}))
+    assert "ecos" in {source.meta.id for source in sources}
 
 
 # --- config-driven extensibility ---
@@ -393,10 +395,8 @@ def test_builder_includes_macro_sources_with_keys():
 
 def test_no_config_carries_defaults():
     # Invariant 1: absent config -> each source uses exactly its DEFAULT_*.
-    settings = Settings.from_env({"FRED_API_KEY": "a", "ECOS_API_KEY": "b"})
+    settings = Settings.from_env({"ECOS_API_KEY": "b"})
     by_id = _by_id(build_sources(settings))
-    assert isinstance(by_id["fred"], FredSource)
-    assert by_id["fred"]._series == FRED_DEFAULT_SERIES
     assert isinstance(by_id["ecos"], EcosSource)
     assert by_id["ecos"]._series == ECOS_DEFAULT_SERIES
     assert isinstance(by_id["rss"], RssSource)
@@ -405,20 +405,19 @@ def test_no_config_carries_defaults():
 
 def test_explicit_empty_config_still_carries_defaults():
     # Invariant 1: SourcesConfig() (all None) is equivalent to no config.
-    settings = Settings.from_env({"FRED_API_KEY": "a", "ECOS_API_KEY": "b"})
+    settings = Settings.from_env({"ECOS_API_KEY": "b"})
     by_id = _by_id(build_sources(settings, SourcesConfig()))
-    assert by_id["fred"]._series == FRED_DEFAULT_SERIES
     assert by_id["ecos"]._series == ECOS_DEFAULT_SERIES
     assert by_id["rss"]._feeds == RSS_DEFAULT_FEEDS
 
 
-def test_config_overrides_fred_series():
-    settings = Settings.from_env({"FRED_API_KEY": "a", "ECOS_API_KEY": "b"})
-    cfg = SourcesConfig(fred_series=["X"])
+def test_config_overrides_ecos_series():
+    settings = Settings.from_env({"ECOS_API_KEY": "b"})
+    series = [EcosSeries(stat_code="X", cycle="M", item_code="Y")]
+    cfg = SourcesConfig(ecos_series=series)
     by_id = _by_id(build_sources(settings, cfg))
-    assert by_id["fred"]._series == ["X"]
+    assert by_id["ecos"]._series == series
     # Unconfigured sources keep their defaults.
-    assert by_id["ecos"]._series == ECOS_DEFAULT_SERIES
     assert by_id["rss"]._feeds == RSS_DEFAULT_FEEDS
 
 

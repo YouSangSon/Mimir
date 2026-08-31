@@ -13,7 +13,7 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-668%20passing%20%C2%B7%2098%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-662%20passing%20%C2%B7%2098%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -27,7 +27,7 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 
 ---
 
-> **Why it matters** — The raw materials of an investment decision (filings, prices, interest rates, news) are scattered across many places, and it's easy to fall back on paid data vendors or scraping that violates Terms of Service. Mimir gathers everything legally, with a *free official API first* approach, runs on GitHub Actions without an always-on server, and accumulates the data in the repo as version-controlled JSONL. On top of that it layers ⭐ star-rated insights, historical-analog analysis, daily HTML reports, and Telegram delivery — ultimately becoming the foundation for automated trading that keeps analysis and execution separate.
+> **Why it matters** — The raw materials of an investment decision (filings, prices, interest rates, news) are scattered across many places, and it's easy to fall back on paid data vendors or scraping that violates Terms of Service. Mimir prioritizes free official APIs and source-level rights review, runs on GitHub Actions without an always-on server, and accumulates permitted data in the repo as version-controlled JSONL. On top of that it layers ⭐ star-rated insights, historical-analog analysis, daily HTML reports, and Telegram delivery — ultimately becoming the foundation for automated trading that keeps analysis and execution separate.
 
 Mímir is the guardian of the well of wisdom in Norse mythology.
 
@@ -89,12 +89,12 @@ reports/status.html               # per-source collection status
 
 | Feature | Behavior |
 | :--- | :--- |
-| **Source adapters** | 7 built-in sources behind a shared `Source` protocol. RSS supports a static feed catalog, SEC company filing feed helpers, and symbol-tagged feeds. External packages can add source plugins via `mimir.sources` and `sources.plugins.<source_id>` |
+| **Source adapters** | 6 built-in sources behind a shared `Source` protocol. RSS supports a static feed catalog, SEC company filing feed helpers, and symbol-tagged feeds. External packages can add source plugins via `mimir.sources` and `sources.plugins.<source_id>` |
 | **Source isolation** | One source's failure or format change never halts another source or the whole run |
 | **Normalized envelope** | Every source converges to a common record validated with pydantic (`prices` · `filings` · `macro` · `news`) |
 | **Idempotent storage** | Re-running the same collection appends without duplicates thanks to the `idempotency_key` |
-| **Throttle + legality** | Per-source `rate_limit` and `legal_status` are enforced in code |
-| **Backfill** | Bulk-loads historical data from Stooq, FRED, ECOS, and others to jump-start historical-pattern analysis |
+| **Throttle + legality** | The throttler enforces per-source `rate_limit`; `Registry` uses `legal_status` to filter GRAY sources according to policy |
+| **Backfill** | Bulk-loads historical data from registered sources such as Stooq and ECOS to jump-start historical-pattern analysis |
 
 ### ⏱️ Schedule & Delivery
 
@@ -109,19 +109,22 @@ reports/status.html               # per-source collection status
 
 ## 🗃️ Data Sources
 
-Every source is free, and legality is judged *per source*. Official APIs come first; scraping (pykrx) is flagged with ⚠️ and kept toggleable.
+Built-in adapters require no paid subscription, but availability or an `official` label is not legal clearance. Rights and terms must be verified per source, series, and feed; scraping (pykrx) is flagged with ⚠️ and kept toggleable.
 
 | Source | Market | Dataset | Cadence | Auth | Legality |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **SEC EDGAR** | 🇺🇸 US | filings (10-K/Q · 8-K) | daily | User-Agent only (no signup) | ✅ Official (scripted access explicitly allowed) |
-| **RSS** | 🌐 | news headlines | hourly | None (official feeds) | ✅ Official |
+| **RSS** | 🌐 | news headlines | hourly | None | Built-in catalog entries are official; manual URLs require operator review |
 | **Stooq** | 🇺🇸 US | EOD prices (OHLCV) | daily | Free `apikey` (issued via captcha) | ✅ Free |
 | **DART** | 🇰🇷 KR | filings | daily | Free API key | ✅ Official |
-| **FRED** | 🇺🇸 US | macro time series | daily | Free API key | ✅ Official |
-| **ECOS** | 🇰🇷 KR | macro time series | daily | Free API key | ✅ Official |
+| **ECOS** | 🇰🇷 KR | macro time series | daily | Free API key | Runtime supported; built-in/custom-series provenance and rights remain unverified |
 | **pykrx** | 🇰🇷 KR | OHLCV prices | daily | None (`pip install -e '.[kr]'`) | ⚠️ Gray (scraping) |
 
-With no keys or packages, only **SEC EDGAR + RSS** work right away. Adding free keys turns on Stooq/DART/FRED/ECOS, and installing the `[kr]` extra turns on pykrx. `yfinance` (Yahoo) is excluded as a primary price source because its ToS prohibits automated collection.
+With no keys or packages, only **SEC EDGAR + RSS** work right away. Adding free keys turns on Stooq/DART/ECOS, and installing the `[kr]` extra turns on pykrx. `yfinance` (Yahoo) is excluded as a primary price source because its ToS prohibits automated collection.
+
+> **FRED removal:** Built-in FRED support has been removed because the current [FRED Services Terms](https://fred.stlouisfed.org/legal/terms/) and [FRED API Terms of Use](https://fred.stlouisfed.org/docs/api/terms_of_use.html) conflict with Mimir's software/ML-connected persistent collection model; attribution alone does not cure that conflict. Re-enable only after written permission for the intended use and verification of each series owner's rights, then implement every applicable notice, terms, privacy, and citation obligation. Existing installations should stop collection and use, identify raw and derived FRED artifacts, and may quarantine them temporarily; deletion or rebuild requires explicit operator approval.
+
+Manual `sources.rss.feeds` URLs are operator-provided. Mimir does not verify their ownership or terms, so the operator remains responsible for confirming permission before collection and use.
 
 ---
 
@@ -131,7 +134,7 @@ With no keys or packages, only **SEC EDGAR + RSS** work right away. Adding free 
 flowchart LR
     Cron["GitHub Actions<br/>hourly · daily · weekly · monthly"]
     Config["config/<br/>watchlist · sources"]
-    Sources["sources/<br/>EDGAR · RSS · Stooq · DART<br/>FRED · ECOS · pykrx"]
+    Sources["sources/<br/>EDGAR · RSS · Stooq · DART<br/>ECOS · pykrx"]
     Core["core/<br/>registry · orchestrator · throttle · normalize"]
     Store["storage/<br/>JSONL (git-as-DB)"]
     Manifest["manifest/<br/>run log"]
@@ -179,8 +182,9 @@ Adding a built-in source is done with a single adapter in `sources/` plus one `S
 
 | Boundary | Behavior |
 | :--- | :--- |
-| **Per-source legality** | Each source carries `legal_status` (official/gray) and `rate_limit` as metadata, enforced by the throttler |
-| **Official APIs first** | Official free APIs like DART, SEC EDGAR, FRED, and ECOS are used as the primary source |
+| **Per-source legality** | Each source carries `legal_status` (official/gray) and `rate_limit`; the throttler enforces only `rate_limit`, while `Registry` applies the GRAY-source policy |
+| **Official APIs first** | Official status is metadata, not legal clearance. ECOS runtime support is preserved while built-in/custom-series provenance, authoring institution, controlling terms, commercial-use rights, attribution, and derived-output obligations remain the finite `ECOS-PROVENANCE-RIGHTS-BOUNDARY` verification |
+| **Manual RSS** | Operators must verify the ownership, terms, and permitted use of every manual `sources.rss.feeds` URL |
 | **GRAY toggle** | pykrx (scraping) is throttled, retried with short backoff, and limited to internal analysis; it can be blocked via `gray_enabled: false` in `sources.yaml` |
 | **Secret separation** | All keys/tokens live only in `.env` (local) and Actions Secrets (CI); never committed |
 | **No silent failures** | `collect` and `backfill` failures are recorded in the manifest and signaled with a non-zero exit — never swallowed quietly |
@@ -228,7 +232,7 @@ Each command also keeps its module form, for example `.venv/bin/python -m mimir.
 
 | Item | Value |
 | :--- | :--- |
-| **Tests** | 668 passing (adapters verified with recorded fixtures, no network) |
+| **Tests** | 662 passing (adapters verified with recorded fixtures, no network) |
 | **Coverage** | `mimir/` 98% (gate 80%) |
 | **lint/type** | ruff + mypy (`pyproject.toml` strict config) clean |
 | **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |
@@ -241,7 +245,7 @@ It follows TDD, testing HTTP sources deterministically with `responses` and libr
 
 | Spec | Description | Status |
 | :--- | :--- | :--- |
-| **S1 Collector** | Data collection & storage (7 sources, git-as-DB, cron) | ✅ Done (Inc 1+2) |
+| **S1 Collector** | Data collection & storage (6 built-in sources, git-as-DB, cron) | ✅ Done (Inc 1+2; FRED removed on 2026-08-31) |
 | **S2 Analysis & Scoring** | Rule-based + off-by-default LLM ⭐ star-rated insights (direction + confidence) | ✅ Implemented (rules + off-by-default LLM seam: activates only when config flag `llm_sentiment_enabled` + `ANTHROPIC_API_KEY` + `[llm]` extra are all present) |
 | **S3 Delivery & Reporting** | Rich daily HTML report + hourly/daily/weekly/monthly Telegram digest | ✅ Implemented |
 | **S4 Historical / Event-Analog** | "When something similar happened in the past, which stocks rose or fell?" | ✅ Implemented (event-study) |

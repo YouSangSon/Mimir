@@ -12,8 +12,8 @@ never affected.
 
 Dispatch is external (spec §4.2): the discriminator (`dataset`) lives on the
 `Record` envelope, never inside the payload (a tag key would break bytes).
-Source-specific branches (fred vs ecos, sec vs dart) are resolved structurally
-by `extra="forbid"` + disjoint required keys.
+Source-specific filing branches (sec vs dart) are resolved structurally by
+`extra="forbid"` + disjoint required keys.
 """
 
 from __future__ import annotations
@@ -51,13 +51,7 @@ class PricePayload(_Payload):
     interval: str  # "1d"
 
 
-# --- MACRO (source-specific) ---
-class FredMacroPayload(_Payload):
-    series_id: str
-    value: float
-    period: str  # "YYYY-MM-DD" string, kept verbatim
-
-
+# --- MACRO ---
 class EcosMacroPayload(_Payload):
     stat_code: str
     item_code: str
@@ -67,7 +61,7 @@ class EcosMacroPayload(_Payload):
     time: str  # "YYYYMM" etc., ECOS raw string
 
 
-MacroPayload = FredMacroPayload | EcosMacroPayload
+MacroPayload = EcosMacroPayload
 
 
 # --- NEWS (rss, single shape) ---
@@ -117,7 +111,7 @@ Payload = (
 # A dataset maps to one model or a tuple of source-specific candidates.
 PAYLOAD_BY_DATASET: dict[Dataset, type[BaseModel] | tuple[type[BaseModel], ...]] = {
     Dataset.PRICES: PricePayload,
-    Dataset.MACRO: (FredMacroPayload, EcosMacroPayload),
+    Dataset.MACRO: EcosMacroPayload,
     Dataset.NEWS: NewsPayload,
     Dataset.FILINGS: (SecFilingPayload, DartFilingPayload),
     Dataset.INSIGHTS: Insight,
@@ -172,14 +166,7 @@ def price_payload(rec: Record) -> PricePayload:
 
 
 def macro_payload(rec: Record) -> MacroPayload:
-    payload = rec.payload
-    parsed = payload if isinstance(payload, BaseModel) else parse_payload(Dataset.MACRO, payload)
-    if not isinstance(parsed, FredMacroPayload | EcosMacroPayload):
-        raise PayloadSchemaError(
-            f"expected a macro payload for dataset {rec.dataset.value!r}, "
-            f"got {type(parsed).__name__}"
-        )
-    return parsed
+    return _narrow(rec, Dataset.MACRO, EcosMacroPayload)
 
 
 def news_payload(rec: Record) -> NewsPayload:

@@ -12,7 +12,6 @@ from mimir.settings import Settings
 from mimir.sources.config import SourcesConfig
 from mimir.sources.dart import DartSource
 from mimir.sources.ecos import EcosSource
-from mimir.sources.fred import FredSource
 from mimir.sources.pykrx_source import PykrxSource
 from mimir.sources.rss import RssFeed, RssSource
 from mimir.sources.rss_catalog import (
@@ -140,16 +139,6 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
         meta=DartSource.meta,
     ),
     SourceSpec(
-        "fred",
-        lambda settings, cfg: FredSource(
-            api_key=_required_secret(settings.fred_api_key, "FRED_API_KEY"),
-            series=cfg.fred_series,
-        ),
-        required_secret_attr="fred_api_key",
-        required_secret_name="FRED_API_KEY",
-        meta=FredSource.meta,
-    ),
-    SourceSpec(
         "ecos",
         lambda settings, cfg: EcosSource(
             api_key=_required_secret(settings.ecos_api_key, "ECOS_API_KEY"),
@@ -168,7 +157,7 @@ BUILTIN_SOURCE_SPECS: tuple[SourceSpec, ...] = (
     ),
 )
 
-CONFIGURABLE_BUILTIN_SOURCE_IDS = frozenset({"ecos", "fred", "rss"})
+CONFIGURABLE_BUILTIN_SOURCE_IDS = frozenset({"ecos", "rss"})
 
 
 def _validate_unique_source_ids(specs: Sequence[SourceSpec]) -> None:

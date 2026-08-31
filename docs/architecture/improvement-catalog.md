@@ -1,8 +1,9 @@
 # Mimir 발전 카탈로그 — 확장성·견고성·심화 (2026-06-13)
 
-> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/AN1-SIGNAL-PLUGIN-ENTRYPOINTS/AN2-LLM-CLASSIFIER-CARDINALITY/AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD/AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION/AN5-ANALYSIS-SIGNAL-SPECS-INJECTION/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/CFG3-CONFIG-GUARDRAILS/COV1-CONTRACT-COVERAGE/I18N1-PARITY-GUARD/BF-PREFLIGHT 구현 완료 + AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY 구현 완료 + R1o-SEC-WATCHLIST-FILING-FEEDS 구현 완료
+> **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/AN1-SIGNAL-PLUGIN-ENTRYPOINTS/AN2-LLM-CLASSIFIER-CARDINALITY/AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD/AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION/AN5-ANALYSIS-SIGNAL-SPECS-INJECTION/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/CFG3-CONFIG-GUARDRAILS/COV1-CONTRACT-COVERAGE/I18N1-PARITY-GUARD/BF-PREFLIGHT 구현 완료 + AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY 구현 완료 + R1o-SEC-WATCHLIST-FILING-FEEDS 구현 완료 + FRED-TERMS-SAFETY-BOUNDARY 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
+> **현재 경계**: 2026-08-31 terms 결정이 이전 FRED 구현 설명을 대체한다. 내장 경로와 typed payload acceptance는 제거됐고, 아래 표와 설명은 ECOS/RSS의 runtime 계약만 뜻한다. ECOS provenance·권리와 수동 RSS URL별 근거는 각각 `ECOS-PROVENANCE-RIGHTS-BOUNDARY`, `MANUAL-RSS-LEGAL-OWNERSHIP`의 미해결 검증이다. FRED 재활성화에는 서면 허가와 시리즈별 권리 검증이 필요하다([Services Terms](https://fred.stlouisfed.org/legal/terms/), [API Terms](https://fred.stlouisfed.org/docs/api/terms_of_use.html)).
 
 ---
 
@@ -24,7 +25,7 @@
 
 | ID | 항목 | 차원 | 추적성 | 결정 | 산출물 |
 |---|---|---|---|---|---|
-| **A1** | 설정 기반 시리즈·피드 (FRED/ECOS series, RSS feeds) | 확장성 | 백로그 + README 약속 | **✅ 구현 완료 (Increment 1)** | 코드 + 테스트 |
+| **A1** | 설정 기반 시리즈·피드 (ECOS series, RSS feeds) | 확장성 | 백로그 + README 약속 | **✅ 구현 완료 (Increment 1; 이전 FRED 범위는 2026-08-31 폐기)** | 코드 + 테스트 |
 | **A4** | 데이터셋별 타입드 페이로드 스키마 (`dict[str,Any]` 제거) | 견고성 | 신규 | **✅ 구현 완료 (Increment 2)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-13-typed-payload-design.md) |
 | **A2** | 시리즈 식별자 단일 진실원 (macro_regime ↔ 어댑터) | 확장성 | 백로그 | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-macro-series-registry-design.md) |
 | **A3** | 선언적 소스 등록 (`SourceSpec` built-in table) | 아키텍처 | README 약속(부분) | **✅ 구현 완료 (2026-06-16)** | 코드 + 테스트 · [spec](../superpowers/specs/2026-06-16-declarative-source-registration-design.md) |
@@ -85,29 +86,28 @@
 
 | 어댑터 | 죽은 seam | 하드코딩 기본값 |
 |---|---|---|
-| `FredSource(series=)` | 미전달 | `DEFAULT_SERIES = ["DGS10","FEDFUNDS","CPIAUCSL"]` |
 | `EcosSource(series=)` | 미전달 | `DEFAULT_SERIES = [EcosSeries("722Y001","M","0101000")]` |
 | `RssSource(feeds=)` | 미전달 | `DEFAULT_FEEDS = [SEC press releases]` |
 
-A1 이전에는 FRED 시리즈 하나를 추가하려면 **파이썬 코드를 고쳐야 했다.** README는 "소스 추가 = 파일 하나 + 등록"을 약속했지만 실제로는 *파일 + Settings 필드 + builder 분기 + 하드코딩 시리즈*가 필요했다. 이 격차가 확장성 천장이었다.
+A1 이전에는 ECOS 시리즈나 RSS feed를 추가하려면 **파이썬 코드를 고쳐야 했다.** README는 "소스 추가 = 파일 하나 + 등록"을 약속했지만 실제로는 *파일 + Settings 필드 + builder 분기 + 하드코딩 목록*이 필요했다. 이 격차가 확장성 천장이었다.
 
 **근거(추적성).** 백로그 "설정 기반 시리즈/피드"(`IMPROVEMENTS.md` LOW) + README의 확장성 약속. 순수 신규가 아니라 *이미 설계됐으나 배선되지 않은* 기능.
 
-**결정.** **Increment 1로 구현.** `config/sources.yaml`이 어댑터별 블록(`fred.series`/`ecos.series`/`rss.feeds`)을 선언하고, `build_sources(settings, config)`가 검증된 설정을 생성자에 전달한다. → 사용자가 YAML만으로 커버리지를 넓힌다. 상세: [config-driven 설계문서](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md).
+**결정.** **Increment 1로 구현.** `config/sources.yaml`이 어댑터별 블록(`ecos.series`/`rss.feeds`)을 선언하고, `build_sources(settings, config)`가 검증된 설정을 생성자에 전달한다. → 사용자가 YAML만으로 커버리지를 넓힌다. 상세: [config-driven 설계문서](../superpowers/specs/2026-06-13-config-driven-extensibility-design.md).
 
 **불변식(테스트로 고정).** 설정 배선은 `idempotency_key` 포맷·파티션 레이아웃을 **바꾸지 않는다**. 빈/부재 설정은 **오늘의 기본값을 그대로 재현**한다. git-as-DB에서 키가 조용히 바뀌면 이미 커밋된 데이터가 고아가 되거나 중복된다 — 이 리팩터가 "저위험"에서 "고위험"으로 바뀌는 유일한 경로.
 
 ### A2. 시리즈 식별자 단일 진실원 — **구현 완료 (2026-06-16)**
 
-이전 구현에서는 `MacroRegimeSignal.RATE_SERIES = {"FEDFUNDS","DGS10","722Y001.0101000"}`가 FRED/ECOS가 발행하는 시리즈 식별자를 **두 번째로** 하드코딩했다. A1로 사용자가 시리즈를 바꿔도 거시 시그널은 그것을 몰랐다. 이 결합은 **source→signal 경계를 가로지르므로**, A1보다 위험하고 별도 증분으로 처리했다.
+이전 구현에서는 `MacroRegimeSignal`이 source가 발행하는 시리즈 식별자를 **두 번째로** 하드코딩했다. A1로 사용자가 시리즈를 바꿔도 거시 시그널은 그것을 몰랐다. 이 결합은 **source→signal 경계를 가로지르므로**, A1보다 위험하고 별도 증분으로 처리했다.
 
-**구현.** `mimir/core/macro_series.py`가 기본 FRED 시리즈, 기본 ECOS 시리즈, macro-regime rate-series, doctor macro cadence를 한 곳에서 제공한다. `FredSource`, `EcosSource`, `MacroRegimeSignal`, doctor expectation은 이 모듈을 읽는다. `sources.yaml`의 `analysis.macro_regime.rate_series`는 수집된 macro series 중 어떤 시리즈를 금리 regime 신호로 해석할지 명시한다. 수집 대상(`sources.fred/ecos.series`)과 분석 해석 대상(`analysis.macro_regime.rate_series`)은 분리되어, CPI처럼 수집은 하되 rate signal로 쓰면 안 되는 series를 안전하게 다룬다.
+**구현.** `mimir/core/macro_series.py`가 기본 ECOS 시리즈, macro-regime rate-series, doctor macro cadence를 한 곳에서 제공한다. `EcosSource`, `MacroRegimeSignal`, doctor expectation은 이 모듈을 읽는다. `sources.yaml`의 `analysis.macro_regime.rate_series`는 수집된 macro series 중 어떤 시리즈를 금리 regime 신호로 해석할지 명시한다. 수집 대상(`sources.ecos.series`)과 분석 해석 대상(`analysis.macro_regime.rate_series`)은 분리된다.
 
 ### A3. 선언적 소스 등록 — **구현 완료 (2026-06-16)**
 
 `build_sources`의 `if settings.X_api_key:` 사다리는 `BUILTIN_SOURCE_SPECS` 테이블로 이동했다. 각 `SourceSpec`은 source id, 생성자, secret gate, optional package gate, 설치 힌트를 한 곳에 선언한다.
 
-이 구현은 public `build_sources(settings, config=None)` 진입점을 유지한다. SEC EDGAR와 RSS는 keyless로 계속 생성되고, Stooq/DART/FRED/ECOS는 secret이 없으면 warning 후 skip된다. pykrx는 `importlib.util.find_spec("pykrx")` gate를 통과할 때만 생성된다.
+이 구현은 public `build_sources(settings, config=None)` 진입점을 유지한다. SEC EDGAR와 RSS는 keyless로 계속 생성되고, Stooq/DART/ECOS는 secret이 없으면 warning 후 skip된다. pykrx는 `importlib.util.find_spec("pykrx")` gate를 통과할 때만 생성된다.
 
 ### A3b. 외부 source plugin entry point — **구현 완료 (2026-06-16)**
 
@@ -121,7 +121,7 @@ A3b는 외부 package가 source를 주입할 수 있게 했지만, plugin별 설
 
 구현 후 plugin 설정은 `sources.plugins.<source_id>` 아래에 둔다. `source_id`는 `SourceSpec.id`와 같다. Core parser는 plugin block이 mapping인지 검증하고, raw dict를 `SourcesConfig.plugin_settings`에 보존한다. Plugin factory는 `cfg.parse_plugin_config("acme_news", AcmeNewsConfig)`처럼 자신이 소유한 pydantic 모델로 schema를 검증한다.
 
-Matching `SourceSpec.id`가 없는 plugin config는 warning을 남긴다. `sources.plugins.rss`처럼 built-in source id를 plugin namespace에 쓰면 warning을 남긴다. Built-in source 설정은 계속 `sources.rss`, `sources.fred`, `sources.ecos` 같은 typed block을 쓴다.
+Matching `SourceSpec.id`가 없는 plugin config는 warning을 남긴다. `sources.plugins.rss`처럼 built-in source id를 plugin namespace에 쓰면 warning을 남긴다. Built-in source 설정은 계속 `sources.rss`, `sources.ecos` 같은 typed block을 쓴다.
 
 ---
 
@@ -297,7 +297,7 @@ R1m은 loader-backed missing ticker 오류에 mapping file 경로를 넣도록 �
 
 `RawRecord.payload: dict[str, Any]`는 모든 다운스트림 시그널이 문자열 키(`payload["close"]`, `payload["value"]`)로 더듬게 한다. 스키마 드리프트가 조용히 실패한다. 데이터셋별 pydantic 페이로드 모델은 경계에서 드리프트를 잡는다. 가치 높으나 신규 → 설계. → [타입드 페이로드 설계문서](../superpowers/specs/2026-06-13-typed-payload-design.md).
 
-**구현(Increment 2).** `mimir/core/payloads.py`에 데이터셋별 6개 모델(`PricePayload`/`FredMacroPayload`/`EcosMacroPayload`/`NewsPayload`/`SecFilingPayload`/`DartFilingPayload`, 모두 `frozen=True, extra="forbid"`) + 유니온 별칭 + 외부 디스패치(`PAYLOAD_BY_DATASET`/`parse_payload`, 봉투 `dataset` 기준). insights/historical/evaluation은 기존 `Insight`/`HistoricalInsight`/`BucketStat` 재사용(+`extra="forbid"`). `Record.payload`는 `Payload` 유니온(`model_validator(mode="before")`로 dict→모델 파싱), `RawRecord.payload`는 dict 유지. `JsonlStore` 직렬화 무변경 → 온디스크 JSONL 바이트 동일(오버라이트 재실행 git churn 0, 골든 round-trip으로 고정). 시그널은 내로잉 헬퍼로 타입드 접근. 닥터의 얕은 `check_payload_schema`는 경계 검증이 대체하여 제거.
+**구현(Increment 2, 현재 경계 반영).** `mimir/core/payloads.py`에 source 데이터셋별 5개 모델(`PricePayload`/`EcosMacroPayload`/`NewsPayload`/`SecFilingPayload`/`DartFilingPayload`, 모두 `frozen=True, extra="forbid"`) + 유니온 별칭 + 외부 디스패치(`PAYLOAD_BY_DATASET`/`parse_payload`, 봉투 `dataset` 기준)가 있다. insights/historical/evaluation은 기존 `Insight`/`HistoricalInsight`/`BucketStat`을 재사용한다. `Record.payload`는 `Payload` 유니온으로 경계 검증하고 `RawRecord.payload`는 dict를 유지한다.
 
 ### C1. 데이터 신선도·품질 닥터 — **구현 완료**
 
@@ -331,13 +331,13 @@ Doctor WARN/CRITICAL은 dashboard health table에 표시한다. 그러나 schedu
 
 ### BF-PREFLIGHT. 백필 preflight failure manifest — **구현 완료 (2026-06-18)**
 
-BF-MANIFEST 이후에도 `run_backfill()`은 source lookup 전에 실패하면 manifest를 남기지 못했다. 대표 사례는 `stooq`, `fred`, `dart`, `ecos`, `pykrx`처럼 등록된 source가 secret/package gate 때문에 `build_sources()`에서 제외되는 경우다.
+BF-MANIFEST 이후에도 `run_backfill()`은 source lookup 전에 실패하면 manifest를 남기지 못했다. 대표 사례는 `stooq`, `dart`, `ecos`, `pykrx`처럼 등록된 source가 secret/package gate 때문에 `build_sources()`에서 제외되는 경우다.
 
 구현 후 built-in `SourceSpec`는 static `SourceMeta`를 갖고, `run_backfill()`은 spec 목록을 한 번 로드해 build 결과와 preflight metadata를 함께 본다. 요청한 source id가 등록되어 있지만 사용할 수 없으면 `ok=false`, zero counts, secret/package gate reason을 manifest에 기록한 뒤 기존 `SystemExit("unknown or unavailable source: ...")`를 유지한다. 진짜 unknown source id는 cadence를 알 수 없으므로 manifest 없이 argument error로 남긴다.
 
 ### MR1. 거시 개정 저장 정책 — **구현 완료 (2026-06-16)**
 
-FRED와 ECOS는 같은 관측일의 값을 나중에 고칠 수 있다. 기존 저장 정책은 같은 `idempotency_key`를 다시 받으면 첫 값을 유지했다. 그래서 공식 기관이 금리나 통계 값을 개정해도 `MacroRegimeSignal`은 오래된 값을 계속 읽을 수 있었다.
+ECOS 같은 거시 source는 같은 관측일의 값을 나중에 고칠 수 있다. 기존 저장 정책은 같은 `idempotency_key`를 다시 받으면 첫 값을 유지했다. 그래서 공식 기관이 금리나 통계 값을 개정해도 `MacroRegimeSignal`은 오래된 값을 계속 읽을 수 있었다.
 
 구현 후 source 수집과 backfill은 같은 helper인 `append_overwrite_enabled(dataset)`로 저장 정책을 고른다. 현재 `Dataset.MACRO`만 overwrite append를 쓰고, `prices`, `filings`, `news`는 기존 first-write-wins를 유지한다. `JsonlStore.append(overwrite=True)`는 새 key와 교체된 key를 모두 `stored`에 반영한다. 그래서 macro 값이 실제로 바뀌면 manifest와 backfill 반환값도 변경을 드러낸다.
 
@@ -456,6 +456,8 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 
 | 항목 | 보류 근거 |
 |---|---|
+| **ECOS-PROVENANCE-RIGHTS-BOUNDARY** | Runtime 지원은 유지한다. 내장 기본값과 모든 사용자 지정 ECOS 시리즈별 provenance, 작성 기관, 적용 약관, 상업적 이용 권리, attribution, 파생 산출물 의무를 공식 근거와 확인일로 검증하기 전에는 권리 적합 결론을 내리지 않는다. |
+| **MANUAL-RSS-LEGAL-OWNERSHIP** | 운영자 책임 고지는 완료됐다. 남은 유한 결과는 모든 운영자 제공 URL inventory와 publisher/owner, 적용 약관, 허용/상업적 이용 결정, 근거 확인일을 provenance record로 남기고, 검증 불가능한 URL을 거부·제거하며, configured manual URL마다 record가 존재하는지 guard로 고정하는 것이다. |
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 일반 날짜 윈도우 핫패스를 처리한다. R1b의 captured-window 반복 scan은 C2a 인메모리 cache로 완화했다. persistent index나 보조 파티션은 데이터가 수년 누적되고 cache rebuild 자체가 병목이라는 측정이 나온 뒤 설계한다. 엄밀한 설계와 측정 기반 unblock 기준은 [설계문서](../superpowers/specs/2026-06-19-captured-date-persistent-index-design.md)로 승격했고, unblock 선행 조건인 **측정 계기는 구현됐다**: `DataReader._captured_date_index`가 재빌드 시 records/days/elapsed_ms를 DEBUG 로그로 남긴다. on-disk index 구현은 이 측정이 병목 임계를 넘을 때 착수한다(아직 미도달). |
 | **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. R1h-SEC-TICKER는 SEC Company Search RSS의 ticker token 입력을 추가했다. R1i-SEC-CIK는 사용자가 제공한 로컬 SEC `company_tickers.json` lookup과 ambiguity failure policy를 추가했다. R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT는 잘못된 로컬 파일, 개별 entry, CLI 출력, missing ticker lookup, CLI stderr 회귀 계약의 오류 표면을 정리했다. SEC mapping file refresh/cache는 [설계문서](../superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md) 후 **off-by-default로 구현됐다**(`sources.rss.sec.ticker_cik_map_refresh.enabled`; 기본 `false` → 네트워크 0, 켜면 conditional GET + TTL + fallback). R1o-SEC-WATCHLIST-FILING-FEEDS는 SEC 공식 source만 쓰는 watchlist feed generation slice를 기본 `false` opt-in으로 구현했다. 2026-06-28 `GENERIC-RSS-DISCOVERY-BOUNDARY-RECHECK`에서도 새 non-SEC official static RSS slice는 승격하지 않았다. 남은 부채는 generic live discovery, SEC 외 provider discovery, HTML RSS link crawling, vendor URL pattern inference처럼 provider 정책과 ToS 검토가 더 필요한 범위다. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서와 상세 reference docs는 Korean-first/KO-only로 유지한다(백로그 재확인). 사용자 진입 문서(README ×3)는 이미 trilingual이고, 향후 번역이 필요하면 내부 specs 전체가 아니라 bounded reference-doc translation slice로 별도 설계한다. |
@@ -476,4 +478,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 등록된 source가 secret/package gate 때문에 fetch 전에 unavailable이어도 `ok=false` manifest를 남기고, 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, AN1-SIGNAL-PLUGIN-ENTRYPOINTS, AN2-LLM-CLASSIFIER-CARDINALITY, AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD, AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION, AN5-ANALYSIS-SIGNAL-SPECS-INJECTION, AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, R1o-SEC-WATCHLIST-FILING-FEEDS, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, COV1-CONTRACT-COVERAGE, I18N1-PARITY-GUARD, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH까지 구현되었다. 남은 신규 아키텍처 부채는 generic provider RSS discovery와 persistent partition/captured-date index다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, AN1-SIGNAL-PLUGIN-ENTRYPOINTS, AN2-LLM-CLASSIFIER-CARDINALITY, AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD, AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION, AN5-ANALYSIS-SIGNAL-SPECS-INJECTION, AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, R1o-SEC-WATCHLIST-FILING-FEEDS, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, COV1-CONTRACT-COVERAGE, I18N1-PARITY-GUARD, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH, FRED-TERMS-SAFETY-BOUNDARY까지 구현되었다. 남은 source-legality 부채는 `ECOS-PROVENANCE-RIGHTS-BOUNDARY`와 `MANUAL-RSS-LEGAL-OWNERSHIP`이며, 별도로 generic provider RSS discovery와 persistent partition/captured-date index가 남는다.

@@ -17,7 +17,6 @@ from mimir.sources.rss_catalog import RssCatalogSelection, SecCompanyFilingFeed
 def test_empty_dict_yields_all_none():
     cfg = parse_sources_config({})
     assert cfg == SourcesConfig()
-    assert cfg.fred_series is None
     assert cfg.ecos_series is None
     assert cfg.rss_feeds is None
 
@@ -34,14 +33,20 @@ def test_parse_runtime_sources_config_keeps_top_level_runtime_fields():
             "gray_enabled": False,
             "disabled_ids": ["rss", "sec_edgar"],
             "lang": "ko",
-            "sources": {"fred": {"series": ["DGS10"]}},
+            "sources": {
+                "ecos": {
+                    "series": [{"stat_code": "722Y001", "cycle": "M", "item_code": "0101000"}]
+                }
+            },
         }
     )
 
     assert cfg.gray_enabled is False
     assert cfg.disabled_ids == ("rss", "sec_edgar")
     assert cfg.lang == "ko"
-    assert cfg.source_config.fred_series == ["DGS10"]
+    assert cfg.source_config.ecos_series == [
+        EcosSeries(stat_code="722Y001", cycle="M", item_code="0101000")
+    ]
 
 
 def test_parse_runtime_sources_config_normalizes_unknown_lang_to_default():
@@ -60,15 +65,18 @@ def test_parse_sources_config_still_returns_source_only_model():
 def test_full_block_parses_typed_models():
     raw = {
         "sources": {
-            "fred": {"series": ["DGS10", "FEDFUNDS"]},
             "ecos": {"series": [{"stat_code": "722Y001", "cycle": "M", "item_code": "0101000"}]},
             "rss": {"feeds": [{"url": "https://x/feed.rss", "publisher": "SEC", "market": "US"}]},
         }
     }
     cfg = parse_sources_config(raw)
-    assert cfg.fred_series == ["DGS10", "FEDFUNDS"]
     assert cfg.ecos_series == [EcosSeries(stat_code="722Y001", cycle="M", item_code="0101000")]
     assert cfg.rss_feeds == [RssFeed(url="https://x/feed.rss", publisher="SEC", market="US")]
+
+
+def test_legacy_fred_config_is_rejected():
+    with pytest.raises(ValidationError, match="fred"):
+        parse_sources_config({"sources": {"fred": {"series": ["DGS10"]}}})
 
 
 def test_rss_feed_symbol_parses_from_config():
@@ -319,9 +327,9 @@ def test_rss_sec_watchlist_company_filings_parse_enabled_options():
 
 
 def test_partial_block_only_configures_present_source():
-    cfg = parse_sources_config({"sources": {"fred": {"series": ["X"]}}})
-    assert cfg.fred_series == ["X"]
-    assert cfg.ecos_series is None  # absent block -> None -> code default
+    series = [{"stat_code": "X", "cycle": "M", "item_code": "Y"}]
+    cfg = parse_sources_config({"sources": {"ecos": {"series": series}}})
+    assert cfg.ecos_series == [EcosSeries(stat_code="X", cycle="M", item_code="Y")]
     assert cfg.rss_feeds is None
 
 
@@ -389,14 +397,14 @@ def test_explicit_empty_list_is_distinct_from_none_at_parse_layer():
     # SourcesConfig; the source constructors do `series or list(DEFAULT_*)`, so an
     # empty list collapses to the code default end-to-end. Honoring `[]` through the
     # constructor is out of scope for the config-wiring task (it touches fetch code).
-    cfg = parse_sources_config({"sources": {"fred": {"series": []}}})
-    assert cfg.fred_series == []
-    assert cfg.fred_series is not None
+    cfg = parse_sources_config({"sources": {"ecos": {"series": []}}})
+    assert cfg.ecos_series == []
+    assert cfg.ecos_series is not None
 
 
-def test_fred_series_not_a_list_raises():
+def test_ecos_series_not_a_list_raises():
     with pytest.raises(ValidationError):
-        parse_sources_config({"sources": {"fred": {"series": "DGS10"}}})
+        parse_sources_config({"sources": {"ecos": {"series": "not-a-list"}}})
 
 
 def test_ecos_series_item_missing_stat_code_raises():
@@ -406,10 +414,11 @@ def test_ecos_series_item_missing_stat_code_raises():
 
 
 def test_non_dict_source_block_raises_validation_error():
-    # `fred: "DGS10"` (a string where a {series: [...]} mapping is expected) must
+    # `ecos: "not-a-list"` (a string where a {series: [...]} mapping is expected)
+    # must
     # fail fast with a clear ValidationError, never a raw AttributeError.
     with pytest.raises(ValidationError):
-        parse_sources_config({"sources": {"fred": "x"}})
+        parse_sources_config({"sources": {"ecos": "x"}})
 
 
 def test_non_dict_sources_block_raises_validation_error():
@@ -419,15 +428,15 @@ def test_non_dict_sources_block_raises_validation_error():
 
 
 def test_typo_in_source_field_key_raises_validation_error():
-    # `sources.fred.serie` (typo for `series`) must not be silently ignored.
+    # `sources.ecos.serie` (typo for `series`) must not be silently ignored.
     with pytest.raises(ValidationError):
-        parse_sources_config({"sources": {"fred": {"serie": ["X"]}}})
+        parse_sources_config({"sources": {"ecos": {"serie": ["X"]}}})
 
 
 def test_typo_in_source_block_name_raises_validation_error():
-    # `sources.fed` (typo for `fred`) must not be silently ignored.
+    # Unknown source blocks must not be silently ignored.
     with pytest.raises(ValidationError):
-        parse_sources_config({"sources": {"fed": {}}})
+        parse_sources_config({"sources": {"ecoss": {}}})
 
 
 @pytest.mark.parametrize("bad", [0, False, [], ""])
@@ -441,7 +450,6 @@ def test_falsy_non_mapping_sources_block_raises(bad: object):
 def test_none_sources_block_yields_all_none():
     # `sources:` with no value (YAML null) is absent -> defaults preserved.
     cfg = parse_sources_config({"sources": None})
-    assert cfg.fred_series is None
     assert cfg.ecos_series is None
     assert cfg.rss_feeds is None
 
@@ -489,8 +497,8 @@ def test_sources_config_direct_model_rejects_unsafe_llm_cap():
 
 
 def test_analysis_macro_regime_rate_series_parses_from_config():
-    cfg = parse_sources_config({"analysis": {"macro_regime": {"rate_series": ["T10Y2Y"]}}})
-    assert cfg.macro_regime_rate_series == ["T10Y2Y"]
+    cfg = parse_sources_config({"analysis": {"macro_regime": {"rate_series": ["CUSTOM_RATE"]}}})
+    assert cfg.macro_regime_rate_series == ["CUSTOM_RATE"]
 
 
 def test_analysis_plugins_namespace_parses_mapping():
@@ -551,7 +559,7 @@ def test_parse_analysis_plugin_config_rejects_plugin_schema_drift():
 
 def test_analysis_macro_regime_typo_raises_validation_error():
     with pytest.raises(ValidationError):
-        parse_sources_config({"analysis": {"macro_regime": {"rate_seriez": ["T10Y2Y"]}}})
+        parse_sources_config({"analysis": {"macro_regime": {"rate_seriez": ["CUSTOM_RATE"]}}})
 
 
 def test_analysis_news_aliases_parse_from_config():
@@ -590,4 +598,4 @@ def test_analysis_news_alias_value_must_be_list():
 
 def test_analysis_top_level_typo_raises_validation_error():
     with pytest.raises(ValidationError):
-        parse_sources_config({"analysys": {"macro_regime": {"rate_series": ["T10Y2Y"]}}})
+        parse_sources_config({"analysys": {"macro_regime": {"rate_series": ["CUSTOM_RATE"]}}})

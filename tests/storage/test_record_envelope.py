@@ -16,12 +16,14 @@ prove the on-disk format is unchanged:
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, date, datetime
 
 import pytest
 
 from mimir.analysis.schema import Insight
 from mimir.analysis.schema import to_record as insight_to_record
+from mimir.core.errors import PayloadSchemaError
 from mimir.core.source import Dataset, Market
 from mimir.evaluation.schema import BucketStat
 from mimir.evaluation.schema import to_record as bucket_to_record
@@ -31,7 +33,6 @@ from mimir.storage.schema import Record
 from tests.core.test_payloads import (
     DART_PAYLOAD,
     ECOS_PAYLOAD,
-    FRED_PAYLOAD,
     NEWS_PAYLOAD,
     PRICE_PAYLOAD,
     SEC_PAYLOAD,
@@ -45,7 +46,6 @@ CAPTURED = datetime(2026, 5, 31, 12, tzinfo=UTC)
 # (dataset, payload dict, expected concrete payload model) — all 8 adapters.
 ENVELOPE_CASES = [
     (Dataset.PRICES, PRICE_PAYLOAD, "PricePayload"),
-    (Dataset.MACRO, FRED_PAYLOAD, "FredMacroPayload"),
     (Dataset.MACRO, ECOS_PAYLOAD, "EcosMacroPayload"),
     (Dataset.NEWS, NEWS_PAYLOAD, "NewsPayload"),
     (Dataset.FILINGS, SEC_PAYLOAD, "SecFilingPayload"),
@@ -67,6 +67,28 @@ def _envelope(dataset: Dataset, payload: dict) -> Record:
         idempotency_key="k",
         payload=payload,
     )
+
+
+def test_stored_fred_macro_record_is_rejected_before_analysis():
+    line = json.dumps(
+        {
+            "schema_version": 1,
+            "source": "fred",
+            "dataset": "macro",
+            "market": "US",
+            "symbol": "DGS10",
+            "ts": "2026-01-15T00:00:00Z",
+            "captured_at": "2026-01-16T00:00:00Z",
+            "idempotency_key": "fred:DGS10:2026-01-15",
+            "payload": {
+                "series_id": "DGS10",
+                "value": 4.5,
+                "period": "2026-01-15",
+            },
+        }
+    )
+    with pytest.raises(PayloadSchemaError):
+        Record.model_validate_json(line)
 
 
 @pytest.mark.parametrize("dataset, payload, model_name", ENVELOPE_CASES)

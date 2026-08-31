@@ -37,7 +37,6 @@ class SecWatchlistCompanyFilings(BaseModel):
 
 
 class SourcesConfig(BaseModel):
-    fred_series: list[str] | None = None
     ecos_series: list[EcosSeries] | None = None
     rss_feeds: list[RssFeed] | None = None
     rss_catalogs: list[RssCatalogSelection] | None = None
@@ -78,11 +77,6 @@ class SourcesConfig(BaseModel):
         return model.model_validate(self.analysis_plugin_config(signal_id))
 
 
-class _FredBlock(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    series: list[str] | None = None
-
-
 class _EcosBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
     series: list[EcosSeries] | None = None
@@ -112,7 +106,6 @@ class _RssBlock(BaseModel):
 
 class _SourcesBlock(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    fred: _FredBlock | None = None
     ecos: _EcosBlock | None = None
     rss: _RssBlock | None = None
     plugins: dict[str, dict[str, Any]] | None = None
@@ -160,7 +153,6 @@ def _source_config_from_top_level(top_level: _TopLevelSourcesConfig) -> SourcesC
     block = top_level.sources or _SourcesBlock()
     news_block = top_level.analysis.news if top_level.analysis and top_level.analysis.news else None
     return SourcesConfig(
-        fred_series=block.fred.series if block.fred else None,
         ecos_series=block.ecos.series if block.ecos else None,
         rss_feeds=block.rss.feeds if block.rss else None,
         rss_catalogs=block.rss.catalogs if block.rss else None,

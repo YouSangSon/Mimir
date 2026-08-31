@@ -94,8 +94,15 @@ def _ids(signals) -> set[str]:
     return {s.id for s in signals}
 
 
-def _macro_payload(value: float, series_id: str) -> dict:
-    return {"series_id": series_id, "value": value, "period": "2026-01-15"}
+def _macro_payload(value: float) -> dict:
+    return {
+        "stat_code": "722Y001",
+        "item_code": "0101000",
+        "item_name": None,
+        "value": value,
+        "unit": None,
+        "time": "202601",
+    }
 
 
 def _macro_record(series_id: str, day: int, value: float) -> Record:
@@ -107,7 +114,7 @@ def _macro_record(series_id: str, day: int, value: float) -> Record:
         ts=datetime(2026, 5, day, tzinfo=UTC),
         captured_at=datetime(2026, 5, 31, tzinfo=UTC),
         idempotency_key=f"macro:{series_id}:{day}",
-        payload=_macro_payload(value, series_id),
+        payload=_macro_payload(value),
     )
 
 
@@ -558,12 +565,12 @@ def test_enabled_with_fake_classifier_does_not_import_anthropic():
 
 
 def test_build_signals_passes_macro_rate_series_config(tmp_path: Path):
-    cfg = SourcesConfig(macro_regime_rate_series=["T10Y2Y"])
+    cfg = SourcesConfig(macro_regime_rate_series=["CUSTOM_RATE"])
     macro = next(s for s in build_signals(cfg) if s.id == "macro_regime")
     assert isinstance(macro, MacroRegimeSignal)
     recs = [
-        _macro_record("T10Y2Y", 1, 0.5),
-        _macro_record("T10Y2Y", 20, 0.8),
+        _macro_record("CUSTOM_RATE", 1, 0.5),
+        _macro_record("CUSTOM_RATE", 20, 0.8),
     ]
     result = macro.evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
     assert result is not None

@@ -2,6 +2,8 @@
 
 4-차원 병렬 리뷰(정확성·견고성·아키텍처/성능·보안/테스트) 종합. `[x]`는 `feat/s1-s4-hardening`에서 처리됨, `[ ]`는 후속.
 
+> **2026-08-31 현재 경계:** `FRED-TERMS-SAFETY-BOUNDARY`가 아래 과거 구현 요약의 FRED 지원 부분을 대체한다. 내장 adapter/config/key/payload 경로는 제거됐으며, 의도한 사용에 대한 서면 허가와 시리즈별 권리 검증 전에는 복구하지 않는다([Services Terms](https://fred.stlouisfed.org/legal/terms/), [API Terms](https://fred.stlouisfed.org/docs/api/terms_of_use.html)).
+
 ## 🔴 CRITICAL
 - [x] **SEC-1 ECOS 키 유출**: ECOS가 키를 URL 경로에 넣고, `http_get`이 에러에 URL을 포함 → 매니페스트/status.html/CI/repo 커밋으로 유출. → `http_get`이 에러 메시지에서 자격증명을 레다크션. (`base.py`, `ecos.py`)
 - [x] **C1 ⭐별점 방향성 미반영**: `max(abs(net),attention)==attention`이라 stars가 활동량만 반영. → `stars=방향 확신(abs(net))`, `attention`을 별도 필드로 분리. 중립이면 저별점. (`scorer.py`, `schema.py`, `daily_report.py`)
@@ -24,7 +26,7 @@
 - [x] **백필 격리/매니페스트**: `backfill`에 레코드별 `NormalizationError` 가드 추가(skip+count). 성공 실행은 `fetched/stored/invalid`를 manifest에 기록하고, 실패 실행은 `ok=false` manifest를 남긴 뒤 예외를 다시 던진다.
 - [x] **ECOS 페이지네이션**: `list_total_count` 기반 인덱스 페이지 루프(MAX_PAGES 가드)로 100행 캡 제거. (Inc.3)
 - [x] **dedup first-write-wins (재생성 데이터셋)**: insights/historical/evaluation은 `replace_partition`으로 당일 파티션을 전체 교체한다. 같은 날 재실행은 최신 계산만 남기고, 빈 결과면 이전 결과를 삭제한다.
-- [x] **거시 개정 last-write-wins**: FRED/ECOS 같은 `macro` source는 같은 관측 key가 다시 오면 최신 레코드로 교체한다. `prices`, `filings`, `news`는 기존 first-write-wins를 유지한다.
+- [x] **거시 개정 last-write-wins**: ECOS 같은 `macro` source는 같은 관측 key가 다시 오면 최신 레코드로 교체한다. `prices`, `filings`, `news`는 기존 first-write-wins를 유지한다.
 - [x] **MIN_OCCURRENCES가 horizon별 n 미보장**: `summarize(min_n=)` + 엔진 `MIN_HORIZON_N=2`로 horizon별 최소 표본 게이트.
 - [x] **HTML lang attribute 주입 가능성**: `sources.yaml`의 `lang`이 `<html lang="...">` 속성에 그대로 들어갔다. → `normalize_lang()`으로 `en|ko|zh`만 허용하고 나머지는 `en`으로 정규화.
 - [x] **시그널 점수 범위 미검증**: `SignalResult.strength/confidence`와 `HeadlineVerdict.confidence`가 주석으로만 0..1을 약속했다. → pydantic `Field(ge=0, le=1)`로 경계 검증.
@@ -42,7 +44,7 @@
 - [x] **`sources.yaml` CLI 검증 drift**: `collect`/`run`/`backfill`은 malformed `sources.yaml`을 `[mimir] invalid sources.yaml:`로 보고했지만 `analyze`는 raw pydantic 오류를 노출하고 `deliver`/`dashboard`는 typo를 무시할 수 있었다. → `mimir.config.load_validated_sources_config()`로 CLI 경계 검증을 공유하고, `analyze`/`deliver`/`dashboard`도 같은 friendly message + exit code 1로 실패한다. runtime/downstream `ValidationError`는 오분류하지 않도록 catch 범위를 유지한다.
 - [x] **`mimir doctor` 설정 검증 누락**: `doctor`는 운영 점검 명령인데도 `--config-dir`의 `sources.yaml` schema 오류를 보지 않고 데이터 점검을 계속할 수 있었다. → `doctor_cli.main()`도 `load_validated_sources_config()`를 먼저 호출하고, malformed config에서는 HTML 파일을 쓰기 전에 `[mimir] invalid sources.yaml:`와 exit code 1로 실패한다.
 - [x] **news_volume 단어경계 + alias 매칭 + captured window + 종목별 RSS feed**: 짧은 티커 오매칭을 제거하고, 기본 watchlist용 보수적 회사명 alias와 `analysis.news.aliases` 사용자 alias를 지원한다. 공식 피드 ticker 부재는 기본/사용자 alias로 일부 완화된다. 사용자가 종목별 RSS feed를 알고 있으면 `sources.rss.feeds[].symbol`로 연결할 수 있다. 뉴스 신호의 today/baseline은 `captured_at` 기준으로 읽어 늦게 수집된 발행 기사를 실행일 분석에 포함한다.
-- [x] **설정 기반 시리즈/피드 + macro series 단일 진실원**: FRED/ECOS series·RSS feeds를 `sources.yaml`의 `sources:` 블록으로 노출하고, macro rate-series와 doctor cadence를 `mimir/core/macro_series.py`로 통합. `analysis.macro_regime.rate_series`로 수집 대상과 분석 해석 대상을 분리한다.
+- [x] **설정 기반 시리즈/피드 + macro series 단일 진실원**: ECOS series·RSS feeds를 `sources.yaml`의 `sources:` 블록으로 노출하고, macro rate-series와 doctor cadence를 `mimir/core/macro_series.py`로 통합. `analysis.macro_regime.rate_series`로 수집 대상과 분석 해석 대상을 분리한다.
 - [x] **GH Actions Node20 deprecation**: `actions/checkout@v4`·`setup-python@v5`가 Node20 세대 action이라 2026-06-16 Node24 기본 전환에 걸릴 수 있었다. → `checkout@v6`·`setup-python@v6`로 올리고, `tests/test_workflows.py`가 workflow action major를 검증한다.
 - [x] **pykrx 일시 실패 재시도**: `pykrx`는 `BaseSource`를 직접 쓰지 않는 library source라 공통 `http_get` 정책을 상속하지 못했다. → OHLCV 호출 경계에 throttle + 짧은 지수 backoff retry를 추가하고, 소진 시 `FetchError`로 ticker와 마지막 오류를 manifest에 남긴다. GRAY·선택 소스 정책은 유지한다.
 - [x] **backfill preflight failure manifest**: registered source가 secret/package gate 때문에 fetch 전에 제외되면 manifest 없이 `SystemExit`만 남았다. → built-in `SourceSpec`에 static `SourceMeta`를 연결하고, backfill이 registered-but-unavailable source를 `ok=false` manifest로 기록한다. Unknown source id는 cadence를 알 수 없어 argument error로 유지한다.
@@ -66,6 +68,8 @@
 - [x] **captured-date scan 측정 계기 (C2 unblock 선행)**: persistent index(C2) 보류의 unblock 조건은 "scan 재빌드가 병목이라는 *측정*"인데 그 측정 수단이 없었다. → `DataReader._captured_date_index`가 재빌드할 때 `records`/`days`/`elapsed_ms`를 DEBUG 로그(`mimir.storage.reader`)로 남긴다. 이로써 보류 항목이 "측정 부재로 막힘"에서 "계기 완비, 임계 도달 시 착수"로 전진한다. 한 reader revision당 1회만 scan/log됨을 회귀 테스트(records=3, days=2, rebuild 1회)로 고정. 저장 계약·동작 무변경(로그만 추가).
 
 ## 후속 후보
+- `ECOS-PROVENANCE-RIGHTS-BOUNDARY`: ECOS runtime 지원은 유지하되 내장 기본값과 모든 사용자 지정 시리즈의 provenance, 작성 기관, 적용 약관, 상업적 이용 권리, attribution, 파생 산출물 의무를 공식 근거로 검증한다. 현재 어느 항목도 법적 결론으로 완료됐다고 보지 않는다.
+- `MANUAL-RSS-LEGAL-OWNERSHIP`: 현재 문서는 운영자 책임을 이미 명시한다. 남은 유한 결과는 모든 운영자 제공 URL inventory, publisher/owner, 적용 약관, 허용/상업적 이용 결정, 근거 확인일을 provenance record로 남기고, 검증 불가능한 URL을 거부·제거하며, 모든 configured manual URL에 provenance record가 존재하는지 guard로 고정하는 것이다.
 - Captured-date persistent index나 보조 파티션은 아직 보류한다. 현재 구현은 한 `DataReader` 안에서 NEWS 전체 스캔을 한 번으로 줄이는 인메모리 cache다. 데이터가 수년치로 커지고, `read_captured_window()` 재빌드 자체가 병목이라는 측정이 나오면 on-disk index schema, rebuild command, stale-index fallback을 별도 설계한다.
 - Provider별 RSS discovery는 SEC 일부만 안전하게 해소됐다. `sources.rss.sec.company_filings`는 사용자가 CIK 또는 ticker를 명시하면 SEC Company Search Atom feed URL을 조립한다. `sources.rss.sec.ticker_cik_map_path`는 사용자가 제공한 SEC `company_tickers.json` 로컬 파일로 ticker를 10자리 CIK로 정규화한다. SEC mapping file refresh/cache는 `sources.rss.sec.ticker_cik_map_refresh.enabled`(기본 `false`)로 off-by-default 구현됐다. 켜면 build 전 TTL(`max_age_hours`) gate, conditional GET, 기존 파일 fallback으로 best-effort 갱신한다. `sources.rss.catalogs`의 `sec_structured_*` id는 SEC가 공개한 broad SEC/XBRL feed를 정적으로 고른다. 이 feed들은 symbol-specific feed가 아니다. `sources.rss.sec.watchlist_company_filings.enabled`는 watchlist `us` symbols에서 같은 SEC Company Search feed를 opt-in 생성한다. 2026-06-28 `GENERIC-RSS-DISCOVERY-BOUNDARY-RECHECK`에서도 새 non-SEC official static RSS slice는 승격하지 않았다. 남은 작업은 generic live discovery, SEC 외 provider discovery, HTML RSS link crawling, vendor URL pattern inference처럼 provider 정책과 ToS 검토가 더 필요한 범위다.
 

@@ -48,6 +48,6 @@ def run_doctor(
 def _macro_presence(store: JsonlStore, now: datetime) -> list[Finding]:
     """Dataset-level missing/empty for macro (staleness is per-series, not here)."""
     findings = check_dataset_freshness(store, Dataset.MACRO, Cadence.DAILY, now)
-    # Drop dataset-level STALE for macro: a daily series (DGS10) keeps the partition
-    # fresh, and per-series staleness is the correct lens (§3.3). Keep missing/empty.
+    # Drop dataset-level STALE for macro: per-series staleness is the correct lens
+    # (§3.3). Keep missing/empty.
     return [f for f in findings if f.kind is not FindingKind.STALE]

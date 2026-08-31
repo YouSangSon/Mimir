@@ -250,6 +250,7 @@ BADGE_RE = re.compile(r"https://img\.shields\.io/badge/tests-(\d+)%20passing")
 TABLE_RE = re.compile(r"\|\s*\*\*(?:Tests|테스트|测试)\*\*\s*\|\s*(\d+) passing")
 COLLECTED_RE = re.compile(r"(?:(\d+) tests collected|collected (\d+) items)")
 LATEST_COMPLETED_IDS = (
+    "FRED-TERMS-SAFETY-BOUNDARY",
     "AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY",
     "AN5-ANALYSIS-SIGNAL-SPECS-INJECTION",
     "AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION",
@@ -400,6 +401,156 @@ def test_readmes_link_current_decision_and_config_docs() -> None:
         text = path.read_text(encoding="utf-8")
         for link in README_REQUIRED_LINKS:
             assert link in text, f"{path} missing {link}"
+
+
+def test_current_docs_expose_no_builtin_fred_path() -> None:
+    assert not Path("mimir/sources/fred.py").exists()
+
+    runtime_surfaces = (
+        Path("mimir/core/builder.py"),
+        Path("mimir/core/macro_series.py"),
+        Path("mimir/core/payloads.py"),
+        Path("mimir/settings.py"),
+        Path("mimir/sources/config.py"),
+        Path(".github/workflows/_pipeline.yml"),
+        Path(".env.example"),
+        Path("config/sources.yaml"),
+    )
+    for path in runtime_surfaces:
+        text = path.read_text(encoding="utf-8")
+        assert "fred" not in text.casefold(), f"{path} keeps a FRED runtime path"
+        for retired_fragment in (
+            "FRED_API_KEY",
+            "FredSource",
+            "FredMacroPayload",
+            "mimir.sources.fred",
+            "fred_api_key",
+            "fred_series",
+        ):
+            assert retired_fragment not in text, f"{path} keeps {retired_fragment}"
+
+    builder = Path("mimir/core/builder.py").read_text(encoding="utf-8")
+    assert re.search(r"SourceSpec\s*\(\s*['\"]fred['\"]", builder) is None
+
+    terms_urls = (
+        "https://fred.stlouisfed.org/legal/terms/",
+        "https://fred.stlouisfed.org/docs/api/terms_of_use.html",
+    )
+    readme_contracts = {
+        Path("README.md"): (
+            "Built-in FRED support has been removed",
+            "attribution alone does not cure that conflict",
+            "written permission for the intended use",
+            "verification of each series owner's rights",
+            "Re-enable only after written permission for the intended use and "
+            "verification of each series owner's rights",
+            "implement every applicable notice, terms, privacy, and citation "
+            "obligation",
+            "stop collection and use",
+            "identify raw and derived FRED artifacts",
+            "quarantine them temporarily",
+            "deletion or rebuild requires explicit operator approval",
+        ),
+        Path("README.ko.md"): (
+            "내장 FRED 지원은 제거되었습니다",
+            "출처 표시만으로 이 충돌이 해소되지는 않는다",
+            "의도한 사용에 대한 서면 허가",
+            "각 시리즈 소유자의 권리",
+            "의도한 사용에 대한 서면 허가와 각 시리즈 소유자의 권리를 확인한 "
+            "뒤, 적용되는 고지·약관·개인정보·인용 의무를 모두 구현한 경우에만 "
+            "다시 활성화한다",
+            "적용되는 고지·약관·개인정보·인용 의무를 모두 구현",
+            "수집과 사용을 멈추고",
+            "FRED 원본·파생 산출물을 식별",
+            "임시 격리는 가능하지만",
+            "삭제나 재구축에는 운영자의 명시적 승인",
+        ),
+        Path("README.zh.md"): (
+            "内置 FRED 支持已移除",
+            "仅添加署名不能消除该冲突",
+            "涵盖预期用途的书面许可",
+            "核实每个系列所有者的权利",
+            "只有在取得涵盖预期用途的书面许可、核实每个系列所有者的权利，并落实"
+            "所有适用的声明、条款、隐私与引用义务后才能重新启用",
+            "所有适用的声明、条款、隐私与引用义务",
+            "停止采集与使用",
+            "识别原始及派生 FRED 产物",
+            "可暂时隔离",
+            "删除或重建需要操作员明确批准",
+        ),
+    }
+    for path, required_phrases in readme_contracts.items():
+        text = path.read_text(encoding="utf-8")
+        for phrase in required_phrases:
+            assert phrase in text, f"{path} missing {phrase}"
+        for url in terms_urls:
+            assert url in text, f"{path} missing {url}"
+
+    active_current_surfaces = (
+        *README_FILES,
+        Path("docs/reference/config/sources.md"),
+        Path("docs/reference/storage/data-layout.md"),
+        Path("docs/architecture/extensibility/README.md"),
+        Path("docs/architecture/roadmap.md"),
+        Path("docs/architecture/improvement-catalog.md"),
+        Path("docs/IMPROVEMENTS.md"),
+        Path("BACKLOG.md"),
+        Path("DECISIONS.md"),
+        Path("WORKLOG.md"),
+        Path("GATES.md"),
+        Path("PLAN.md"),
+    )
+    assert all("superpowers" not in path.parts for path in active_current_surfaces)
+    assert all("tech-spec" not in path.parts for path in active_current_surfaces)
+    for path in active_current_surfaces:
+        text = path.read_text(encoding="utf-8")
+        for retired_instruction in (
+            "FRED_API_KEY",
+            "sources.fred",
+            "--source fred",
+            "FredSource",
+            "FredMacroPayload",
+            "fred_api_key",
+            "fred_series",
+        ):
+            assert retired_instruction not in text, f"{path} keeps {retired_instruction}"
+
+    unresolved_source_rights = (
+        Path("docs/architecture/roadmap.md"),
+        Path("docs/architecture/improvement-catalog.md"),
+        Path("docs/IMPROVEMENTS.md"),
+        Path("BACKLOG.md"),
+        Path("DECISIONS.md"),
+        Path("WORKLOG.md"),
+    )
+    for path in unresolved_source_rights:
+        text = path.read_text(encoding="utf-8")
+        assert "ECOS-PROVENANCE-RIGHTS-BOUNDARY" in text
+        assert "MANUAL-RSS-LEGAL-OWNERSHIP" in text
+
+    backlog = re.sub(r"\s+", " ", BACKLOG.read_text(encoding="utf-8"))
+    for phrase in (
+        "built-in default and every operator-configured ECOS series",
+        "authoring institution",
+        "controlling terms",
+        "commercial-use rights",
+        "derived-output obligations",
+        "inventory every operator-supplied URL",
+        "publisher/owner",
+        "permission/commercial-use decision",
+        "evidence date",
+        "reject or remove unverifiable URLs",
+        "provenance record",
+    ):
+        assert phrase in backlog
+
+    for path, unsupported_claim in (
+        (Path("README.md"), "Rights-compatible official APIs"),
+        (Path("README.ko.md"), "권리 조건과 양립하는 공식 API"),
+        (Path("README.zh.md"), "与权利条件相容的官方 API"),
+        (Path("docs/architecture/roadmap.md"), "권리 조건과 양립하는 공식 API"),
+    ):
+        assert unsupported_claim not in path.read_text(encoding="utf-8")
 
 
 def test_root_project_state_entrypoints_link_canonical_sources() -> None:

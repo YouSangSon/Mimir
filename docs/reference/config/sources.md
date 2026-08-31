@@ -1,7 +1,7 @@
 # `config/sources.yaml` 설정 레퍼런스
 
 > **상태**: 현재 구현 기준
-> **최종 업데이트**: 2026-06-23
+> **최종 업데이트**: 2026-08-31
 > **대상 독자**: 로컬 실행자, GitHub Actions 운영자, 새 데이터 커버리지를 추가하는 개발자
 
 ---
@@ -25,12 +25,10 @@ analysis:
       AAPL: ["Apple", "Apple Inc."]
       MSFT: ["Microsoft", "Microsoft Corp."]
   macro_regime:
-    rate_series: ["DGS10", "FEDFUNDS", "722Y001.0101000"]
+    rate_series: ["722Y001.0101000"]
 
 # Optional. Omit each source block to keep that source's code default.
 sources:
-  fred:
-    series: ["DGS10", "FEDFUNDS", "CPIAUCSL"]
   ecos:
     series:
       - { stat_code: "722Y001", cycle: "M", item_code: "0101000" }
@@ -132,14 +130,12 @@ Alias는 너무 넓게 잡으면 오탐을 만들 수 있다. `Apple`, `Meta`, `
 ```yaml
 analysis:
   macro_regime:
-    rate_series: ["DGS10", "FEDFUNDS", "722Y001.0101000"]
+    rate_series: ["722Y001.0101000"]
 ```
 
 `rate_series`는 macro regime 시그널이 정책금리나 벤치마크 금리로 해석할 시리즈 id 목록이다. 이 목록에 있는 시리즈만 시장 전체의 risk-on/risk-off 방향 판단에 영향을 준다. `analysis:` 블록을 생략하면 `mimir/core/macro_series.py`의 registry 기본값을 사용한다.
 
-이 설정은 `sources.fred.series`와 다르다. `sources.fred.series`는 무엇을 수집할지 정한다. `analysis.macro_regime.rate_series`는 수집된 macro 데이터 중 무엇을 금리 regime 신호로 사용할지 정한다.
-
-예를 들어 `CPIAUCSL`은 수집할 수 있지만 기본 rate-series에는 없다. CPI는 물가지표이고, `MacroRegimeSignal`이 보는 정책금리 변화와 같은 의미로 해석하면 안 되기 때문이다.
+`analysis.macro_regime.rate_series`는 수집된 macro 데이터 중 무엇을 금리 regime 신호로 사용할지 정한다. 현재 내장 기본값은 ECOS 시리즈 `722Y001.0101000` 하나다. 사용자 목록은 데이터 수집을 추가하지 않으므로, 실제 저장된 권리 적합 macro 시리즈 id만 지정해야 한다.
 
 ### 3.3 Analysis signal plugin settings
 
@@ -173,19 +169,11 @@ Mimir core는 plugin block이 mapping인지까지만 검증한다. 실제 필드
 
 ## 4. `sources:` 블록
 
-`sources:` 블록은 FRED, ECOS, RSS의 커버리지를 파이썬 코드 수정 없이 늘리는 설정이다. 블록을 생략하면 코드 기본값을 쓴다.
+`sources:` 블록은 ECOS와 RSS의 커버리지를 파이썬 코드 수정 없이 늘리는 설정이다. 블록을 생략하면 코드 기본값을 쓴다.
 
-### 4.1 FRED
+내장 FRED 지원은 2026-08-31 제거되었고, 폐기된 `fred` source id는 strict schema에서 거부된다. 현재 [FRED Services Terms](https://fred.stlouisfed.org/legal/terms/)와 [FRED API Terms of Use](https://fred.stlouisfed.org/docs/api/terms_of_use.html)에 맞춰, 의도한 사용에 대한 서면 허가와 시리즈별 소유자 권리를 확인하기 전에는 다시 추가하지 않는다.
 
-```yaml
-sources:
-  fred:
-    series: ["DGS10", "FEDFUNDS", "CPIAUCSL", "T10Y2Y", "UNRATE"]
-```
-
-`series`는 FRED series id 목록이다. FRED API key가 없으면 `fred` 소스 자체가 실행되지 않는다. key가 있고 `series`가 없으면 코드 기본값인 `DGS10`, `FEDFUNDS`, `CPIAUCSL`을 수집한다.
-
-### 4.2 ECOS
+### 4.1 ECOS
 
 ```yaml
 sources:
@@ -202,9 +190,9 @@ sources:
 | `cycle` | 주기. `D`, `M`, `Q`, `A` 형식을 사용한다 |
 | `item_code` | 통계 항목 코드 |
 
-ECOS API key가 없으면 `ecos` 소스 자체가 실행되지 않는다.
+ECOS API key가 없으면 `ecos` 소스 자체가 실행되지 않는다. Runtime 지원은 유지되지만 내장 기본값과 모든 사용자 지정 ECOS 시리즈의 provenance, 작성 기관, 적용 약관, 상업적 이용 권리, attribution, 파생 산출물 의무는 아직 검증되지 않았다. 이 유한 검증은 `ECOS-PROVENANCE-RIGHTS-BOUNDARY`로 추적한다.
 
-### 4.3 RSS
+### 4.2 RSS
 
 ```yaml
 sources:
@@ -233,6 +221,8 @@ sources:
 ```
 
 RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 전문을 가져오지 않는다. LLM 뉴스 감성 시그널도 저장된 제목과 요약만 사용한다.
+
+`sources.rss.feeds`에 직접 넣는 URL의 소유권, 약관, 허용된 수집·저장·분석 범위는 운영자 책임이다. 이 책임 고지는 완료됐다. `MANUAL-RSS-LEGAL-OWNERSHIP`의 남은 결과는 URL별 publisher/owner, 적용 약관, 허용/상업적 이용 결정, 근거 확인일을 provenance record로 만들고, 검증 불가능한 URL을 거부·제거하며, 모든 configured manual URL에 record가 있는지 guard로 고정하는 것이다.
 
 `build_sources()`로 만든 RSS source는 `MIMIR_SEC_USER_AGENT` 값을 모든 RSS HTTP 요청의 `User-Agent` header로 보낸다. 이 header는 SEC feed뿐 아니라 manual RSS feed에도 같이 적용된다.
 
@@ -358,7 +348,7 @@ feed가 같은 `(url, symbol)`을 만들면 기존 `duplicate RSS feed` 오류�
 
 `symbol`이 있으면 `RawRecord.symbol`에 그 값을 넣고, idempotency key는 `rss:{symbol}:{link}`가 된다. 같은 URL이 `AAPL` feed와 `MSFT` feed에 동시에 있어도 두 symbol 관계가 dedup으로 사라지지 않는다.
 
-### 4.4 Source plugin settings
+### 4.3 Source plugin settings
 
 외부 source plugin은 `mimir.sources` entry point로 `SourceSpec`을 등록한다. Plugin이 자체 설정을 필요로 하면 `sources.plugins.<source_id>` 아래에 둔다.
 
@@ -395,7 +385,7 @@ Built-in source 설정은 이 namespace에 넣지 않는다. 예를 들어 RSS f
 disabled_ids: ["rss", "dart"]
 ```
 
-이 규칙은 설정의 뜻을 하나로 유지하기 위한 것이다. `sources.fred.series`는 "어떤 시리즈를 수집할지"를 말하고, `disabled_ids`는 "소스 자체를 실행하지 말지"를 말한다.
+이 규칙은 설정의 뜻을 하나로 유지하기 위한 것이다. `sources.ecos.series`는 "어떤 시리즈를 수집할지"를 말하고, `disabled_ids`는 "소스 자체를 실행하지 말지"를 말한다.
 
 ---
 
@@ -417,19 +407,13 @@ LLM 감성 시그널은 세 조건이 모두 맞을 때만 켜진다.
 
 ```yaml
 sources:
-  fred:
-    serie: ["DGS10"]     # 오타. series가 맞다.
-```
-
-```yaml
-sources:
   ecos:
     series:
       - { cycle: "M", item_code: "0101000" }  # stat_code 누락
 ```
 
 ```yaml
-sources: "fred"          # sources는 mapping이어야 한다.
+sources: "rss"           # sources는 mapping이어야 한다.
 ```
 
 ```yaml
@@ -502,13 +486,13 @@ sources:
 ```yaml
 analysis:
   macro_regime:
-    rate_seriez: ["DGS10"]  # 오타. rate_series가 맞다.
+    rate_seriez: ["722Y001.0101000"]  # 오타. rate_series가 맞다.
 ```
 
 ```yaml
 analysys:
   macro_regime:
-    rate_series: ["DGS10"]  # 오타. analysis가 맞다.
+    rate_series: ["722Y001.0101000"]  # 오타. analysis가 맞다.
 ```
 
 ```yaml

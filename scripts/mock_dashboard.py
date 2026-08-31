@@ -95,8 +95,8 @@ FINDINGS = [
         message="'news' latest 2026-06-11 is 3 business day(s) old",
         latest_ts=date(2026, 6, 11), business_days_stale=3),
     Finding(
-        dataset=Dataset.MACRO, scope="CPIAUCSL", kind=FindingKind.INFO, severity=Severity.OK,
-        message="macro series 'CPIAUCSL' evaluated as MONTHLY (fresh)",
+        dataset=Dataset.MACRO, scope="722Y001.0101000", kind=FindingKind.INFO, severity=Severity.OK,
+        message="macro series '722Y001.0101000' evaluated as MONTHLY (fresh)",
         latest_ts=date(2026, 5, 31), business_days_stale=None),
 ]
 DOCTOR = DoctorReport(checked_at=NOW, data_root="data", findings=FINDINGS)
@@ -105,7 +105,6 @@ RUN = RunRecord(ran_at=NOW, cadence=Cadence.DAILY, results=[
     SourceResult(source="sec_edgar", ok=True, fetched=18, stored=18),
     SourceResult(source="rss", ok=True, fetched=64, stored=61),
     SourceResult(source="stooq", ok=True, fetched=40, stored=40),
-    SourceResult(source="fred", ok=True, fetched=4, stored=4),
     SourceResult(source="ecos", ok=True, fetched=2, stored=2),
     SourceResult(source="dart", ok=True, fetched=7, stored=7),
 ])

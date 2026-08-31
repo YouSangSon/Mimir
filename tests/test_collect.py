@@ -61,6 +61,25 @@ def test_run_collect_explicit_env_does_not_load_dotenv(tmp_path: Path, monkeypat
     assert not (tmp_path / "data/prices/2026/05/29.jsonl").exists()
 
 
+@responses.activate
+def test_legacy_fred_key_collects_no_fred_data(tmp_path: Path):
+    summary = run_collect(
+        cadence="daily",
+        env={"FRED_API_KEY": "legacy"},
+        watchlist={"us": [], "kr": []},
+        data_root=tmp_path / "data",
+        status_path=tmp_path / "reports/status.html",
+        sources_config={
+            "gray_enabled": False,
+            "disabled_ids": ["sec_edgar", "rss"],
+        },
+        now=datetime(2026, 8, 31, tzinfo=UTC),
+    )
+    assert len(responses.calls) == 0
+    assert all(result.source != "fred" for result in summary.results)
+    assert not (tmp_path / "data/macro").exists()
+
+
 def test_run_collect_uses_typed_runtime_config_for_registry_and_lang(tmp_path: Path):
     summary = run_collect(
         cadence="daily",

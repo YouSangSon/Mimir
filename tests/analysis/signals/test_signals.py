@@ -31,8 +31,15 @@ def _price(close: float, volume: float | None) -> dict:
     }
 
 
-def _macro(value: float, series_id: str = "FEDFUNDS") -> dict:
-    return {"series_id": series_id, "value": value, "period": "2026-01-15"}
+def _macro(value: float) -> dict:
+    return {
+        "stat_code": "722Y001",
+        "item_code": "0101000",
+        "item_name": None,
+        "value": value,
+        "unit": None,
+        "time": "202601",
+    }
 
 
 def _news(title: str | None, summary: str) -> dict:
@@ -273,26 +280,31 @@ def test_news_volume_word_boundary_avoids_substring_match(tmp_path: Path):
 
 def test_macro_regime_rising_rate_is_bearish(tmp_path: Path):
     recs = [
-        _rec(Dataset.MACRO, "FEDFUNDS", 1, _macro(4.0)),
-        _rec(Dataset.MACRO, "FEDFUNDS", 20, _macro(4.5)),
+        _rec(Dataset.MACRO, "722Y001.0101000", 1, _macro(4.0), market=Market.KR),
+        _rec(Dataset.MACRO, "722Y001.0101000", 20, _macro(4.5), market=Market.KR),
     ]
-    r = MacroRegimeSignal().evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
+    r = MacroRegimeSignal().evaluate("005930", Market.KR, AS_OF, _reader(tmp_path, recs))
     assert r is not None
     assert r.direction is SignalDirection.BEARISH  # rates up -> risk-off
 
 
 def test_macro_regime_none_without_series(tmp_path: Path):
-    recs = [_rec(Dataset.MACRO, "FEDFUNDS", 20, _macro(4.5))]  # single point
-    assert MacroRegimeSignal().evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs)) is None
+    recs = [
+        _rec(Dataset.MACRO, "722Y001.0101000", 20, _macro(4.5), market=Market.KR)
+    ]  # single point
+    assert (
+        MacroRegimeSignal().evaluate("005930", Market.KR, AS_OF, _reader(tmp_path, recs))
+        is None
+    )
 
 
 def test_macro_regime_uses_configured_rate_series(tmp_path: Path):
     recs = [
-        _rec(Dataset.MACRO, "T10Y2Y", 1, _macro(0.5, "T10Y2Y")),
-        _rec(Dataset.MACRO, "T10Y2Y", 20, _macro(0.8, "T10Y2Y")),
+        _rec(Dataset.MACRO, "CUSTOM_RATE", 1, _macro(0.5)),
+        _rec(Dataset.MACRO, "CUSTOM_RATE", 20, _macro(0.8)),
     ]
     default = MacroRegimeSignal().evaluate("AAPL", Market.US, AS_OF, _reader(tmp_path, recs))
-    configured = MacroRegimeSignal(rate_series=["T10Y2Y"]).evaluate(
+    configured = MacroRegimeSignal(rate_series=["CUSTOM_RATE"]).evaluate(
         "AAPL", Market.US, AS_OF, _reader(tmp_path, recs)
     )
     assert default is None

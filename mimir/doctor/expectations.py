@@ -15,9 +15,8 @@ EXPECTED_DATASETS: dict[Dataset, Cadence] = {
     Dataset.INSIGHTS: Cadence.DAILY,  # pipeline emits every run
 }
 
-# §4.4 — macro freshness is PER-SERIES, not per-dataset. FRED emits DGS10 (daily)
-# AND CPIAUCSL (monthly) into the same `macro` dataset, so a single dataset-level
-# rule false-alarms CPI daily. Never use SourceMeta.cadence as the basis.
+# §4.4 — macro freshness is PER-SERIES, not per-dataset. A single dataset-level
+# rule can false-alarm monthly series. Never use SourceMeta.cadence as the basis.
 MACRO_SERIES_CADENCE = macro_series_cadences()
 # Unregistered macro series fall back to the loosest cadence (silence over false alarm).
 DEFAULT_MACRO_CADENCE = Cadence.MONTHLY

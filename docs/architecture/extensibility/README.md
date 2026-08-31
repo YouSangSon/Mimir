@@ -1,7 +1,7 @@
 # Mimir 확장성 아키텍처 가이드
 
 > **상태**: 현재 구현 기준
-> **최종 업데이트**: 2026-06-23
+> **최종 업데이트**: 2026-08-31
 > **대상 독자**: 새 데이터 소스, 새 분석 시그널, 새 리포트 섹션을 추가하려는 개발자
 
 ---
@@ -12,7 +12,7 @@ Mimir는 공개 데이터를 수집하고, 저장된 데이터로 인사이트�
 
 | 확장 지점 | 사용자가 바꾸는 것 | 코드 진입점 | 현재 상태 |
 |---|---|---|---|
-| 수집 소스 | `config/sources.yaml`, 새 `Source` 구현, 또는 `mimir.sources` plugin | `mimir/core/builder.py` | FRED/ECOS/RSS는 설정으로 확장 가능. RSS는 정적 feed catalog, SEC EDGAR company filing Atom feed 조립, optional `symbol`로 공식 feed와 종목 전용 feed를 표현한다. 새 내장 소스는 `SourceSpec` 한 줄로 등록. 외부 package는 entry point와 `sources.plugins.<source_id>` 설정 namespace로 source를 추가 |
+| 수집 소스 | `config/sources.yaml`, 새 `Source` 구현, 또는 `mimir.sources` plugin | `mimir/core/builder.py` | ECOS/RSS는 설정으로 확장 가능. RSS는 정적 feed catalog, SEC EDGAR company filing Atom feed 조립, optional `symbol`로 공식 feed와 종목 전용 feed를 표현한다. 새 내장 소스는 `SourceSpec` 한 줄로 등록. 외부 package는 entry point와 `sources.plugins.<source_id>` 설정 namespace로 source를 추가 |
 | 분석 시그널 | `config/sources.yaml`의 `analysis:` 또는 `mimir.analysis_signals` plugin | `mimir/analysis/builder.py` | 기본 뉴스 alias, 사용자 alias, symbol-tagged RSS, macro rate-series는 설정으로 제어 가능. 외부 signal plugin은 `analysis.plugins.<signal_id>` 아래에서 opt-in으로 켜며, built-in 뒤에 붙는다. LLM 시그널은 off-by-default gate로 배선됨 |
 | 출력 표면 | `daily_report`, `dashboard`, `digest` | `mimir/report/` | 일일 리포트와 대시보드가 인사이트·과거사례·평가를 표시한다. Scheduled workflow는 pipeline 성공 뒤 dashboard CLI를 실행해 `reports/dashboard.html`을 최신 운영 표면으로 publish한다 |
 
@@ -53,12 +53,12 @@ flowchart TD
 
 ### 3.1 설정만으로 가능한 확장
 
-FRED, ECOS, RSS는 이미 생성자가 설정 값을 받는다. `mimir/sources/config.py`가 `sources.yaml`의 `sources:` 블록을 검증하고, `mimir/core/builder.py`가 검증된 값을 소스 생성자에 넘긴다.
+ECOS와 RSS는 이미 생성자가 설정 값을 받는다. `mimir/sources/config.py`가 `sources.yaml`의 `sources:` 블록을 검증하고, `mimir/core/builder.py`가 검증된 값을 소스 생성자에 넘긴다.
+
+내장 FRED 지원은 2026-08-31 제거되었다. 현재 [FRED Services Terms](https://fred.stlouisfed.org/legal/terms/)와 [FRED API Terms of Use](https://fred.stlouisfed.org/docs/api/terms_of_use.html)에 따라, 의도한 사용에 대한 서면 허가와 시리즈별 소유자 권리를 확인하고 적용되는 고지·약관·개인정보·인용 의무를 설계하기 전에는 새 adapter나 plugin 예제로 다시 도입하지 않는다.
 
 ```yaml
 sources:
-  fred:
-    series: ["DGS10", "FEDFUNDS", "CPIAUCSL", "T10Y2Y"]
   ecos:
     series:
       - { stat_code: "722Y001", cycle: "M", item_code: "0101000" }
@@ -87,6 +87,8 @@ sources:
 이 경로는 파이썬 코드를 고치지 않는다. 설정이 없으면 기존 기본값을 그대로 쓴다. 설정 키가 틀리면 조용히 무시하지 않고 `ValidationError`로 실패한다.
 
 RSS 확장은 네 경로를 가진다. `sources.rss.catalogs`는 검증된 정적 feed를 id로 고른다. `sources.rss.sec.company_filings`는 사용자가 명시한 CIK 또는 ticker와 form type에서 SEC EDGAR Atom feed URL을 조립한다. `sources.rss.sec.watchlist_company_filings`는 watchlist `us` symbols에서 같은 SEC company filing feeds를 opt-in 생성한다. `sources.rss.feeds`는 운영자가 직접 아는 URL을 그대로 추가한다.
+
+수동 `sources.rss.feeds` URL의 소유권, 약관, 허용된 사용은 운영자가 검증해야 한다. 책임 고지는 완료됐지만 URL inventory, publisher/owner, 적용 약관, 허용/상업적 이용 결정, 근거 확인일 provenance record와 configured-URL guard는 `MANUAL-RSS-LEGAL-OWNERSHIP`에 남아 있다. ECOS runtime 지원은 유지하지만 내장 기본값과 사용자 지정 시리즈의 provenance, 작성 기관, 적용 약관, 상업적 이용 권리, attribution, 파생 산출물 의무는 `ECOS-PROVENANCE-RIGHTS-BOUNDARY`에서 검증할 미해결 범위다.
 
 RSS resolver는 이 설정을 해석하는 동안 네트워크를 호출하지 않는다. `sources.rss.sec.ticker_cik_map_path`가 있으면 로컬 SEC `company_tickers.json` file을 읽고, `ticker_cik_map_refresh.enabled: true`일 때만 build 직전 best-effort refresh를 시도한다. 기본값은 disabled라서 표준 경로는 여전히 네트워크 0회다. Provider live discovery, HTML scraping, URL pattern 추측은 source plugin이나 별도 증분 설계 대상이지 현재 resolver의 책임이 아니다.
 
@@ -235,9 +237,9 @@ Symbol이 없는 RSS feed는 기존 key 형식인 `rss:{link}`를 유지한다. 
 
 ### 4.3 Macro regime 시리즈
 
-거시 경제 시리즈 메타데이터는 `mimir/core/macro_series.py`가 관리한다. 이 모듈은 기본 FRED 시리즈, 기본 ECOS 시리즈, doctor freshness cadence, macro-regime rate-series 기본값을 함께 제공한다.
+거시 경제 시리즈 메타데이터는 `mimir/core/macro_series.py`가 관리한다. 이 모듈은 기본 ECOS 시리즈, doctor freshness cadence, macro-regime rate-series 기본값을 함께 제공한다.
 
-`sources.fred.series`와 `sources.ecos.series`는 무엇을 수집할지 정한다. `analysis.macro_regime.rate_series`는 수집된 macro 데이터 중 어떤 시리즈를 정책금리나 벤치마크 금리로 해석할지 정한다. 이 둘을 분리해야 CPI 같은 물가지표를 수집하면서도 rate-regime 시그널에는 넣지 않을 수 있다.
+`sources.ecos.series`는 무엇을 수집할지 정한다. `analysis.macro_regime.rate_series`는 수집된 macro 데이터 중 어떤 시리즈를 정책금리나 벤치마크 금리로 해석할지 정한다. 둘을 분리해야 수집한 지표 중 금리 의미가 없는 시리즈를 rate-regime 시그널에서 제외할 수 있다.
 
 ### 4.4 외부 analysis signal plugin 추가
 
@@ -285,7 +287,7 @@ Plugin import가 깨지면 builder는 warning을 남기고 그 plugin만 건너�
 | 데이터셋 | 성격 | 저장 정책 |
 |---|---|---|
 | `prices`, `filings`, `news` | 원천 수집 결과 | append-only, first-write-wins |
-| `macro` | 공식 거시 관측값(FRED/ECOS) | 같은 관측 key는 last-write-wins. 공식 개정값이 오면 최신 payload를 남긴다. |
+| `macro` | 현재 typed macro 관측값(내장 ECOS runtime 경로 유지; provenance·권리 미검증) | 같은 관측 key는 last-write-wins. 공식 개정값이 오면 최신 payload를 남긴다. |
 | `insights`, `historical`, `evaluation` | 매 실행마다 다시 계산되는 결과 | 당일 파티션 전체 교체 |
 
 source 수집과 backfill은 `append_overwrite_enabled(dataset)`로 같은 저장 정책을 고른다. 현재 overwrite append 대상은 `macro`뿐이다. 가격, 공시, 뉴스는 같은 key가 다시 들어와도 첫 레코드를 유지한다.

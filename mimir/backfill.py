@@ -93,8 +93,10 @@ def run_backfill(
         if isinstance(sources_config, RuntimeSourcesConfig)
         else parse_runtime_sources_config(sources_config or {})
     )
-    manifest = Manifest(root=data_root)
     specs = load_source_specs()
+    spec = _source_spec_for_id(specs, source_id)
+    if spec is None:
+        raise SystemExit(f"unknown or unavailable source: {source_id}")
     built_sources = build_sources(
         settings,
         runtime.source_config,
@@ -103,26 +105,29 @@ def run_backfill(
     )
     sources = {s.meta.id: s for s in built_sources}
     if source_id not in sources:
-        if (spec := _source_spec_for_id(specs, source_id)) and spec.meta is not None:
-            manifest_error = _preflight_unavailable_error(spec, settings, source_id)
-            try:
-                _write_failure_manifest(
-                    manifest,
-                    now=now,
-                    cadence=spec.meta.cadence,
-                    source_id=spec.meta.id,
-                    fetched=0,
-                    invalid=0,
-                    error=manifest_error,
-                )
-            except Exception:
-                logger.warning(
-                    "backfill %s: failed to write preflight failure manifest",
-                    source_id,
-                    exc_info=True,
-                )
+        if spec.meta is None:
+            raise SystemExit(f"unknown or unavailable source: {source_id}")
+        manifest = Manifest(root=data_root)
+        manifest_error = _preflight_unavailable_error(spec, settings, source_id)
+        try:
+            _write_failure_manifest(
+                manifest,
+                now=now,
+                cadence=spec.meta.cadence,
+                source_id=spec.meta.id,
+                fetched=0,
+                invalid=0,
+                error=manifest_error,
+            )
+        except Exception:
+            logger.warning(
+                "backfill %s: failed to write preflight failure manifest",
+                source_id,
+                exc_info=True,
+            )
         raise SystemExit(f"unknown or unavailable source: {source_id}")
     source = sources[source_id]
+    manifest = Manifest(root=data_root)
     store = JsonlStore(root=data_root)
 
     ctx = FetchContext(watchlist=watchlist, now=now, backfill_since=since)

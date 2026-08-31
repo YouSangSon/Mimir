@@ -19,30 +19,43 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. `SOURCE-LEGALITY-ATTRIBUTION` — align public reports and docs with current
-   official FRED/ECOS attribution and rights conditions, and stop presenting
-   manual RSS URLs as automatically verified official sources.
-2. `CONFIG-YAML-SYNTAX-ERROR-BOUNDARY` — normalize malformed YAML into the
+1. `ECOS-PROVENANCE-RIGHTS-BOUNDARY` — for the built-in default and every
+   operator-configured ECOS series, verify provenance, authoring institution,
+   controlling terms, commercial-use rights, attribution, and derived-output
+   obligations. Runtime support is preserved, but none of these legal facts is
+   claimed complete.
+2. `MANUAL-RSS-LEGAL-OWNERSHIP` — inventory every operator-supplied URL; record
+   its publisher/owner, controlling terms, permission/commercial-use decision,
+   and evidence date; reject or remove unverifiable URLs; and add a guard tying
+   every configured manual URL to a provenance record. Current docs already
+   state operator responsibility; this evidence boundary is the unsolved work.
+3. `CONFIG-YAML-SYNTAX-ERROR-BOUNDARY` — normalize malformed YAML into the
    existing sources/watchlist config errors so every affected CLI exits with
    its documented prefix instead of a parser traceback.
-3. `CLI-DATE-ARGUMENT-BOUNDARY` — let argparse validate the six operator-facing
+4. `CLI-DATE-ARGUMENT-BOUNDARY` — let argparse validate the six operator-facing
    `--date`/`--since` inputs so invalid dates produce usage errors, not raw
    `ValueError` exceptions.
-4. `REPORT-HTML-MOBILE-A11Y` — add viewport-safe tables, accessible dark/light
+5. `REPORT-HTML-MOBILE-A11Y` — add viewport-safe tables, accessible dark/light
    contrast, and scoped historical-table headers across the static report
    renderers without JavaScript or new dependencies.
-5. `DOCTOR-MACRO-SINGLE-SCAN` — reuse the existing macro scan when computing
+6. `DOCTOR-MACRO-SINGLE-SCAN` — reuse the existing macro scan when computing
    per-series freshness so doctor/dashboard do not rescan the full dataset for
    every series.
-6. `DELIVERY-CADENCE-CONTRACT` — prove the existing digest/delivery path accepts
+7. `DELIVERY-CADENCE-CONTRACT` — prove the existing digest/delivery path accepts
    hourly, daily, weekly, and monthly cadence values with one parameterized
    behavioral test.
-7. `CURRENT-HEALTH-DOC-TRUTH` — correct the exact `mimir/` coverage percentage,
+8. `CURRENT-HEALTH-DOC-TRUTH` — correct the exact `mimir/` coverage percentage,
    the fixed maximum production-file size, the exhaustive remaining-work
    conclusion in the catalog, and the GitHub schedule commit-back guarantee.
 
 ## Done
 
+- `FRED-TERMS-SAFETY-BOUNDARY` — removed the built-in adapter, registration,
+  key/config/workflow wiring, default metadata, and typed payload acceptance;
+  current docs link both official terms and require written permission plus
+  series-owner rights review before any re-enable. Existing data is not deleted
+  without explicit operator approval. This supersedes the FRED portion of
+  `SOURCE-LEGALITY-ATTRIBUTION`.
 - `CAPTURED-INDEX-MEASUREMENT-RECHECK` — `DataReader._captured_date_index`
   still reuses one in-memory index per dataset per `DataReader` while the store
   revision is unchanged and logs `records/days/elapsed_ms`; local repo evidence

@@ -1,5 +1,145 @@
 # Work Log
 
+## 2026-08-31 — FRED-TERMS-SAFETY-BOUNDARY (FINAL LOCAL GATES)
+
+Goal: measure the complete implementation tree, consolidate it into one final
+implementation commit, preserve user-owned artifacts, and leave integration
+and remote ownership with the controller.
+
+Verification:
+
+- `uv run pytest -q` — `662 passed in 10.73s`.
+- `COVERAGE_FILE=.superpowers/sdd/2026-08-31-fred-terms-safety-boundary/coverage-data uv run coverage run -m pytest` — `662 passed in 11.42s`; `coverage report --fail-under=80` — `8447` statements, `134` missed, `98%` (gate `80%`). The existing README EN/KO/ZH value was already `98%`, so no README was changed; each README keeps the exact `662` count in its badge and table.
+- `uv run ruff check .` — `All checks passed!`; `uv run mypy mimir` — `Success: no issues found in 83 source files`; `git diff --check` — passed.
+- `uv run pytest --collect-only -q | tail -1` — `662 tests collected in 0.53s`; exact dated-history invariant `git diff --exit-code HEAD -- docs/superpowers/plans docs/superpowers/specs docs/decisions/tech-spec` returned no diff.
+- Explicit runtime/config/workflow/sample-env/current-doc/state scan found no executable FRED activation. The whitespace-tolerant multiline positional `SourceSpec("fred", ...)` registration scan also returned no match; allowed remaining hits are removal/terms notices, negative guards, decisions/worklog, or dated history.
+- Credential-value scan of changed files in `f87895a..HEAD` returned no match without printing any candidate value.
+- Cleanup: no Mimir pytest/coverage process, Podman container, or Kind cluster remains. The only coverage file outside the plan workspace is the pre-existing ignored `.coverage` (`Jun 18 14:51:54 2026`, `77824` bytes); the measured `coverage-data` is ignored under this SDD workspace. `data/` and `reports/` have no tracked or local files and are unchanged. `CLAUDE.md`, `docs/superpowers/handoffs/`, and `uv.lock` remain untracked and unstaged.
+
+Review update:
+
+- Final merge-review scoped re-review: APPROVE. The Important meta-less-plugin
+  backfill preflight defect is addressed, the ECOS/KR fixture Minor is
+  addressed, and no Critical or Important finding remains.
+
+Consolidation:
+
+- Plan checkpoint `f87895a` remains separate. One final implementation commit,
+  `fix(sources): remove incompatible FRED integration`, covers reviewed range
+  `f87895a..this implementation commit` after the approved correction wave.
+- The approved wave reran focused backfill, full backfill, signals, doctor,
+  ECOS-preservation, full pytest, isolated coverage, Ruff, mypy, docs,
+  diff-check, and dated-history gates. Exact output is in the ignored final
+  merge-review fix report.
+- `CLAUDE.md`, `docs/superpowers/handoffs/`, and `uv.lock` remain user-owned
+  untracked files and are not staged.
+
+Pending:
+
+- Controller-owned integration verification, PR, remote CI, and main merge
+  remain pending. This phase performs no push or remote mutation.
+
+## 2026-08-31 — FRED-TERMS-SAFETY-BOUNDARY (CURRENT DOCS)
+
+Goal: align current operator and architecture documentation with the removed
+FRED runtime while preserving dated plans, specs, and tech-spec history.
+
+Changes:
+
+- Added one current-surface guard covering adapter/runtime/config/workflow/env
+  absence, trilingual removal notices with both official terms URLs, and an
+  explicit active-doc list that excludes dated history.
+- Updated README EN/KO/ZH to six built-in sources, ECOS-only built-in macro
+  support, accurate throttler/`Registry` responsibilities, manual-RSS operator
+  responsibility, written-permission re-enable conditions, and existing-data
+  stop/identify/quarantine/approval handling.
+- Updated current config, storage, extensibility, roadmap, catalog, improvement,
+  decision, and backlog state. `FRED-TERMS-SAFETY-BOUNDARY` is Done.
+  `ECOS-PROVENANCE-RIGHTS-BOUNDARY` must verify built-in/custom-series
+  provenance, authoring institution, terms, commercial-use rights, attribution,
+  and derived-output obligations. `MANUAL-RSS-LEGAL-OWNERSHIP` must inventory
+  every manual URL, record owner/terms/decision/evidence date, reject
+  unverifiable URLs, and guard configured URLs against provenance records.
+- No tracked or local data/report artifact was deleted. Protected dated history
+  and user-owned untracked files were not modified.
+
+Verification:
+
+- RED: `uv run pytest tests/test_readme_docs.py::test_current_docs_expose_no_builtin_fred_path -q` — failed on `README.md missing removal notice`, `1 failed in 0.18s`.
+- `uv run pytest --collect-only -q | tail -1` — `662 tests collected in 0.61s`; README EN/KO/ZH badge and table counts updated to 662, coverage left at 98% pending Task 5.
+- `uv run pytest tests/test_readme_docs.py -q` — `36 passed in 1.50s`.
+- `uv run pytest -q` — `662 passed in 12.47s`.
+- `uv run ruff check tests/test_readme_docs.py` — passed.
+- `git diff --check` — passed.
+- `git diff --exit-code HEAD -- docs/superpowers/plans docs/superpowers/specs docs/decisions/tech-spec` — passed with no diff.
+- Explicit active-surface scan found no executable key/config/import/spec/backfill claim; remaining current FRED hits are removal/supersession notices only.
+- Credential-pattern scan of Task 4 files returned no matches.
+
+Review:
+
+- EN/KO/ZH notices carry the same removal, two-source, permission, series-owner,
+  obligations, and existing-data meanings.
+- Current docs no longer instruct activation; dated plans/specs/tech specs remain
+  untouched historical evidence.
+- Final coverage, full Ruff, mypy, cleanup, independent reviews, and the final
+  implementation commit/PR gates remain pending for Task 5.
+
+Fix round 1 (post-review):
+
+- Removed every unsupported ECOS legal-clearance conclusion. Current surfaces now
+  state only that runtime support remains while built-in/custom-series
+  provenance, authoring institution, controlling terms, commercial-use rights,
+  attribution, and derived-output obligations await
+  `ECOS-PROVENANCE-RIGHTS-BOUNDARY` verification.
+- Strengthened the one current-doc guard to detect whitespace-tolerant positional
+  `SourceSpec("fred", ...)` registration and retired import/key/settings/config/
+  payload/workflow/env fragments across runtime plus README/reference/roadmap/
+  catalog/improvement/backlog/decision/worklog/gate/plan surfaces. Dated
+  plans/specs/tech specs remain excluded.
+- Guarded EN/KO/ZH component phrases for both terms URLs,
+  attribution-insufficient, written permission and series-owner rights,
+  stop/identify/quarantine, and operator-approved deletion/rebuild. A later
+  re-review found that this did not independently lock the explicit re-enable
+  condition or downstream notice/terms/privacy/citation obligations.
+- Redefined `MANUAL-RSS-LEGAL-OWNERSHIP`: operator responsibility wording is
+  completed context; the unsolved result is a URL inventory with owner, terms,
+  permission/commercial-use decision, evidence date, rejection of unverifiable
+  URLs, and a configured-URL-to-provenance-record guard.
+- RED after guard strengthening: focused test failed because roadmap lacked the
+  finite boundary IDs, `1 failed in 0.22s`.
+- GREEN: focused guard `1 passed in 0.17s`; docs suite `36 passed in 3.71s`;
+  full suite `662 passed in 18.21s`; collect-only `662 tests collected in 0.52s`.
+- Final-tree rerun after state evidence updates: docs `36 passed in 1.03s`, full
+  suite `662 passed in 12.38s`, collect-only `662 tests collected in 0.64s`.
+- `uv run ruff check tests/test_readme_docs.py`, `git diff --check`, exact dated
+  history invariant, executable activation scan (including positional
+  registration), unsupported ECOS-claim scan, and credential-pattern scan all
+  passed with no matches where absence was expected.
+
+Fix round 2 (post-re-review):
+
+- Corrected round 1 evidence: the guard had preserved the permission and
+  series-rights words but had not independently locked their explicit
+  re-enable-only-after relationship or the downstream notice/terms/privacy/
+  citation obligations.
+- Added two exact assertions per README: the language-specific re-enable
+  condition and the complete applicable-obligations phrase. Existing README
+  prose required no translation changes.
+- Restored-checkout rerun:
+  `uv run pytest tests/test_readme_docs.py::test_current_docs_expose_no_builtin_fred_path -q`
+  — `1 passed in 0.25s`.
+- `uv run pytest tests/test_readme_docs.py -q` — `36 passed in 1.98s`.
+- `uv run pytest -q` — `662 passed in 12.85s`.
+- `uv run pytest --collect-only -q | tail -1` — `662 tests collected in 0.40s`.
+- `uv run ruff check tests/test_readme_docs.py`, `git diff --check`, and the
+  exact dated-history invariant passed. Active-surface activation, positional
+  registration, unsupported ECOS-rights conclusion, and credential-pattern
+  scans returned no matches.
+- Final tracked-tree rerun: focused guard `1 passed in 0.03s`, docs suite
+  `36 passed in 1.14s`, full suite `662 passed in 9.56s`, collect-only
+  `662 tests collected in 0.37s`; Ruff, diff, history, active-surface,
+  positional-registration, and credential scans passed.
+
 ## 2026-06-29 — CAPTURED-INDEX-MEASUREMENT-RECHECK
 
 Goal: recheck whether current `DataReader._captured_date_index` measurement

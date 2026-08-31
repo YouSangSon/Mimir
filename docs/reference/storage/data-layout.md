@@ -1,7 +1,7 @@
 # 데이터 저장 레이아웃 레퍼런스 (git-as-DB)
 
 > **상태**: 현재 구현 기준
-> **최종 업데이트**: 2026-06-19
+> **최종 업데이트**: 2026-08-31
 > **대상 독자**: repo에 커밋되는 데이터를 들여다보거나 백업·점검하는 운영자, 저장 동작을 이해하려는 개발자
 > **관련**: 저장 *정책*의 배경은 [extensibility 가이드 §5](../../architecture/extensibility/README.md), 점검은 `mimir doctor`
 
@@ -28,7 +28,7 @@ data/<dataset>/<YYYY>/<MM>/<DD>.jsonl
 | `prices` | 원천 가격 | append-only, first-write-wins |
 | `filings` | 원천 공시 | append-only, first-write-wins |
 | `news` | 원천 뉴스(제목·요약만) | append-only, first-write-wins |
-| `macro` | 공식 거시 관측값(FRED/ECOS) | overwrite append, **last-write-wins**(공식 개정값 반영) |
+| `macro` | 현재 typed macro 관측값(내장 ECOS runtime 경로 유지; provenance·권리 미검증) | overwrite append, **last-write-wins**(공식 개정값 반영) |
 | `insights` | 매 실행 재계산 | 당일 파티션 **전체 교체**(`replace_partition`) |
 | `historical` | 매 실행 재계산(event-study) | 당일 파티션 전체 교체 |
 | `evaluation` | 매 실행 재계산(시그널 성적표) | 당일 파티션 전체 교체 |
@@ -51,7 +51,6 @@ dedup 단위. source prefix로 교차충돌이 없다.
 | pykrx(가격) | `pykrx:{code}:{day}` |
 | SEC EDGAR(공시) | `sec_edgar:{cik10}:{accession}` |
 | DART(공시) | `dart:{rcept_no}` |
-| FRED(거시) | `fred:{series_id}:{day}` |
 | ECOS(거시) | `ecos:{stat_code}:{item_code}:{time}` |
 | RSS(뉴스) | `rss:{link}` 또는 symbol-tagged feed는 `rss:{symbol}:{link}` |
 
@@ -61,6 +60,7 @@ dedup 단위. source prefix로 교차충돌이 없다.
 
 ## 4. 운영 메모
 
+- 내장 FRED 지원은 2026-08-31 제거됐다. 기존 설치는 [FRED Services Terms](https://fred.stlouisfed.org/legal/terms/)와 [FRED API Terms of Use](https://fred.stlouisfed.org/docs/api/terms_of_use.html)에 따라 수집·사용을 멈추고, `source`가 `fred`인 원본 macro JSONL과 그것을 입력으로 만든 insights/historical/evaluation/report 산출물을 식별해야 한다. 격리는 임시 안전 조치일 수 있지만 삭제나 권리 적합 데이터로의 재구축은 운영자의 명시적 승인과 복구 계획 없이 실행하지 않는다.
 - 데이터는 repo에 커밋되므로 git 히스토리가 곧 데이터 이력이다. 재생성 데이터셋(insights/historical/evaluation)은 매 실행 당일 파티션이 교체되어 churn이 있을 수 있다.
 - 비밀값은 데이터·manifest·리포트에 추가로 노출하지 않는다(ECOS 키 URL 유출은 redaction 처리됨).
 - 신선도·누락·schema 이상은 `mimir doctor`가 점검한다(read-only). doctor는 source fetch나 외부 다운로드를 하지 않는다.

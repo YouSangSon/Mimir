@@ -53,7 +53,14 @@ def _price_payload(close: float) -> dict:
 
 
 def _macro_payload(value: float) -> dict:
-    return {"series_id": "DGS10", "value": value, "period": "2024-01-02"}
+    return {
+        "stat_code": "722Y001",
+        "item_code": "0101000",
+        "item_name": None,
+        "value": value,
+        "unit": None,
+        "time": "202401",
+    }
 
 
 class _OkSource:
@@ -87,9 +94,9 @@ class _RevisionMacroSource:
 
     def fetch(self, ctx: FetchContext):
         yield RawRecord(
-            symbol="DGS10",
+            symbol="722Y001.0101000",
             ts=datetime(2024, 1, 2, tzinfo=UTC),
-            idempotency_key="fred:DGS10:2024-01-02",
+            idempotency_key="macro:722Y001.0101000:2024-01-02",
             payload=_macro_payload(self._value),
         )
 

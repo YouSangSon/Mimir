@@ -25,17 +25,13 @@ llm_sentiment_max_headlines: 50   # per-run cap on newly classified headlines (c
 #       "005930": ["Samsung Electronics", "삼성전자"]
 #   macro_regime:
 #     # Macro series allowed to influence the market-wide rate-regime signal.
-#     # CPI-like series can be collected without being treated as policy/benchmark rates.
-#     rate_series: ["DGS10", "FEDFUNDS", "722Y001.0101000"]
+#     rate_series: ["722Y001.0101000"]
 
 # (Optional) Per-source configuration. Omit a block to keep that source's built-in
 # default. Add series/feeds here to extend coverage WITHOUT editing Python.
 # A malformed block (wrong type, typo'd key) fails fast — it never silently falls back.
 #
 # sources:
-#   fred:
-#     # FRED series IDs (https://fred.stlouisfed.org). Default: [DGS10, FEDFUNDS, CPIAUCSL]
-#     series: ["DGS10", "FEDFUNDS", "CPIAUCSL", "T10Y2Y", "UNRATE"]
 #   ecos:
 #     # Bank of Korea ECOS series. Default: BOK base rate (722Y001 / 0101000).
 #     series:
