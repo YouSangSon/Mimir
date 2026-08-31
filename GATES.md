@@ -40,6 +40,6 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
 | Independent whole-diff reviews | PASS | Final merge-review scoped re-review: APPROVE. The meta-less-plugin backfill Important and ECOS/KR fixture Minor are addressed; no Critical or Important finding remains |
 | Final consolidation | PASS | Separate plan checkpoint `f87895a`; one final implementation commit, `fix(sources): remove incompatible FRED integration`, covers reviewed range `f87895a..this implementation commit` after the approved correction wave |
 | Exact local verification commit | PASS | This final implementation commit carries the approved correction wave and its `662`-test, `98%` isolated-coverage, Ruff/mypy, docs/history, and diff-check evidence; no push or remote mutation |
-| PR | PENDING | Controller-owned; no PR created in this phase |
-| CI | PENDING | No remote workflow run triggered in this phase |
-| Main merge | PENDING | Controller-owned after review, integration, and CI evidence |
+| PR | PASS | [PR #10](https://github.com/YouSangSon/Mimir/pull/10) carried the 111-commit local improvement range from pinned base `9668d07` to reviewed head `981f963`; GitHub reported `MERGEABLE` / `CLEAN` before merge |
+| CI | PASS | GitHub Actions `ci / test` completed successfully on PR head `981f963` in 33 seconds: [run 33358537038 / job 99385242683](https://github.com/YouSangSon/Mimir/actions/runs/33358537038/job/99385242683) |
+| Main merge | PASS | PR #10 squash-merged at 2026-08-31 13:52 KST as `06997d8`; fetched `origin/main` tree `26498c6e` exactly matched the reviewed PR-head tree |

@@ -12,9 +12,11 @@ record decisions, commit locally, then reorder the backlog.
 - Single goal prompt: `GOAL.md`
 - Current delivery evidence: `GATES.md`
 
-## Current Loop
+## Current Loop — Complete
 
-`FRED-TERMS-SAFETY-BOUNDARY`
+`FRED-TERMS-SAFETY-BOUNDARY` completed and merged through
+[PR #10](https://github.com/YouSangSon/Mimir/pull/10). Local, review, CI, and
+main-integration evidence is recorded in `GATES.md`.
 
 - Plan: `docs/superpowers/plans/2026-08-31-fred-terms-safety-boundary.md`
 - Design: `docs/superpowers/specs/2026-08-31-fred-terms-safety-boundary-design.md`
