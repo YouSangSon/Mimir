@@ -1,5 +1,23 @@
 # Work Log
 
+## 2026-08-31 — FRED-TERMS-SAFETY-BOUNDARY (MAIN INTEGRATION)
+
+- Pinned `origin/main` at `9668d072a3bcf6ae22a339d8e934a5ec6117448f`;
+  it was an ancestor of reviewed head
+  `981f963676f58af639cfc0277dc14f39da5456b1` (`0 behind / 111 ahead`).
+- Opened [PR #10](https://github.com/YouSangSon/Mimir/pull/10). GitHub reported
+  the PR `MERGEABLE` / `CLEAN`; `ci / test` passed in 33 seconds at
+  [run 33358537038 / job 99385242683](https://github.com/YouSangSon/Mimir/actions/runs/33358537038/job/99385242683).
+- Squash-merged PR #10 to `main` as
+  `06997d8ece316b3f00017d937050f6236eddd56f`. After fetching, the
+  `origin/main` tree `26498c6e8b78971d1f3b4b2ddcfb3f6a3cf589ba` exactly matched the
+  reviewed PR-head tree.
+- No live-money action, credential change, data/report mutation, deployment,
+  or provider request was performed. User-owned `CLAUDE.md`,
+  `docs/superpowers/handoffs/`, and `uv.lock` remained untracked and unstaged.
+- Current loop integration gates are closed. The finite next candidates remain
+  `ECOS-PROVENANCE-RIGHTS-BOUNDARY` and `MANUAL-RSS-LEGAL-OWNERSHIP`.
+
 ## 2026-08-31 — FRED-TERMS-SAFETY-BOUNDARY (FINAL LOCAL GATES)
 
 Goal: measure the complete implementation tree, consolidate it into one final
