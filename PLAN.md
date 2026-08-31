@@ -9,11 +9,16 @@ Continue improving Mimir one verified loop at a time until the user says stop.
 Each loop uses one clear target: research, implement, test/verify, update docs,
 record decisions, commit locally, then reorder the backlog.
 
+- Single goal prompt: `GOAL.md`
+- Current delivery evidence: `GATES.md`
+
 ## Current Loop
 
-`CAPTURED-INDEX-MEASUREMENT-RECHECK`
+`FRED-TERMS-SAFETY-BOUNDARY`
 
-- Plan: `docs/superpowers/plans/2026-06-29-captured-index-measurement-recheck.md`
+- Plan: `docs/superpowers/plans/2026-08-31-fred-terms-safety-boundary.md`
+- Design: `docs/superpowers/specs/2026-08-31-fred-terms-safety-boundary-design.md`
+- Gates: `GATES.md`
 - Backlog: `BACKLOG.md`
 - Work log: `WORKLOG.md`
 - Decisions: `DECISIONS.md`
