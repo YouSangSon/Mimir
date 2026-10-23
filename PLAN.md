@@ -21,16 +21,19 @@ RSS discovery, and new cloud infrastructure remain outside this goal.
 - Current delivery evidence: `GATES.md`
 - Decisions and work evidence: `DECISIONS.md`, `WORKLOG.md`
 
-## Current Loop — CONFIG-YAML-SYNTAX-ERROR-BOUNDARY
+## Current Loop — CLI-DATE-ARGUMENT-BOUNDARY
 
-The shared loaders normalize YAML parser failures into the existing config
-errors; all affected CLI entry points catch them before side effects. A
-parameterized regression covers 14 command/file combinations and ensures
-parser diagnostics never print input values. Local gates pass (676 tests,
-production coverage 97%, Ruff/mypy), along with spec/quality review and installed-CLI smoke. Remote CI and main integration
-are pending; source-rights research continues independently.
+Six CLI date options now use argparse's standard type conversion, preserving
+the existing `date.fromisoformat` accepted inputs and omitted-date defaults.
+Focused CLI/consumer tests pass (63); the full 688-test coverage suite,
+production coverage 97%, Ruff/mypy, spec/quality review, and installed CLI
+checks pass. Remote CI/main integration is pending.
 
-Previous FRED work is merged through PR #10, with integration evidence in #11.
+The previous YAML loop is merged in PR #12 at `2c0bcb9`; the main tree exactly
+matches reviewed head `0d3b26e`. CI run `39981998281` passed in 35 seconds.
+Source-rights research has confirmed ECOS provider terms and the default BOK
+series metadata. Implementing custom-input provenance and durable raw-to-derived
+attribution remains next; changing current config cannot authorize old data.
 
 ## Canonical Sources
 

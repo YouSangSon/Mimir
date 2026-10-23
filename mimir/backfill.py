@@ -179,7 +179,7 @@ def run_backfill(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mimir.backfill")
     parser.add_argument("--source", required=True)
-    parser.add_argument("--since", required=True, help="YYYY-MM-DD")
+    parser.add_argument("--since", type=date.fromisoformat, required=True, help="YYYY-MM-DD")
     parser.add_argument("--config-dir", default="config")
     args = parser.parse_args(argv)
 
@@ -195,7 +195,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         appended = run_backfill(
             source_id=args.source,
-            since=date.fromisoformat(args.since),
+            since=args.since,
             watchlist=watchlist,
             sources_config=runtime_config,
         )

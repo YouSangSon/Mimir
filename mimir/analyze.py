@@ -45,13 +45,13 @@ def run_analyze(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mimir.analyze")
-    parser.add_argument("--date", help="YYYY-MM-DD (default: today UTC)")
+    parser.add_argument("--date", type=date.fromisoformat, help="YYYY-MM-DD (default: today UTC)")
     parser.add_argument("--config-dir", default="config")
     parser.add_argument("--data-root", default=str(DEFAULT_DATA_ROOT))
     args = parser.parse_args(argv)
 
     config_dir = Path(args.config_dir)
-    as_of = date.fromisoformat(args.date) if args.date else None
+    as_of = args.date
     try:
         _, runtime_config = load_validated_sources_config(config_dir)
     except (ValidationError, SourcesConfigError) as exc:

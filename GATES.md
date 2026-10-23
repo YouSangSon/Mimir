@@ -17,7 +17,16 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
 - Preserve user-owned untracked files and clean only processes or temporary
   resources created by this loop.
 
-## Current Loop — CONFIG-YAML-SYNTAX-ERROR-BOUNDARY (2026-10-24)
+## Current Loop — CLI-DATE-ARGUMENT-BOUNDARY (2026-10-24)
+
+- RED: 12 invalid date cases fail before the change.
+- Focused GREEN: 63 CLI/consumer tests pass.
+- Full coverage suite: 688 passed; `mimir/*` coverage 97% (80% gate).
+- Ruff, strict mypy (83 files), diff-check, and independent spec/quality review: PASS.
+- Installed CLI: invalid date/since exit 2; extended/basic/week ISO inputs exit 0 against an empty local store.
+- CI/main: pending.
+
+## Previous Loop — CONFIG-YAML-SYNTAX-ERROR-BOUNDARY (2026-10-24)
 
 | Gate | State | Evidence |
 |---|---|---|
@@ -28,7 +37,7 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
 | Lint / types | PASS | Ruff clean; `.venv/bin/python -m mypy mimir`: 83 files clean |
 | User entry points | PASS | Installed `mimir`, `mimir.collect`, module invocation reject malformed input with exit 1; help exit 0; no output files |
 | Diff / secrets / ownership | PASS | Diff-check and scoped credential-pattern scan pass; three pre-existing untracked artifacts preserved |
-| CI / main merge | PENDING | Push and PR follow final evidence update |
+| CI / main merge | PASS | PR #12 CI run `39981998281` passed; squash merge `2c0bcb9` tree equals reviewed head `0d3b26e` |
 
 Raw local verification logs are retained under `/tmp/mimir-20261024-yaml/`
 and copied to the resume evidence directory at delivery. Tests used local

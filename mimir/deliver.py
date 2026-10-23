@@ -78,7 +78,7 @@ def run_deliver(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mimir.deliver")
     parser.add_argument("--cadence", default="daily", choices=[c.value for c in Cadence])
-    parser.add_argument("--date", help="YYYY-MM-DD (default: today UTC)")
+    parser.add_argument("--date", type=date.fromisoformat, help="YYYY-MM-DD (default: today UTC)")
     parser.add_argument("--data-root", default=str(DEFAULT_ROOT))
     parser.add_argument("--reports-root", default=str(DEFAULT_REPORTS_ROOT))
     parser.add_argument("--config-dir", default="config")
@@ -89,7 +89,7 @@ def main(argv: list[str] | None = None) -> int:
     except (ValidationError, SourcesConfigError) as exc:
         return report_invalid_sources(exc)
     lang = runtime_config.lang
-    as_of = date.fromisoformat(args.date) if args.date else None
+    as_of = args.date
     result = run_deliver(
         cadence=args.cadence,
         data_root=Path(args.data_root),

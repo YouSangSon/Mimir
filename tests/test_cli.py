@@ -83,3 +83,41 @@ def test_cli_rejects_malformed_yaml_before_side_effects(
     assert "secret_fixture_value" not in captured.err
     assert "Traceback" not in captured.err
     assert set(tmp_path.rglob("*")) == before
+
+
+@pytest.mark.parametrize("value", ["not-a-date", "2026-02-30"])
+@pytest.mark.parametrize(
+    ("command", "args", "option"),
+    [
+        ("analyze", [], "--date"),
+        ("deliver", [], "--date"),
+        ("history", [], "--date"),
+        ("evaluate", [], "--date"),
+        ("dashboard", [], "--date"),
+        ("backfill", ["--source", "ecos"], "--since"),
+    ],
+)
+def test_cli_rejects_invalid_dates_before_config_or_output(
+    command: str, args: list[str], option: str, value: str,
+    tmp_path: Path, monkeypatch, capsys,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    config = tmp_path / "config"
+    config.mkdir()
+    for filename in ("sources.yaml", "watchlist.yaml"):
+        (config / filename).write_text("invalid: [", encoding="utf-8")
+    before = set(tmp_path.rglob("*"))
+
+    with pytest.raises(SystemExit) as exc:
+        cli.main([command, *args, option, value])
+
+    assert exc.value.code == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "usage:" in captured.err
+    assert option in captured.err
+    assert value in captured.err
+    assert "Traceback" not in captured.err
+    assert "invalid sources.yaml" not in captured.err
+    assert "invalid watchlist.yaml" not in captured.err
+    assert set(tmp_path.rglob("*")) == before

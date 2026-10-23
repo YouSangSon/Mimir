@@ -28,11 +28,11 @@ def run_evaluate(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mimir.evaluate")
-    parser.add_argument("--date", help="YYYY-MM-DD (default: today UTC)")
+    parser.add_argument("--date", type=date.fromisoformat, help="YYYY-MM-DD (default: today UTC)")
     parser.add_argument("--data-root", default=str(DEFAULT_ROOT))
     args = parser.parse_args(argv)
 
-    as_of = date.fromisoformat(args.date) if args.date else None
+    as_of = args.date
     report = run_evaluate(data_root=Path(args.data_root), as_of=as_of)
 
     if not report.sufficient:

@@ -29,7 +29,7 @@ def run_history(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mimir.history")
     parser.add_argument("--symbol", help="analyze a single symbol (default: full watchlist)")
-    parser.add_argument("--date", help="YYYY-MM-DD (default: today UTC)")
+    parser.add_argument("--date", type=date.fromisoformat, help="YYYY-MM-DD (default: today UTC)")
     parser.add_argument("--config-dir", default="config")
     parser.add_argument("--data-root", default=str(DEFAULT_ROOT))
     args = parser.parse_args(argv)
@@ -42,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
         except WatchlistConfigError as exc:
             return report_invalid_watchlist(exc)
 
-    as_of = date.fromisoformat(args.date) if args.date else None
+    as_of = args.date
     insights = run_history(watchlist=watchlist, data_root=Path(args.data_root), as_of=as_of)
     for ins in insights:
         trig = " (TRIGGERED today)" if ins.triggered_today else ""
