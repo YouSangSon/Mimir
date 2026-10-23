@@ -106,7 +106,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config-dir", default="config")
     parser.add_argument("--data-root", default=str(DEFAULT_ROOT))
     parser.add_argument("--reports-root", default=str(DEFAULT_REPORTS_ROOT))
-    parser.add_argument("--date", help="YYYY-MM-DD upper bound (default: latest available)")
+    parser.add_argument(
+        "--date", type=date.fromisoformat,
+        help="YYYY-MM-DD upper bound (default: latest available)",
+    )
     parser.add_argument("--lang", choices=["en", "ko", "zh"], help="override sources.yaml lang")
     args = parser.parse_args(argv)
 
@@ -120,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
     except WatchlistConfigError as exc:
         return report_invalid_watchlist(exc)
     lang = args.lang or runtime_config.lang
-    as_of = date.fromisoformat(args.date) if args.date else None
+    as_of = args.date
     out_path = run_dashboard(
         config_dir=config_dir,
         watchlist=watchlist,

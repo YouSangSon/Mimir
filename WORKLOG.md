@@ -1,5 +1,13 @@
 # Work Log
 
+## 2026-10-24 — CLI-DATE-ARGUMENT-BOUNDARY
+
+- RED: 12 invalid syntax/calendar cases failed before argparse conversion.
+- Six CLI options now use `date.fromisoformat` as argparse type; downstream receives date objects and omitted-date defaults stay unchanged.
+- Focused CLI/consumer tests: 63 passed. Final full coverage suite: 688 passed; production coverage 97%, strict mypy (83 files), Ruff and diff-check pass.
+- Independent spec review approved; quality review caught a long argparse line, corrected and Ruff passed. Installed CLI rejects invalid dates with exit 2 and still accepts extended/basic/week ISO forms. Remote CI/main pending.
+- Previous YAML loop merged through [PR #12](https://github.com/YouSangSon/Mimir/pull/12) as `2c0bcb9`; PR CI run `39981998281` passed in 35 seconds and the fetched main tree equals reviewed head `0d3b26e`.
+
 ## 2026-10-24 — CONFIG-YAML-SYNTAX-ERROR-BOUNDARY
 
 - Reproduced parser traceback across all 14 command/file combinations: `14 failed, 3 passed`.

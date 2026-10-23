@@ -3,6 +3,14 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-10-24 — CLI-DATE-ARGUMENT-BOUNDARY
+
+Use `type=date.fromisoformat` on all six argparse date options and pass the
+resulting date object downstream. This moves validation before configuration,
+settings, and outputs, keeps the old accepted ISO representations, and reuses
+argparse usage/exit 2 instead of adding a helper or broad exception catch.
+Evidence: six CLI modules and the 12 invalid-date cases in `tests/test_cli.py`.
+
 ## 2026-10-24 — CONFIG-YAML-SYNTAX-ERROR-BOUNDARY
 
 Normalize syntax failures in the shared file-specific loaders and reuse the
