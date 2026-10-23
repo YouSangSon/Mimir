@@ -9,6 +9,7 @@ from mimir.core.source import Dataset
 from mimir.doctor.checks import check_macro_series, check_watchlist_coverage
 from mimir.doctor.report import FindingKind, Severity
 from mimir.storage.jsonl_store import JsonlStore
+from mimir.storage.reader import DataReader
 from tests.doctor.conftest import make_record, write_partition
 
 NOW = datetime(2026, 6, 15, 12, 0, tzinfo=UTC)
@@ -40,3 +41,33 @@ def test_unregistered_macro_series_stale_emits_finding(tmp_path: Path):
     assert stale and stale[0].severity is Severity.CRITICAL
     # And the presence INFO is still emitted.
     assert [f for f in findings if f.scope == "ZZZ" and f.kind is FindingKind.INFO]
+
+
+def test_macro_series_scans_once_and_preserves_latest_dates_and_finding_order(
+    tmp_path: Path, monkeypatch,
+):
+    old = date(2026, 3, 27)
+    today = NOW.date()
+    write_partition(tmp_path, Dataset.MACRO, today, [
+        make_record(Dataset.MACRO, today, symbol="722Y001.0101000", key="fresh"),
+        make_record(Dataset.MACRO, old, symbol="722Y001.0101000", key="older"),
+        make_record(Dataset.MACRO, old, symbol="ZZZ", key="stale"),
+        make_record(Dataset.MACRO, today, symbol="AAA", key="unknown-fresh"),
+        make_record(Dataset.MACRO, old, symbol=None, key="no-series"),
+    ])
+    reads = []
+    original = DataReader.read
+
+    def count_read(self, dataset, **filters):
+        reads.append((dataset, filters))
+        return original(self, dataset, **filters)
+
+    monkeypatch.setattr(DataReader, "read", count_read)
+    findings = check_macro_series(JsonlStore(root=tmp_path), NOW)
+
+    assert [(f.scope, f.kind, f.latest_ts, f.severity) for f in findings] == [
+        ("AAA", FindingKind.INFO, None, Severity.OK),
+        ("ZZZ", FindingKind.INFO, None, Severity.OK),
+        ("ZZZ", FindingKind.STALE, old, Severity.CRITICAL),
+    ]
+    assert reads == [(Dataset.MACRO, {})]

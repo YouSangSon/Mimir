@@ -85,11 +85,13 @@ def check_macro_series(store: JsonlStore, now: datetime) -> list[Finding]:
     the freshness obligation; also reports unregistered series present in data."""
     reader = DataReader(store)
     findings: list[Finding] = []
-    present: set[str] = {
-        r.symbol for r in reader.read(Dataset.MACRO) if r.symbol is not None
-    }
+    latest_by_series: dict[str, date] = {}
+    for record in reader.read(Dataset.MACRO):
+        if record.symbol is not None:
+            day = record.ts.date()
+            latest_by_series[record.symbol] = max(latest_by_series.get(record.symbol, day), day)
     for series, cadence in MACRO_SERIES_CADENCE.items():
-        latest = _latest_ts_date(reader, Dataset.MACRO, series)
+        latest = latest_by_series.get(series)
         # Registered-but-absent is NOT per-series CRITICAL: requiring every series
         # would force operators to collect optional macro data. Total macro absence is
         # caught at the dataset level (§4.1). The
@@ -103,7 +105,7 @@ def check_macro_series(store: JsonlStore, now: datetime) -> list[Finding]:
         # 0 days old" contradiction).
         if finding.severity is not Severity.OK:
             findings.append(finding)
-    for series in sorted(present - set(MACRO_SERIES_CADENCE)):
+    for series in sorted(latest_by_series.keys() - MACRO_SERIES_CADENCE.keys()):
         findings.append(
             Finding(
                 dataset=Dataset.MACRO, scope=series, kind=FindingKind.INFO,
@@ -115,13 +117,11 @@ def check_macro_series(store: JsonlStore, now: datetime) -> list[Finding]:
                 latest_ts=None, business_days_stale=None,
             )
         )
-        latest = _latest_ts_date(reader, Dataset.MACRO, series)
-        if latest is not None:
-            finding = _series_freshness_finding(
-                series, DEFAULT_MACRO_CADENCE, latest, now.date()
-            )
-            if finding.severity is not Severity.OK:
-                findings.append(finding)
+        finding = _series_freshness_finding(
+            series, DEFAULT_MACRO_CADENCE, latest_by_series[series], now.date()
+        )
+        if finding.severity is not Severity.OK:
+            findings.append(finding)
     return findings
 
 

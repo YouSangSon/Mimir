@@ -1,5 +1,12 @@
 # Work Log
 
+## 2026-10-24 — DOCTOR-MACRO-SINGLE-SCAN
+
+- RED: mixed-series regression preserved expected findings but observed four macro reads instead of one.
+- Per-series freshness now computes max record dates in one read; no persistent cache or change to other doctor checks.
+- Focused doctor/dashboard suite: 41 passed. Independent spec/quality review approved; Ruff/diff-check pass. Full coverage suite: 689 passed; production coverage 97%; strict mypy: 83 files clean. CI/main integration pending.
+- Date loop merged through [PR #13](https://github.com/YouSangSon/Mimir/pull/13) as `1f8e23c`; CI run `39984146712` passed in 32 seconds. Main tree equals reviewed head `442c8f1`.
+
 ## 2026-10-24 — CLI-DATE-ARGUMENT-BOUNDARY
 
 - RED: 12 invalid syntax/calendar cases failed before argparse conversion.
