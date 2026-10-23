@@ -1,5 +1,17 @@
 # Work Log
 
+## 2026-10-24 — CONFIG-YAML-SYNTAX-ERROR-BOUNDARY
+
+- Reproduced parser traceback across all 14 command/file combinations: `14 failed, 3 passed`.
+- Shared loaders now raise existing file-specific errors; seven sources-config CLI consumers catch the typed error. Parser source excerpts are suppressed to keep config values out of diagnostics.
+- Focused CLI/config regression: `30 passed`; checks fail on settings/network access and assert no data/report paths are created.
+- Independent spec and quality review: no blocking findings. Strengthened the existing `history --symbol` test to prove both configuration files are skipped.
+- Final code gates: coverage-run pytest `676 passed in 37.30s`, Ruff clean, mypy clean (`83` source files), diff-check and scoped credential-pattern scan clean. Total coverage `99%` includes tests; measured `mimir/*` production coverage is `97%` (`3205` statements, `86` missed), above the 80% gate. README values now use that production scope.
+- Installed unified CLI, dotted alias, and module failure paths all return exit 1 with no traceback or output files; installed help returns 0.
+- Environment: relocated `.venv` script shebangs pointed at the old checkout. Mypy/coverage ran through `.venv/bin/python -m ...`; repaired Mimir entry points with `python -m pip install --no-deps -e .`. Initial no-build-isolation install failed because setuptools was absent; normal build isolation succeeded. No dependency/lock/source settings changed.
+- Remote CI and main integration: pending.
+- Preserved the three pre-existing untracked artifacts; no collection, Telegram, paid LLM, or workflow enablement was performed.
+
 ## 2026-08-31 — FRED-TERMS-SAFETY-BOUNDARY (MAIN INTEGRATION)
 
 - Pinned `origin/main` at `9668d072a3bcf6ae22a339d8e934a5ec6117448f`;

@@ -3,6 +3,16 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-10-24 — CONFIG-YAML-SYNTAX-ERROR-BOUNDARY
+
+Normalize syntax failures in the shared file-specific loaders and reuse the
+existing CLI error prefixes and exit code 1. Catch only YAML parser errors;
+keep schema validation and downstream programming failures distinct. Suppress
+parser excerpts because PyYAML diagnostics can include configuration values.
+The tradeoff is a generic syntax message instead of echoing the offending
+line; the affected file path is retained. No new dependency or CLI wrapper.
+Evidence: `mimir/config.py` and `tests/test_cli.py` (14 command/file paths).
+
 ## 2026-08-31 — FRED-TERMS-SAFETY-BOUNDARY
 
 Decision: remove FRED as a built-in source and fail closed across registration,

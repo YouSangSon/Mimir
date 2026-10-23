@@ -15,7 +15,7 @@ DEFAULT_CONFIG_DIR = Path("config")
 
 
 class SourcesConfigError(ValueError):
-    """A valid-looking ``sources.yaml`` failed while constructing sources."""
+    """The configured sources.yaml could not be parsed or used."""
 
 
 class SecTickerCikMapConfigError(SourcesConfigError):
@@ -51,6 +51,9 @@ def load_watchlist(config_dir: Path = DEFAULT_CONFIG_DIR) -> dict[str, list[str]
     path = config_dir / "watchlist.yaml"
     try:
         cfg = _WatchlistConfig.model_validate(load_yaml(path))
+    except yaml.YAMLError:
+        # Parser errors include source lines, which may contain secrets.
+        raise WatchlistConfigError(f"{path}: invalid YAML syntax") from None
     except ValidationError as exc:
         raise WatchlistConfigError(f"{path}: {exc}") from exc
     return cfg.model_dump()
@@ -60,7 +63,10 @@ def load_sources_config(config_dir: Path = DEFAULT_CONFIG_DIR) -> Any:
     path = config_dir / "sources.yaml"
     if not path.exists():
         return {}
-    loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    try:
+        loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        raise SourcesConfigError(f"{path}: invalid YAML syntax") from None
     return {} if loaded is None else loaded
 
 

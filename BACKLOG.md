@@ -29,26 +29,27 @@ free, legal public-data collection and investment insight generation.
    and evidence date; reject or remove unverifiable URLs; and add a guard tying
    every configured manual URL to a provenance record. Current docs already
    state operator responsibility; this evidence boundary is the unsolved work.
-3. `CONFIG-YAML-SYNTAX-ERROR-BOUNDARY` — normalize malformed YAML into the
-   existing sources/watchlist config errors so every affected CLI exits with
-   its documented prefix instead of a parser traceback.
-4. `CLI-DATE-ARGUMENT-BOUNDARY` — let argparse validate the six operator-facing
+3. `CLI-DATE-ARGUMENT-BOUNDARY` — let argparse validate the six operator-facing
    `--date`/`--since` inputs so invalid dates produce usage errors, not raw
    `ValueError` exceptions.
-5. `REPORT-HTML-MOBILE-A11Y` — add viewport-safe tables, accessible dark/light
+4. `REPORT-HTML-MOBILE-A11Y` — add viewport-safe tables, accessible dark/light
    contrast, and scoped historical-table headers across the static report
    renderers without JavaScript or new dependencies.
-6. `DOCTOR-MACRO-SINGLE-SCAN` — reuse the existing macro scan when computing
+5. `DOCTOR-MACRO-SINGLE-SCAN` — reuse the existing macro scan when computing
    per-series freshness so doctor/dashboard do not rescan the full dataset for
    every series.
-7. `DELIVERY-CADENCE-CONTRACT` — prove the existing digest/delivery path accepts
+6. `DELIVERY-CADENCE-CONTRACT` — prove the existing digest/delivery path accepts
    hourly, daily, weekly, and monthly cadence values with one parameterized
    behavioral test.
-8. `CURRENT-HEALTH-DOC-TRUTH` — correct the exact `mimir/` coverage percentage,
+7. `CURRENT-HEALTH-DOC-TRUTH` — keep the now-measured `mimir/` coverage scope, correct
    the fixed maximum production-file size, the exhaustive remaining-work
    conclusion in the catalog, and the GitHub schedule commit-back guarantee.
 
 ## Done
+
+- `CONFIG-YAML-SYNTAX-ERROR-BOUNDARY` — shared loader errors, seven source-config
+  CLI catch sites, and 14 command/file regressions now preserve friendly exit 1
+  before settings/network/output side effects without echoing parser input.
 
 - `FRED-TERMS-SAFETY-BOUNDARY` — removed the built-in adapter, registration,
   key/config/workflow wiring, default metadata, and typed payload acceptance;

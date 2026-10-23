@@ -1,7 +1,7 @@
 # CLI 레퍼런스
 
 > **상태**: 현재 구현 기준
-> **최종 업데이트**: 2026-06-23
+> **최종 업데이트**: 2026-10-24
 > **대상 독자**: 로컬 실행자, GitHub Actions 운영자, 실행 계약을 확인하려는 개발자
 
 ---
@@ -50,7 +50,7 @@ Mimir는 통합 진입점 `mimir <command>`를 기본으로 제공한다. `colle
 
 ## 4. 설정 검증과 friendly error prefix
 
-CLI 경계는 설정 파일 오류를 raw traceback 대신 고정된 prefix로 보여준다.
+CLI 경계는 설정 파일 오류를 raw traceback 대신 고정된 prefix로 보여준다. YAML 문법 오류도 같은 계약으로 종료 코드 `1`을 반환하며, 파일 경로와 `invalid YAML syntax`만 표시한다. parser가 포함하는 설정 원문은 출력하지 않는다. YAML 문법 오류가 있으면 환경변수 로딩·네트워크 요청·데이터/보고서 생성 전에 종료한다.
 
 - `[mimir] invalid sources.yaml:`
 - `[mimir] invalid watchlist.yaml:`

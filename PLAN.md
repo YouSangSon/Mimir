@@ -5,25 +5,32 @@ small; detailed plans live under `docs/superpowers/plans/`.
 
 ## Active Goal
 
-Continue improving Mimir one verified loop at a time until the user says stop.
-Each loop uses one clear target: research, implement, test/verify, update docs,
-record decisions, commit locally, then reorder the backlog.
+Finish a usable, verified portfolio version of Mimir's existing S1–S4 pipeline.
+The 2026-10-24 user request authorizes commit, push, PR, and main merge after
+required checks; it supersedes the older local-commit-only instruction in
+`GOAL.md`. No paid execution, credential changes, workflow reactivation, or VM
+use is authorized. Keep the existing GRAY-source policy and user-owned files.
 
-- Single goal prompt: `GOAL.md`
+Completion requires the finite `BACKLOG.md` queue, a runnable local demo with
+real CLI/report success and failure flows, required local/review/CI gates,
+main integration, verified branch/resource cleanup, and evidence under the
+existing resume `자료수집` structure. S5 trading, paid LLM execution, generic
+RSS discovery, and new cloud infrastructure remain outside this goal.
+
+- Original loop contract: `GOAL.md`
 - Current delivery evidence: `GATES.md`
+- Decisions and work evidence: `DECISIONS.md`, `WORKLOG.md`
 
-## Current Loop — Complete
+## Current Loop — CONFIG-YAML-SYNTAX-ERROR-BOUNDARY
 
-`FRED-TERMS-SAFETY-BOUNDARY` completed and merged through
-[PR #10](https://github.com/YouSangSon/Mimir/pull/10). Local, review, CI, and
-main-integration evidence is recorded in `GATES.md`.
+The shared loaders normalize YAML parser failures into the existing config
+errors; all affected CLI entry points catch them before side effects. A
+parameterized regression covers 14 command/file combinations and ensures
+parser diagnostics never print input values. Local gates pass (676 tests,
+production coverage 97%, Ruff/mypy), along with spec/quality review and installed-CLI smoke. Remote CI and main integration
+are pending; source-rights research continues independently.
 
-- Plan: `docs/superpowers/plans/2026-08-31-fred-terms-safety-boundary.md`
-- Design: `docs/superpowers/specs/2026-08-31-fred-terms-safety-boundary-design.md`
-- Gates: `GATES.md`
-- Backlog: `BACKLOG.md`
-- Work log: `WORKLOG.md`
-- Decisions: `DECISIONS.md`
+Previous FRED work is merged through PR #10, with integration evidence in #11.
 
 ## Canonical Sources
 

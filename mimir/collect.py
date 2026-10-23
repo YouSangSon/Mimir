@@ -95,7 +95,7 @@ def main(argv: list[str] | None = None) -> int:
     config_dir = Path(args.config_dir)
     try:  # validate config upfront; keep the except narrow so a downstream
         _, runtime_config = load_validated_sources_config(config_dir)
-    except ValidationError as exc:
+    except (ValidationError, SourcesConfigError) as exc:
         return report_invalid_sources(exc)
     try:
         watchlist = load_watchlist(config_dir)

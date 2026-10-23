@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+
 from mimir import cli
 
 
@@ -33,3 +37,49 @@ def test_cli_unknown_subcommand_returns_usage_error(capsys) -> None:
 
     assert "unknown command: nope" in captured.err
     assert "Usage: mimir <command> [args...]" in captured.err
+
+
+@pytest.mark.parametrize(
+    ("command", "args", "filename"),
+    [
+        (command, args, filename)
+        for command, args in [
+            ("collect", ["--cadence", "daily"]),
+            ("run", ["--cadence", "daily"]),
+            ("backfill", ["--source", "ecos", "--since", "2026-01-01"]),
+            ("analyze", []),
+            ("dashboard", []),
+            ("doctor", ["--html", "doctor.html"]),
+        ]
+        for filename in ("sources.yaml", "watchlist.yaml")
+    ]
+    + [("deliver", [], "sources.yaml"), ("history", [], "watchlist.yaml")],
+)
+def test_cli_rejects_malformed_yaml_before_side_effects(
+    command: str, args: list[str], filename: str, tmp_path: Path, monkeypatch, capsys
+) -> None:
+    import requests
+
+    from mimir.settings import Settings
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("invalid config must stop before settings or network access")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(Settings, "from_env", forbidden)
+    monkeypatch.setattr(requests.sessions.Session, "request", forbidden)
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / filename).write_text("secret_fixture_value: [\n", encoding="utf-8")
+    before = set(tmp_path.rglob("*"))
+
+    assert cli.main([command, *args, "--config-dir", str(config_dir)]) == 1
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert f"[mimir] invalid {filename}:" in captured.err
+    assert str(config_dir / filename) in captured.err
+    assert "YAML" in captured.err
+    assert "secret_fixture_value" not in captured.err
+    assert "Traceback" not in captured.err
+    assert set(tmp_path.rglob("*")) == before

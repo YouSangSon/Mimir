@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from mimir.analysis.schema import Insight
 from mimir.config import (
+    SourcesConfigError,
     WatchlistConfigError,
     load_validated_sources_config,
     load_watchlist,
@@ -112,7 +113,7 @@ def main(argv: list[str] | None = None) -> int:
     config_dir = Path(args.config_dir)
     try:
         _, runtime_config = load_validated_sources_config(config_dir)
-    except ValidationError as exc:
+    except (ValidationError, SourcesConfigError) as exc:
         return report_invalid_sources(exc)
     try:
         watchlist = load_watchlist(config_dir)
