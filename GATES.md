@@ -17,7 +17,24 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
 - Preserve user-owned untracked files and clean only processes or temporary
   resources created by this loop.
 
-## Current Loop — FRED-TERMS-SAFETY-BOUNDARY
+## Current Loop — CONFIG-YAML-SYNTAX-ERROR-BOUNDARY (2026-10-24)
+
+| Gate | State | Evidence |
+|---|---|---|
+| RED / focused GREEN | PASS | 14 malformed command/file paths failed before the fix; CLI/config tests then passed 30 cases |
+| Spec / quality review | PASS | Independent read-only review found no blocking issues; history symbol bypass regression strengthened |
+| Final full suite | PASS | `.venv/bin/python -m coverage run -m pytest` with isolated `COVERAGE_FILE`: 676 passed in 37.30s; includes docs guards |
+| Coverage | PASS | Total 99%; production `--include='mimir/*'`: 3205 statements, 86 missed, 97%, gate 80% |
+| Lint / types | PASS | Ruff clean; `.venv/bin/python -m mypy mimir`: 83 files clean |
+| User entry points | PASS | Installed `mimir`, `mimir.collect`, module invocation reject malformed input with exit 1; help exit 0; no output files |
+| Diff / secrets / ownership | PASS | Diff-check and scoped credential-pattern scan pass; three pre-existing untracked artifacts preserved |
+| CI / main merge | PENDING | Push and PR follow final evidence update |
+
+Raw local verification logs are retained under `/tmp/mimir-20261024-yaml/`
+and copied to the resume evidence directory at delivery. Tests used local
+fixtures; no live collection, Telegram delivery, paid LLM, or workflow enabling.
+
+## Previous Loop — FRED-TERMS-SAFETY-BOUNDARY
 
 | Gate | State | Evidence |
 |---|---|---|

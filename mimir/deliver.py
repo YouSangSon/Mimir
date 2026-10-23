@@ -10,7 +10,11 @@ from typing import Any
 from pydantic import ValidationError
 
 from mimir.analysis.schema import Insight
-from mimir.config import load_validated_sources_config, report_invalid_sources
+from mimir.config import (
+    SourcesConfigError,
+    load_validated_sources_config,
+    report_invalid_sources,
+)
 from mimir.core.source import Cadence, Dataset
 from mimir.evaluation.schema import BucketStat
 from mimir.historical.schema import HistoricalInsight
@@ -82,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         _, runtime_config = load_validated_sources_config(Path(args.config_dir))
-    except ValidationError as exc:
+    except (ValidationError, SourcesConfigError) as exc:
         return report_invalid_sources(exc)
     lang = runtime_config.lang
     as_of = date.fromisoformat(args.date) if args.date else None

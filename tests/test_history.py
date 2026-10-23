@@ -45,10 +45,11 @@ def test_run_history_writes_historical_insights(tmp_path: Path):
     assert (data_root / "historical/2026/05/31.jsonl").exists()
 
 
-def test_history_cli_does_not_read_sources_yaml_when_symbol_is_provided(
+def test_history_cli_does_not_read_config_yaml_when_symbol_is_provided(
     tmp_path: Path, capsys
 ):
     (tmp_path / "sources.yaml").write_text("not: [valid", encoding="utf-8")
+    (tmp_path / "watchlist.yaml").write_text("not: [valid", encoding="utf-8")
 
     rc = main(
         [
@@ -66,3 +67,4 @@ def test_history_cli_does_not_read_sources_yaml_when_symbol_is_provided(
     captured = capsys.readouterr()
     assert rc == 0
     assert "[mimir] invalid sources.yaml:" not in captured.err
+    assert "[mimir] invalid watchlist.yaml:" not in captured.err
