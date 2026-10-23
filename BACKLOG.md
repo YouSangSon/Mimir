@@ -32,17 +32,17 @@ free, legal public-data collection and investment insight generation.
 3. `REPORT-HTML-MOBILE-A11Y` — add viewport-safe tables, accessible dark/light
    contrast, and scoped historical-table headers across the static report
    renderers without JavaScript or new dependencies.
-4. `DOCTOR-MACRO-SINGLE-SCAN` — reuse the existing macro scan when computing
-   per-series freshness so doctor/dashboard do not rescan the full dataset for
-   every series.
-5. `DELIVERY-CADENCE-CONTRACT` — prove the existing digest/delivery path accepts
+4. `DELIVERY-CADENCE-CONTRACT` — prove the existing digest/delivery path accepts
    hourly, daily, weekly, and monthly cadence values with one parameterized
    behavioral test.
-6. `CURRENT-HEALTH-DOC-TRUTH` — keep the now-measured `mimir/` coverage scope, correct
+5. `CURRENT-HEALTH-DOC-TRUTH` — keep the now-measured `mimir/` coverage scope, correct
    the fixed maximum production-file size, the exhaustive remaining-work
    conclusion in the catalog, and the GitHub schedule commit-back guarantee.
 
 ## Done
+
+- `DOCTOR-MACRO-SINGLE-SCAN` — per-series freshness reuses one macro read,
+  preserving record-date maxima, cadence, absence, and diagnostic ordering.
 
 - `CLI-DATE-ARGUMENT-BOUNDARY` — all six date options use argparse conversion;
   bad syntax and impossible dates return usage/exit 2 before configuration or output.

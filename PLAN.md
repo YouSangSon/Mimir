@@ -21,19 +21,20 @@ RSS discovery, and new cloud infrastructure remain outside this goal.
 - Current delivery evidence: `GATES.md`
 - Decisions and work evidence: `DECISIONS.md`, `WORKLOG.md`
 
-## Current Loop — CLI-DATE-ARGUMENT-BOUNDARY
+## Current Loop — DOCTOR-MACRO-SINGLE-SCAN
 
-Six CLI date options now use argparse's standard type conversion, preserving
-the existing `date.fromisoformat` accepted inputs and omitted-date defaults.
-Focused CLI/consumer tests pass (63); the full 688-test coverage suite,
-production coverage 97%, Ruff/mypy, spec/quality review, and installed CLI
-checks pass. Remote CI/main integration is pending.
+Per-series macro freshness computes latest record dates in one dataset scan,
+preserving cadence and diagnostic ordering. Focused doctor/dashboard tests
+pass (41), as does independent spec/quality review. Final full suite: 689 passed;
+production coverage 97%, Ruff and strict mypy pass. CI/main integration pending.
 
-The previous YAML loop is merged in PR #12 at `2c0bcb9`; the main tree exactly
-matches reviewed head `0d3b26e`. CI run `39981998281` passed in 35 seconds.
-Source-rights research has confirmed ECOS provider terms and the default BOK
-series metadata. Implementing custom-input provenance and durable raw-to-derived
-attribution remains next; changing current config cannot authorize old data.
+Previous CLI date loop merged in PR #13 at `1f8e23c`; CI run `39984146712`
+passed in 32 seconds, and main matches reviewed head `442c8f1`.
+
+Remaining work stays in `BACKLOG.md`: provenance/attribution across raw and
+derived data, report accessibility/demo, cadence regression, and docs truth.
+Research evidence is retained locally; ECOS provider terms alone do not grant
+rights to every third-party series or authorize old stored data.
 
 ## Canonical Sources
 

@@ -17,14 +17,22 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
 - Preserve user-owned untracked files and clean only processes or temporary
   resources created by this loop.
 
-## Current Loop — CLI-DATE-ARGUMENT-BOUNDARY (2026-10-24)
+## Current Loop — DOCTOR-MACRO-SINGLE-SCAN (2026-10-24)
+
+- RED: same findings but four macro reads; GREEN: one macro read.
+- Focused doctor/dashboard suite: 41 passed.
+- Independent spec/quality review, Ruff and diff-check: PASS.
+- Full coverage suite: 689 passed; production `mimir/*` coverage 97% (80% gate).
+- Strict mypy: 83 source files clean. CI/main integration pending.
+
+## Previous Loop — CLI-DATE-ARGUMENT-BOUNDARY (2026-10-24)
 
 - RED: 12 invalid date cases fail before the change.
 - Focused GREEN: 63 CLI/consumer tests pass.
 - Full coverage suite: 688 passed; `mimir/*` coverage 97% (80% gate).
 - Ruff, strict mypy (83 files), diff-check, and independent spec/quality review: PASS.
 - Installed CLI: invalid date/since exit 2; extended/basic/week ISO inputs exit 0 against an empty local store.
-- CI/main: pending.
+- CI/main: PASS — PR #13, CI run `39984146712`, main `1f8e23c` equals reviewed head `442c8f1`.
 
 ## Previous Loop — CONFIG-YAML-SYNTAX-ERROR-BOUNDARY (2026-10-24)
 

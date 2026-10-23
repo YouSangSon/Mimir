@@ -3,6 +3,16 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-10-24 — DOCTOR-MACRO-SINGLE-SCAN
+
+Reuse one macro read to compute each symbol's maximum record date. This avoids
+one full scan per series without adding a persistent cache or changing cadence,
+absence semantics, or warning order. Keep dataset-level/partition health checks
+and watchlist reads separate because they answer different questions.
+Evidence: `mimir/doctor/checks.py` and the unordered mixed-series regression in
+`tests/doctor/test_checks_branches.py`; its macro reads decrease from four to one.
+This is a read-count result, not a measured latency claim.
+
 ## 2026-10-24 — CLI-DATE-ARGUMENT-BOUNDARY
 
 Use `type=date.fromisoformat` on all six argparse date options and pass the
