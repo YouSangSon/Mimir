@@ -101,7 +101,7 @@ reports/status.html               # 소스별 수집 현황
 | 기능 | 동작 |
 | :--- | :--- |
 | **무료 cron** | GitHub Actions `hourly/daily/weekly/monthly` 워크플로 (정시 혼잡을 피한 오프셋 분) |
-| **git-as-DB 커밋백** | 수집 후 데이터를 repo로 커밋(`concurrency.queue: max` 가드 + rebase) |
+| **git-as-DB 커밋백** | pipeline 성공 후 변경된 데이터의 커밋·rebase·push를 시도(`concurrency.queue: max` 가드) |
 | **최소 가시성** | 데이터 현황 HTML + (옵션) "수집 완료" 텔레그램 핑 |
 | **시크릿 분리** | API 키·봇 토큰은 GitHub Actions Secrets로만, 절대 커밋하지 않음 |
 
@@ -174,7 +174,7 @@ flowchart LR
 
 - **GitHub cron은 best-effort** — 정시(`0 * * * *`)는 혼잡하므로 오프셋 분(`:23`, `:37` 등)을 쓴다.
 - **저장은 날짜 파티션 JSONL** — 텍스트라 diff 친화적이고 append가 순수 추가 diff가 되어 git 비대화를 막는다. (SQLite/Parquet 바이너리 커밋은 피한다.)
-- **공개 repo** 사용 시 Actions 분 무제한. 매 실행이 커밋하므로 60일 비활성 자동 비활성화에도 안 걸린다.
+- 표준 GitHub-hosted runner는 [공개 저장소에서 무료](https://docs.github.com/en/billing/concepts/product-billing/github-actions)다. 커밋백은 조건부다. 변경 없음, 앞선 단계 실패, rebase·push 실패로 새 커밋이 없을 수 있다. 공개 저장소의 예약 workflow는 [60일 동안 저장소 활동이 없으면 비활성화될 수 있다](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule). Actions 활성 상태와 마지막 push 성공을 확인한다.
 
 ---
 
@@ -217,7 +217,7 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 
 각 명령은 `.venv/bin/python -m mimir.collect --cadence daily` 같은 module 실행 형태도 계속 지원한다. `mimir.collect`처럼 점이 들어간 alias는 기존 문서와 스크립트가 쓰던 이름을 유지하기 위해 함께 설치된다.
 
-> 스케줄 워크플로(hourly/daily/weekly/monthly)는 reusable pipeline을 호출해 `collect → analyze → history → evaluate → deliver → dashboard`를 실행하고 `data/`·`reports/`를 repo에 커밋한다. 일일 HTML 리포트는 `reports/YYYY/MM/DD.html`로 영구 보관되고, `reports/index.html`은 리포트 archive를 보여주며, `reports/dashboard.html`은 최신 운영 대시보드로 갱신된다.
+> 스케줄 워크플로(hourly/daily/weekly/monthly)는 reusable pipeline을 호출해 `collect → analyze → history → evaluate → deliver → dashboard`를 실행하고 pipeline 성공 후 변경된 `data/`·`reports/`의 커밋·push를 시도한다. 일일 HTML 리포트는 `reports/YYYY/MM/DD.html`로 영구 보관되고, `reports/index.html`은 리포트 archive를 보여주며, `reports/dashboard.html`은 최신 운영 대시보드로 갱신된다.
 
 ---
 

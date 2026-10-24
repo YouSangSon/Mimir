@@ -469,7 +469,7 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 
 건강한 코드베이스의 증거 — 다음은 검토했고 **고칠 것이 없다**:
 
-- 레이어 그래프 순환 없음 · 파일 크기 건전(최대 ~150줄) · 타입 검증은 pyproject.toml strict config와 README 테스트 배지와 docs health guard가 추적한다.
+- 레이어 그래프 순환 없음 · 파일 크기의 고정 상한은 보장하지 않는다. 타입 검증은 pyproject.toml strict config가, 테스트 수와 프로덕션 커버리지 범위는 README 테스트 배지와 docs health guard가 추적한다.
 - `idempotency_key`는 소스 prefix로 교차충돌 없음 · 파티션은 자정 UTC라 안정.
 - 시크릿은 env/`.env`(gitignore)만 · ECOS 키 URL 유출은 이미 레다크션 처리.
 - `http_get` 429/5xx 재시도 + 4xx 빠른 실패 · 소스 격리(한 소스 실패가 전체를 멈추지 않음).
@@ -478,4 +478,4 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 - 재생성 데이터셋은 `replace_partition`으로 당일 파티션 전체 교체 · 가격/공시/뉴스 원천 데이터는 append-only · 거시 원천 데이터는 공식 개정값을 last-write-wins로 반영.
 - 백필은 성공과 실패를 manifest에 기록한다. 등록된 source가 secret/package gate 때문에 fetch 전에 unavailable이어도 `ok=false` manifest를 남기고, 실패는 기록 후 다시 예외를 던져 비정상 종료 신호를 유지한다.
 
-**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, AN1-SIGNAL-PLUGIN-ENTRYPOINTS, AN2-LLM-CLASSIFIER-CARDINALITY, AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD, AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION, AN5-ANALYSIS-SIGNAL-SPECS-INJECTION, AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, R1o-SEC-WATCHLIST-FILING-FEEDS, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, COV1-CONTRACT-COVERAGE, I18N1-PARITY-GUARD, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH, FRED-TERMS-SAFETY-BOUNDARY까지 구현되었다. 남은 source-legality 부채는 `ECOS-PROVENANCE-RIGHTS-BOUNDARY`와 `MANUAL-RSS-LEGAL-OWNERSHIP`이며, 별도로 generic provider RSS discovery와 persistent partition/captured-date index가 남는다.
+**결론.** 본 작업은 *확장성 천장 제거 + 성숙기 피드백 루프 + 운영 가시성 강화*를 만드는 흐름이다. A3, A3b, A3c, AN1-SIGNAL-PLUGIN-ENTRYPOINTS, AN2-LLM-CLASSIFIER-CARDINALITY, AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD, AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION, AN5-ANALYSIS-SIGNAL-SPECS-INJECTION, AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY, R1a, R1b, C2a-CAPTURED-NEWS-CACHE, R1c, R1d, R1e, R1f-SEC, R1g-SEC-STRUCTURED, R1h-SEC-TICKER, R1i-SEC-CIK, R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT, R1o-SEC-WATCHLIST-FILING-FEEDS, MR1, D1, D2, ENV1, CFG2, CFG3-CONFIG-GUARDRAILS, COV1-CONTRACT-COVERAGE, I18N1-PARITY-GUARD, C3, BF-MANIFEST, BF-PREFLIGHT, OPS1, DCHTML, DOCHEALTH, FRED-TERMS-SAFETY-BOUNDARY까지 구현되었다. 현재 구현·검증 대기열은 [BACKLOG.md](../../BACKLOG.md), 목표 완료 조건과 재개 지점은 [PLAN.md](../../PLAN.md)를 따른다. §6의 generic provider RSS discovery와 persistent index 같은 보류 항목을 현재 Goal의 필수 범위로 승격하지 않는다.

@@ -101,7 +101,7 @@ reports/status.html               # per-source collection status
 | Feature | Behavior |
 | :--- | :--- |
 | **Free cron** | GitHub Actions `hourly/daily/weekly/monthly` workflows (offset minutes to avoid top-of-the-hour congestion) |
-| **git-as-DB commit-back** | After collection, data is committed back to the repo (`concurrency.queue: max` guard + rebase) |
+| **git-as-DB commit-back** | After successful pipeline steps, attempts to commit changed data and push after rebase (`concurrency.queue: max` guard) |
 | **Minimal visibility** | Data-status HTML + (optional) "collection complete" Telegram ping |
 | **Secret separation** | API keys and bot tokens live only in GitHub Actions Secrets, never committed |
 
@@ -174,7 +174,7 @@ Adding a built-in source is done with a single adapter in `sources/` plus one `S
 
 - **GitHub cron is best-effort** — the top of the hour (`0 * * * *`) is congested, so offset minutes (`:23`, `:37`, etc.) are used.
 - **Storage is date-partitioned JSONL** — being text, it's diff-friendly, and an append becomes a pure additive diff, preventing git bloat. (Committing SQLite/Parquet binaries is avoided.)
-- With a **public repo**, Actions minutes are unlimited. Since every run commits, it never trips the 60-day-inactivity auto-disable.
+- Standard GitHub-hosted runners are [free for public repositories](https://docs.github.com/en/billing/concepts/product-billing/github-actions). Commit-back is conditional: no changes, an earlier failure, or a rebase/push failure can leave no new commit. Public scheduled workflows can be [disabled after 60 days without repository activity](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule); check Actions enablement and the last successful push.
 
 ---
 
@@ -217,7 +217,7 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 
 Each command also keeps its module form, for example `.venv/bin/python -m mimir.collect --cadence daily`. Dotted aliases such as `mimir.collect` are installed for scripts and docs that already use the old command names.
 
-> The scheduled workflows (hourly/daily/weekly/monthly) call the reusable pipeline, which chains `collect → analyze → history → evaluate → deliver → dashboard` and commits `data/` and `reports/` to the repo. The daily HTML report is kept permanently at `reports/YYYY/MM/DD.html`, `reports/index.html` browses the archive, and `reports/dashboard.html` is refreshed as the latest operations dashboard.
+> The scheduled workflows (hourly/daily/weekly/monthly) call the reusable pipeline, which chains `collect → analyze → history → evaluate → deliver → dashboard` and attempts to commit and push changed `data/` and `reports/` after the pipeline succeeds. The daily HTML report is kept permanently at `reports/YYYY/MM/DD.html`, `reports/index.html` browses the archive, and `reports/dashboard.html` is refreshed as the latest operations dashboard.
 
 ---
 

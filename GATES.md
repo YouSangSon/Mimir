@@ -17,12 +17,20 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
 - Preserve user-owned untracked files and clean only processes or temporary
   resources created by this loop.
 
-## Current Loop — DELIVERY-CADENCE-CONTRACT (2026-10-25)
+## Current Loop — CURRENT-HEALTH-DOC-TRUTH (2026-10-25)
+
+- Doc-only changes: source/test tree equality to `848ff80` reuses its 701-test,
+  97% production coverage, strict mypy and Ruff evidence.
+- Docs guard: 36 passed; diff-check, source/test equality and independent review pass.
+- Initial docs failures preserved completed-ID/health-owner contracts in the corrected text. CI/main pending.
+- Cadence PR #16: CI `40106816741` passed; main `b902c89` equals reviewed `848ff80`.
+
+## Previous Loop — DELIVERY-CADENCE-CONTRACT (2026-10-25)
 
 - Existing runtime behavior is exercised with one four-cadence parameterized test.
 - Focused delivery/digest/pipeline tests: 21 passed. Final full suite: 701 passed;
   production coverage 97%, mypy (83 files), Ruff and diff-check pass.
-- Independent read-only spec/quality review: no Important/Critical finding. CI pending.
+- Independent read-only spec/quality review: no Important/Critical finding. PR #16 CI `40106816741` passed; main `b902c89` matches reviewed head.
 - Report UI PR #15: CI `40106364995` passed; main `70f533b` equals reviewed `bedd244`.
 
 ## Previous Loop — REPORT-HTML-MOBILE-A11Y (2026-10-25)

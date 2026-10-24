@@ -101,7 +101,7 @@ reports/status.html               # 各数据源采集状况
 | 功能 | 行为 |
 | :--- | :--- |
 | **免费 cron** | GitHub Actions `hourly/daily/weekly/monthly` 工作流（避开整点拥堵的偏移分钟） |
-| **git-as-DB 提交回写** | 采集后将数据提交到 repo（`concurrency.queue: max` 守卫 + rebase） |
+| **git-as-DB 提交回写** | pipeline 成功后尝试提交变更数据并在 rebase 后 push（`concurrency.queue: max` 守卫） |
 | **最小可见性** | 数据状况 HTML +（可选）“采集完成” Telegram 推送 |
 | **密钥隔离** | API 密钥·机器人令牌仅放在 GitHub Actions Secrets，绝不提交 |
 
@@ -174,7 +174,7 @@ flowchart LR
 
 - **GitHub cron 为 best-effort** — 整点（`0 * * * *`）较拥堵，因此使用偏移分钟（`:23`、`:37` 等）。
 - **存储为按日期分区的 JSONL** — 因为是文本，所以对 diff 友好，append 成为纯追加 diff，避免 git 膨胀。（避免提交 SQLite/Parquet 二进制文件。）
-- 使用 **公开 repo** 时 Actions 分钟数无限制。每次运行都会提交，因此也不会触发 60 天无活动自动停用。
+- 标准 GitHub-hosted runner 在[公开仓库中免费](https://docs.github.com/en/billing/concepts/product-billing/github-actions)。回写提交有条件：没有变更、前序步骤失败或 rebase/push 失败时可能没有新提交。公开仓库的定时工作流可能在[仓库连续 60 天无活动后停用](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)；应检查 Actions 启用状态和最后一次成功 push。
 
 ---
 
@@ -217,7 +217,7 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 
 每个命令也继续支持 module 形式，例如 `.venv/bin/python -m mimir.collect --cadence daily`。`mimir.collect` 这类带点号的 alias 会一起安装，用于兼容已经采用旧命令名的文档和脚本。
 
-> 调度工作流（hourly/daily/weekly/monthly）会调用 reusable pipeline，按 `collect → analyze → history → evaluate → deliver → dashboard` 执行，并把 `data/` 和 `reports/` 提交到 repo。每日 HTML 报告以 `reports/YYYY/MM/DD.html` 永久保存，`reports/index.html` 用于浏览报告归档，`reports/dashboard.html` 会刷新为最新运维仪表盘。
+> 调度工作流（hourly/daily/weekly/monthly）会调用 reusable pipeline，按 `collect → analyze → history → evaluate → deliver → dashboard` 执行，并在 pipeline 成功后尝试提交和 push 发生变更的 `data/` 和 `reports/`。每日 HTML 报告以 `reports/YYYY/MM/DD.html` 永久保存，`reports/index.html` 用于浏览报告归档，`reports/dashboard.html` 会刷新为最新运维仪表盘。
 
 ---
 
