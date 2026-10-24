@@ -6,8 +6,10 @@ small; detailed plans live under `docs/superpowers/plans/`.
 ## Active Goal
 
 User stop deadline: **2026-10-25 05:15:14 KST** (2026-10-24 20:15:14 UTC).
-Background timer: functions cell `81`. At deadline, stop new work, safely clean
-owned resources, save the resume point and report paused status.
+Background timer: functions cell `178` replaces terminated cell `81`. At the
+absolute deadline, pause this same Goal whether active or blocked; do not reset
+the clock on continuation or pause a replacement/completed Goal. The guard
+self-checks passed. Stop new work, preserve the resume point and report paused.
 
 Finish a usable, verified portfolio version of Mimir's existing S1–S4 pipeline.
 The latest 2026-10-25 user request supersedes older execution limits and
@@ -65,7 +67,12 @@ When the connection path is available, check current guest services, memory,
 disk, OOM and lock; use a bounded private synthetic CLI smoke, verify exact
 source/artifact/runtime mapping, then stop owned resources and finish the Goal
 review. Without that evidence the VM gate and whole Goal remain incomplete.
-The scheduled stop deadline above still applies.
+The same authenticated-VM-access blocker was confirmed in three consecutive
+Goal turns, including a fresh live UI check of the same authentication dialog.
+All other required implementation/CI/demo gates are closed; no independent
+project work remains. Resume requires user login in the prepared console or a
+working authorized SSH route. The Goal is not complete. The scheduled stop
+deadline above still applies even while blocked.
 
 ## Canonical Sources
 
