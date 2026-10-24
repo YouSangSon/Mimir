@@ -1,5 +1,12 @@
 # Work Log
 
+## 2026-10-25 — PORTFOLIO / RUNTIME VERIFICATION
+
+- PR18 CI40113216793 passed746 tests in10.68s; production3443 statements/87 missed=97%. Squash main410c876 tree7ed770d equals reviewed headc7c5453. Required reviews had no Critical/Important finding.
+- Real installed CLI offline demo passed16 self-checks and produced insight8/historical1/evaluation3 from synthetic prices/news45 each. Initial demo harness used unsupported collect --data-root; corrected to actual help contract and verified the final script. Browser checked generated source credit, mobile keyboard scrolling, desktop report navigation and synthetic labeling.
+- Copied scripts, raw success/failure logs, rendered artifacts, source/hash receipts and integration/research evidence to resume. Verified copied bytes before removing temporary demo data. Closed owned HTTP/browser/SSH resources. Verified and deleted three more merged branches; unrelated/recovery history stays intact.
+- VM gate remains unverified: TCP22 did not establish, web-console opening was not proven, current connection path is pending. No guest/lock/runtime/deployment readiness is inferred from provider billing or local/CI success. Next action and stop deadline remain in `PLAN.md`.
+
 ## 2026-10-25 — ECOS / MANUAL-RSS SOURCE PROVENANCE
 
 - Added target-bound usage evidence and pre-side-effect guards for custom ECOS and every manual RSS URL. The tracked config has no active custom series or manual URL; only the exact default monthly BOK rate has built-in researched evidence. Official sources, the authoring inference, checked date and limits have one owner in `docs/reference/config/sources.md` §4.4. Built-in RSS records discovery with rights unverified.
