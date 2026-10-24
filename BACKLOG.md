@@ -29,11 +29,11 @@ free, legal public-data collection and investment insight generation.
    and evidence date; reject or remove unverifiable URLs; and add a guard tying
    every configured manual URL to a provenance record. Current docs already
    state operator responsibility; this evidence boundary is the unsolved work.
-3. `CURRENT-HEALTH-DOC-TRUTH` — keep the now-measured `mimir/` coverage scope, correct
-   the fixed maximum production-file size, the exhaustive remaining-work
-   conclusion in the catalog, and the GitHub schedule commit-back guarantee.
-
 ## Done
+
+- `CURRENT-HEALTH-DOC-TRUTH` — production coverage scope stays explicit; removed
+  the stale file-size ceiling and exhaustive remaining-work conclusion; README
+  x3 now describes conditional commit-back and possible schedule inactivity.
 
 - `DELIVERY-CADENCE-CONTRACT` — the existing delivery regression covers all four
   cadences through stored insights → HTML/index and digest, with no HTTP calls

@@ -1,5 +1,12 @@
 # Work Log
 
+## 2026-10-25 — CURRENT-HEALTH-DOC-TRUTH
+
+- Removed the catalog's stale ~150-line ceiling (current measured maximum: rss_catalog.py, 344 lines) and replaced its exhaustive remaining-work conclusion with canonical BACKLOG/PLAN links.
+- README EN/KO/ZH now describes conditional commit/rebase/push and possible 60-day inactivity disablement, with official GitHub schedule/billing links. Read-only workflow inventory still showed daily/hourly/weekly disabled_inactivity; no workflow was enabled.
+- Documentation-only slice: source/tests match reviewed cadence head `848ff80`; reuse its 701-test/97% production coverage, mypy/Ruff evidence. Initial docs guards caught completed-ID history and health-owner wording contracts; retained those while removing the unsupported claims. Final docs guards: 36 passed; source/test equality, diff-check and independent review passed. CI/main pending.
+
+
 ## 2026-10-25 — DELIVERY-CADENCE-CONTRACT
 
 - Extended one existing delivery regression to hourly/daily/weekly/monthly. It captures the real digest call while preserving the real missing-credential no-op and checks saved HTML/index, insight content and zero HTTP calls. Runtime code is unchanged.

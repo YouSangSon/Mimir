@@ -21,18 +21,23 @@ RSS discovery, and new cloud infrastructure remain outside this goal.
 - Current delivery evidence: `GATES.md`
 - Decisions and work evidence: `DECISIONS.md`, `WORKLOG.md`
 
-## Current Loop — DELIVERY-CADENCE-CONTRACT
+## Current Loop — CURRENT-HEALTH-DOC-TRUTH
 
-The existing stored-insight delivery regression now covers hourly, daily,
-weekly and monthly. It observes the real digest and saved HTML, and the real
-credential-free Telegram no-op with zero intercepted HTTP calls. No runtime
-change is needed. Focused 21 and full 701 tests pass; production coverage 97%,
-Ruff/mypy and independent review pass. CI/main integration is pending.
+Corrected current docs against workflow code, file counts and official GitHub
+schedule/billing documentation. No production or test code changes. Reuse the
+701-test/97% production-coverage, mypy and Ruff evidence from cadence head
+`848ff80`, whose source/test tree equals this branch; rerun docs guards and
+diff-check for this doc-only slice. Docs guards (36), diff-check and independent
+review passed. CI/main pending.
 
-Report accessibility merged through PR #15: CI run `40106364995` passed;
-main `70f533b` tree equals reviewed head `bedd244`. Evidence is under the
-resume `자료수집/2026-10-25/mimir-portfolio/report-a11y/` directory.
-Continue `BACKLOG.md`, runnable local demo and verified branch/resource cleanup.
+Cadence regression merged in PR #16: CI `40106816741` passed; main `b902c89`
+equals reviewed head `848ff80`. Verified cleanup removed 25 local and six
+remote merged branches; unproven `feat/macro-revision-policy`, historical local
+main and the active branch were retained. Evidence is in the resume portfolio.
+
+Next: ECOS/manual-RSS provenance and derived attribution, then runnable local
+demo and final integration/cleanup audit. Fresh official rights evidence is in
+`/tmp/mimir-20261025-rights/`; no right is inferred from a provider label alone.
 
 ## Canonical Sources
 
