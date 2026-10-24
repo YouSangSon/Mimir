@@ -1,5 +1,10 @@
 # Work Log
 
+## 2026-10-25 — VM AUTHENTICATION RESUME POINT
+
+- PR19 CI40114726727 completed successfully: 746 tests in8.90s, production97%. Main1146307 treeaff623a equals reviewed fd2e268; source/tests/runtime config equal implementation main410c876. Audited and removed the merged portfolio branch; active VM branch starts from fresh main.
+- Re-observation showed the earlier console click had opened an authentication dialog despite an input observation timeout. Server105 requires SSH authentication in the provider UI. Left this existing user tab as a handoff and requested direct user login or another SSH route; no credential value was read or submitted. VM preflight and runtime validation remain incomplete.
+
 ## 2026-10-25 — PORTFOLIO / RUNTIME VERIFICATION
 
 - PR18 CI40113216793 passed746 tests in10.68s; production3443 statements/87 missed=97%. Squash main410c876 tree7ed770d equals reviewed headc7c5453. Required reviews had no Critical/Important finding.

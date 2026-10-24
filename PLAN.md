@@ -29,11 +29,13 @@ RSS discovery, and new cloud infrastructure remain outside this goal.
 - Current delivery evidence: `GATES.md`
 - Decisions and work evidence: `DECISIONS.md`, `WORKLOG.md`
 
-## Current Loop — PORTFOLIO / RUNTIME VERIFICATION
+## Current Loop — VM AUTHENTICATION / RUNTIME VERIFICATION
 
-Source provenance merged through PR18 after CI40113216793 passed746 tests,
-production coverage97%, mypy84/Ruff. Main410c876 tree equals reviewed c7c5453.
-The finite code queue is closed; no new feature scope is needed.
+Implementation and portfolio checkpoint are integrated. PR18 and PR19 both
+passed required CI (746 tests, production97%). Latest main1146307 tree equals
+reviewed fd2e268; source/tests/runtime config remain identical to implementation
+main410c876. The finite code queue is closed. Current local branch is
+`codex/mimir-vm-verification-20261025`; this VM unit is not complete.
 
 Actual installed CLI demo passed16 checks with synthetic data: insight8,
 historical1, evaluation buckets3; invalid date/YAML/missing evidence and empty
@@ -46,14 +48,18 @@ contract remains `docs/reference/config/sources.md` §4.4.
 Remaining required gate: private my-cloud runtime verification. Provider display
 showed9.9MB/3TB and zero estimated overage, with last aggregation2026-10-24
 13:07:39 (timezone unspecified); hard overage blocking is unconfirmed. The
-`my-cloud` SSH connection to TCP22 stayed SYN_SENT. Asked for the current
-connection path. Guest resource/lock/current-version/backup/runtime readiness
-cannot be claimed. Do not deploy until these checks and the shared lock pass.
+`my-cloud` SSH connection to TCP22 stayed SYN_SENT. The existing provider
+server105 Web Console Access dialog is now confirmed open, but requires SSH
+credentials. The user was asked to authenticate directly in the provider UI or
+supply another SSH route. No credentials were submitted by the agent; the
+provider tab is left as an authentication handoff. Guest resource/lock/current-
+version/backup/runtime readiness remains unverified. Do not deploy until these
+checks and the shared lock pass.
 
 Owned local HTTP/browser/SSH resources are stopped; no VM lock or workload was
-created. Merged cadence/doc-health/provenance branches were audited and removed;
-historical main, unmerged macro-policy branch and this verification branch are
-preserved. Only the three original user-owned untracked artifacts remain.
+created. Merged cadence/doc-health/provenance/portfolio branches were audited and removed;
+historical main, unmerged macro-policy branch and this VM verification branch are
+preserved. The three original user-owned untracked artifacts remain unstaged.
 
 When the connection path is available, check current guest services, memory,
 disk, OOM and lock; use a bounded private synthetic CLI smoke, verify exact
