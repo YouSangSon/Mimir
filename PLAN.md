@@ -21,20 +21,18 @@ RSS discovery, and new cloud infrastructure remain outside this goal.
 - Current delivery evidence: `GATES.md`
 - Decisions and work evidence: `DECISIONS.md`, `WORKLOG.md`
 
-## Current Loop — REPORT-HTML-MOBILE-A11Y
+## Current Loop — DELIVERY-CADENCE-CONTRACT
 
-Goal resumed on 2026-10-25. Current branch:
-`codex/mimir-report-a11y-20261024`. Viewport/theme/table accessibility changes
-and their regressions are implemented. Independent review passed; rendered
-inspection led to a compact-cell/detail-column CSS correction. Final local
-(698 tests, production coverage 97%, Ruff/mypy) and browser checks pass. CI and
-main integration remain pending. Evidence:
-`/tmp/mimir-20261025-ui/`; completed units are copied to the resume portfolio.
+The existing stored-insight delivery regression now covers hourly, daily,
+weekly and monthly. It observes the real digest and saved HTML, and the real
+credential-free Telegram no-op with zero intercepted HTTP calls. No runtime
+change is needed. Focused 21 and full 701 tests pass; production coverage 97%,
+Ruff/mypy and independent review pass. CI/main integration is pending.
 
-Doctor optimization merged in PR #14 (`00b103b`); YAML/date fixes merged in
-PR #12/#13. Continue the finite `BACKLOG.md` queue, runnable CLI demo, and
-verified branch/resource cleanup after this unit. Rights research does not
-constitute runtime provenance enforcement or approval for third-party data.
+Report accessibility merged through PR #15: CI run `40106364995` passed;
+main `70f533b` tree equals reviewed head `bedd244`. Evidence is under the
+resume `자료수집/2026-10-25/mimir-portfolio/report-a11y/` directory.
+Continue `BACKLOG.md`, runnable local demo and verified branch/resource cleanup.
 
 ## Canonical Sources
 

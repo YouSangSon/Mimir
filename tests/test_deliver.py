@@ -1,6 +1,9 @@
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+import pytest
+import responses
+
 from mimir import deliver as deliver_module
 from mimir.analysis.schema import Insight, to_record
 from mimir.analysis.signals.base import SignalDirection
@@ -51,13 +54,23 @@ def _bucket() -> BucketStat:
     )
 
 
-def test_run_deliver_writes_report_and_noops_telegram(tmp_path: Path):
+@pytest.mark.parametrize("cadence", ["hourly", "daily", "weekly", "monthly"])
+@responses.activate
+def test_run_deliver_writes_report_and_noops_telegram(tmp_path: Path, monkeypatch, cadence):
     data_root = tmp_path / "data"
     reports_root = tmp_path / "reports"
     JsonlStore(root=data_root).append([to_record(_insight(), datetime(2026, 5, 31, tzinfo=UTC))])
+    digests = []
+    original_send_ping = deliver_module.send_ping
+
+    def capture_ping(**kwargs):
+        digests.append(kwargs["text"])
+        return original_send_ping(**kwargs)
+
+    monkeypatch.setattr(deliver_module, "send_ping", capture_ping)
 
     result = run_deliver(
-        cadence="daily",
+        cadence=cadence,
         env={},  # no telegram token -> graceful no-op
         data_root=data_root,
         reports_root=reports_root,
@@ -67,6 +80,13 @@ def test_run_deliver_writes_report_and_noops_telegram(tmp_path: Path):
     assert result["sent"] is False
     assert (reports_root / "2026/05/31.html").exists()
     assert (reports_root / "index.html").exists()
+    html = (reports_root / "2026/05/31.html").read_text()
+    assert cadence in html.split("<title>", 1)[1].split("</title>", 1)[0]
+    assert "AAPL" in html
+    assert len(digests) == 1
+    assert cadence in digests[0].splitlines()[0]
+    assert "AAPL" in digests[0]
+    assert len(responses.calls) == 0
 
 
 def test_run_deliver_includes_historical_section(tmp_path: Path):
