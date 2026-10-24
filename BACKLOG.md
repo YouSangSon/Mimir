@@ -29,14 +29,15 @@ free, legal public-data collection and investment insight generation.
    and evidence date; reject or remove unverifiable URLs; and add a guard tying
    every configured manual URL to a provenance record. Current docs already
    state operator responsibility; this evidence boundary is the unsolved work.
-3. `DELIVERY-CADENCE-CONTRACT` — prove the existing digest/delivery path accepts
-   hourly, daily, weekly, and monthly cadence values with one parameterized
-   behavioral test.
-4. `CURRENT-HEALTH-DOC-TRUTH` — keep the now-measured `mimir/` coverage scope, correct
+3. `CURRENT-HEALTH-DOC-TRUTH` — keep the now-measured `mimir/` coverage scope, correct
    the fixed maximum production-file size, the exhaustive remaining-work
    conclusion in the catalog, and the GitHub schedule commit-back guarantee.
 
 ## Done
+
+- `DELIVERY-CADENCE-CONTRACT` — the existing delivery regression covers all four
+  cadences through stored insights → HTML/index and digest, with no HTTP calls
+  when Telegram credentials are absent.
 
 - `REPORT-HTML-MOBILE-A11Y` — shared responsive themes, keyboard-scrollable
   named table regions, scoped translated headers, and readable badge contrast.

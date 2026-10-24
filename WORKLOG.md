@@ -1,5 +1,12 @@
 # Work Log
 
+## 2026-10-25 — DELIVERY-CADENCE-CONTRACT
+
+- Extended one existing delivery regression to hourly/daily/weekly/monthly. It captures the real digest call while preserving the real missing-credential no-op and checks saved HTML/index, insight content and zero HTTP calls. Runtime code is unchanged.
+- Initial test failed because `responses.CallList` does not compare equal to `[]`; replaced that test-harness assumption with a length check. It did not reveal a runtime cadence failure. Focused tests: 21 passed; final suite: 701 passed; production coverage 97%, mypy/Ruff/diff-check and independent review pass. CI/main pending.
+- UI PR #15 passed CI and merged to `70f533b`; fetched main tree equals reviewed head `bedd244`. Owned UI HTTP server/browser exited; screenshots, scripts and logs copied to resume evidence.
+
+
 ## 2026-10-25 — REPORT-HTML-MOBILE-A11Y
 
 - Resumed the preserved UI diff. Nine new regressions failed before implementation; 53 focused report tests then passed. Earlier temporary logs expired during interruption; source/session evidence was retained and new browser fixtures are reproducible.

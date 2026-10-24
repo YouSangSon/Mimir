@@ -17,7 +17,15 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
 - Preserve user-owned untracked files and clean only processes or temporary
   resources created by this loop.
 
-## Current Loop — REPORT-HTML-MOBILE-A11Y (2026-10-25)
+## Current Loop — DELIVERY-CADENCE-CONTRACT (2026-10-25)
+
+- Existing runtime behavior is exercised with one four-cadence parameterized test.
+- Focused delivery/digest/pipeline tests: 21 passed. Final full suite: 701 passed;
+  production coverage 97%, mypy (83 files), Ruff and diff-check pass.
+- Independent read-only spec/quality review: no Important/Critical finding. CI pending.
+- Report UI PR #15: CI `40106364995` passed; main `70f533b` equals reviewed `bedd244`.
+
+## Previous Loop — REPORT-HTML-MOBILE-A11Y (2026-10-25)
 
 - Prior RED: nine focused accessibility cases; focused GREEN: 53 report tests.
 - Independent spec/quality review: no Critical/Important issue.
@@ -28,7 +36,7 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
   Four screenshots were visually inspected; data is explicitly synthetic.
 - Final local gates: 698 tests passed; `mimir/*` coverage 97%, strict mypy
   (83 files), Ruff, and diff-check pass. Final logs: `/tmp/mimir-20261025-ui/final-gates/`.
-- CI/main integration: pending.
+- CI/main integration: PASS — PR #15, CI run `40106364995`, main `70f533b`.
 
 ## Previous Loop — DOCTOR-MACRO-SINGLE-SCAN (2026-10-24)
 

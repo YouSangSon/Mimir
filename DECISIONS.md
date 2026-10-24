@@ -3,6 +3,13 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-10-25 — DELIVERY-CADENCE-CONTRACT
+
+Keep cadence handling in the existing runtime path. Prove all four supported
+values by extending one behavioral regression through persisted insight,
+report/index, digest and credential-free Telegram no-op. No cadence-specific
+production branches or validation helper are needed for this passing contract.
+
 ## 2026-10-25 — REPORT-HTML-MOBILE-A11Y
 
 Reuse the existing HTML primitives for viewport metadata, theme CSS, and a
