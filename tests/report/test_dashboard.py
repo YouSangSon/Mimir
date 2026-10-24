@@ -114,7 +114,7 @@ def test_health_section_renders_finding_and_severity_color():
     html = _full()
     assert "latest partition 3 business days stale" in html
     # WARN severity color appears in the severity-colored table
-    assert "#d97706" in html or "#f59e0b" in html  # amber for WARN
+    assert "#b45309" in html  # dark amber keeps white WARN text readable
 
 
 def test_insights_sorted_by_stars_desc():

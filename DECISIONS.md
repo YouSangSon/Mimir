@@ -3,6 +3,16 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-10-25 — REPORT-HTML-MOBILE-A11Y
+
+Reuse the existing HTML primitives for viewport metadata, theme CSS, and a
+named keyboard-scrollable table wrapper. Keep paths, escaping, data ordering,
+and translated text generation intact. Preserve compact headers/status labels
+and reserve room for the detail column; only long descriptions wrap. This
+keeps tables readable on small screens without JavaScript or a UI framework.
+Structural assertions alone missed fragmented table labels, so final browser
+inspection includes rendered screenshots as well as overflow/contrast checks.
+
 ## 2026-10-24 — DOCTOR-MACRO-SINGLE-SCAN
 
 Reuse one macro read to compute each symbol's maximum record date. This avoids

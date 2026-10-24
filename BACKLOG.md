@@ -29,17 +29,17 @@ free, legal public-data collection and investment insight generation.
    and evidence date; reject or remove unverifiable URLs; and add a guard tying
    every configured manual URL to a provenance record. Current docs already
    state operator responsibility; this evidence boundary is the unsolved work.
-3. `REPORT-HTML-MOBILE-A11Y` — add viewport-safe tables, accessible dark/light
-   contrast, and scoped historical-table headers across the static report
-   renderers without JavaScript or new dependencies.
-4. `DELIVERY-CADENCE-CONTRACT` — prove the existing digest/delivery path accepts
+3. `DELIVERY-CADENCE-CONTRACT` — prove the existing digest/delivery path accepts
    hourly, daily, weekly, and monthly cadence values with one parameterized
    behavioral test.
-5. `CURRENT-HEALTH-DOC-TRUTH` — keep the now-measured `mimir/` coverage scope, correct
+4. `CURRENT-HEALTH-DOC-TRUTH` — keep the now-measured `mimir/` coverage scope, correct
    the fixed maximum production-file size, the exhaustive remaining-work
    conclusion in the catalog, and the GitHub schedule commit-back guarantee.
 
 ## Done
+
+- `REPORT-HTML-MOBILE-A11Y` — shared responsive themes, keyboard-scrollable
+  named table regions, scoped translated headers, and readable badge contrast.
 
 - `DOCTOR-MACRO-SINGLE-SCAN` — per-series freshness reuses one macro read,
   preserving record-date maxima, cadence, absence, and diagnostic ordering.

@@ -9,16 +9,16 @@ from mimir.analysis.schema import Insight
 from mimir.analysis.signals.base import SignalDirection
 from mimir.evaluation.schema import BucketStat
 from mimir.historical.schema import HistoricalInsight
-from mimir.report.html import stars
+from mimir.report.html import REPORT_CSS, VIEWPORT_META, render_table, stars
 from mimir.report.i18n import DEFAULT_LANG, normalize_lang, t
 
 DEFAULT_REPORTS_ROOT = Path("reports")
 DATE_REPORT_RE = re.compile(r"\d{4}/\d{2}/\d{2}\.html$")
 
 DIRECTION_COLOR: dict[SignalDirection, str] = {
-    SignalDirection.BULLISH: "#16a34a",
-    SignalDirection.BEARISH: "#dc2626",
-    SignalDirection.NEUTRAL: "#6b7280",
+    SignalDirection.BULLISH: "#15803d",
+    SignalDirection.BEARISH: "#b91c1c",
+    SignalDirection.NEUTRAL: "#4b5563",
 }
 
 
@@ -72,13 +72,13 @@ def _historical_card(h: HistoricalInsight, lang: str) -> str:
 def _evaluation_section(buckets: list[BucketStat], lang: str) -> str:
     heading = f"<h2>{t('evaluation_section_heading', lang)}</h2>"
     head = (
-        f"<th>{t('evaluation_col_dimension', lang)}</th>"
-        f"<th>{t('evaluation_col_key', lang)}</th>"
-        f"<th>{t('evaluation_col_market', lang)}</th>"
-        f"<th>{t('evaluation_col_horizons', lang)}</th>"
+        f"<th scope=\"col\">{t('evaluation_col_dimension', lang)}</th>"
+        f"<th scope=\"col\">{t('evaluation_col_key', lang)}</th>"
+        f"<th scope=\"col\">{t('evaluation_col_market', lang)}</th>"
+        f"<th scope=\"col\">{t('evaluation_col_horizons', lang)}</th>"
     )
     rows = "\n".join(_evaluation_row(b, lang) for b in buckets)
-    return f"{heading}\n<table><tr>{head}</tr>\n{rows}\n</table>"
+    return heading + render_table(head, rows, t("evaluation_section_heading", lang))
 
 
 def _evaluation_row(bucket: BucketStat, lang: str) -> str:
@@ -129,36 +129,17 @@ def build_report_html(
     eval_buckets = evaluation or []
     evaluation_section = _evaluation_section(eval_buckets, lang) if eval_buckets else ""
     return f"""<!doctype html>
-<html lang="{lang}"><head><meta charset="utf-8">
+<html lang="{lang}"><head><meta charset="utf-8">{VIEWPORT_META}
 <title>{t("report_page_title", lang, cadence=cadence, date=as_of.isoformat())}</title>
-<style>
- body{{font-family:system-ui,-apple-system,sans-serif;margin:2rem;background:#0b0f17;color:#e5e7eb}}
- h1{{font-size:1.4rem}} a{{color:#7c3aed}}
- .meta{{color:#9ca3af;margin-bottom:1.5rem}}
- .card{{background:#111827;border:1px solid #1f2937;border-radius:10px;padding:1rem;margin:.6rem 0}}
- .card-head{{display:flex;align-items:center;gap:.6rem}}
- .sym{{font-weight:700;font-size:1.1rem}}
- .badge{{color:#fff;border-radius:6px;padding:.1rem .5rem;font-size:.8rem}}
- .attn{{margin-left:auto;color:#94a3b8;font-size:.8rem}}
- .stars{{color:#fbbf24;font-size:1.1rem}}
- .reasons{{margin:.5rem 0 0;color:#cbd5e1;font-size:.9rem}}
- .examples{{color:#94a3b8;font-size:.82rem}}
- .evt{{color:#a5b4fc;font-size:.9rem}}
- table{{border-collapse:collapse;width:100%;margin:.5rem 0;font-size:.9rem}}
- td,th{{border:1px solid #1f2937;padding:.4rem .7rem;text-align:left}}
- th{{color:#94a3b8;font-weight:600;background:#111827}}
- h2{{font-size:1.1rem;margin-top:2rem;color:#cbd5e1}}
- .empty{{color:#9ca3af}}
- .dis{{color:#6b7280;font-size:.8rem;margin-top:2rem;border-top:1px solid #1f2937;padding-top:1rem}}
-</style></head>
-<body>
+<style>{REPORT_CSS}</style></head>
+<body><main>
 <h1>{t("report_heading", lang, cadence=cadence)}</h1>
 <p class="meta">{meta}</p>
 {body}
 {historical_section}
 {evaluation_section}
 <p class="dis">{t("disclaimer_report", lang)}</p>
-</body></html>"""
+</main></body></html>"""
 
 
 def save_report(html_doc: str, as_of: date, root: Path = DEFAULT_REPORTS_ROOT) -> Path:
@@ -184,12 +165,12 @@ def rebuild_index(root: Path = DEFAULT_REPORTS_ROOT, lang: str = DEFAULT_LANG) -
     )
     body = items or f'<li class="empty">{t("index_empty", lang)}</li>'
     doc = f"""<!doctype html>
-<html lang="{lang}"><head><meta charset="utf-8"><title>{t("index_page_title", lang)}</title>
-<style>body{{font-family:system-ui,sans-serif;margin:2rem;background:#0b0f17;color:#e5e7eb}}
-a{{color:#7c3aed}} li{{margin:.3rem 0}}</style></head>
-<body><h1>{t("index_heading", lang)}</h1><ul>
+<html lang="{lang}"><head><meta charset="utf-8">{VIEWPORT_META}
+<title>{t("index_page_title", lang)}</title>
+<style>{REPORT_CSS}</style></head>
+<body><main><h1>{t("index_heading", lang)}</h1><ul>
 {body}
-</ul></body></html>"""
+</ul></main></body></html>"""
     index = root / "index.html"
     index.write_text(doc, encoding="utf-8")
     return index

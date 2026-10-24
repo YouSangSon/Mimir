@@ -17,13 +17,27 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
 - Preserve user-owned untracked files and clean only processes or temporary
   resources created by this loop.
 
-## Current Loop — DOCTOR-MACRO-SINGLE-SCAN (2026-10-24)
+## Current Loop — REPORT-HTML-MOBILE-A11Y (2026-10-25)
+
+- Prior RED: nine focused accessibility cases; focused GREEN: 53 report tests.
+- Independent spec/quality review: no Critical/Important issue.
+- Final browser: 48 page/theme/viewport combinations (six populated/empty/error
+  pages × dark/light × 320/375/768/1280px) have no document overflow or measured
+  text contrast below 4.5:1. Keyboard Tab/focus outline/ArrowRight table scrolling,
+  dashboard→status error and index→report→index navigation pass; no console errors.
+  Four screenshots were visually inspected; data is explicitly synthetic.
+- Final local gates: 698 tests passed; `mimir/*` coverage 97%, strict mypy
+  (83 files), Ruff, and diff-check pass. Final logs: `/tmp/mimir-20261025-ui/final-gates/`.
+- CI/main integration: pending.
+
+## Previous Loop — DOCTOR-MACRO-SINGLE-SCAN (2026-10-24)
 
 - RED: same findings but four macro reads; GREEN: one macro read.
 - Focused doctor/dashboard suite: 41 passed.
 - Independent spec/quality review, Ruff and diff-check: PASS.
 - Full coverage suite: 689 passed; production `mimir/*` coverage 97% (80% gate).
-- Strict mypy: 83 source files clean. CI/main integration pending.
+- Strict mypy: 83 source files clean. PR #14 CI run `39986163175` passed;
+  squash main `00b103b` equals reviewed head `ab066da`.
 
 ## Previous Loop — CLI-DATE-ARGUMENT-BOUNDARY (2026-10-24)
 
