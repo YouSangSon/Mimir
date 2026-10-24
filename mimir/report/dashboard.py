@@ -8,7 +8,14 @@ from mimir.evaluation.schema import BucketStat
 from mimir.historical.schema import HistoricalInsight
 from mimir.manifest.manifest import RunRecord, SourceResult
 from mimir.report.daily_report import DIRECTION_COLOR
-from mimir.report.html import SEVERITY_COLOR, esc, stars
+from mimir.report.html import (
+    REPORT_CSS,
+    SEVERITY_COLOR,
+    VIEWPORT_META,
+    esc,
+    render_table,
+    stars,
+)
 from mimir.report.i18n import DEFAULT_LANG, normalize_lang, t
 
 _STATUS_HTML_HREF = "status.html"
@@ -47,13 +54,13 @@ def _health_section(report: DoctorReport, lang: str) -> str:
     if not report.findings:
         return f"{heading}\n<p class=\"empty\">{t('dashboard_health_all_clear', lang)}</p>"
     head = (
-        f"<th>{t('dashboard_health_col_dataset', lang)}</th>"
-        f"<th>{t('dashboard_health_col_scope', lang)}</th>"
-        f"<th>{t('dashboard_health_col_severity', lang)}</th>"
-        f"<th>{t('dashboard_health_col_detail', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_health_col_dataset', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_health_col_scope', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_health_col_severity', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_health_col_detail', lang)}</th>"
     )
     rows = "\n".join(_health_row(f) for f in _ordered_findings(report.findings))
-    return f"{heading}\n<table><tr>{head}</tr>\n{rows}\n</table>"
+    return heading + render_table(head, rows, t("dashboard_section_health", lang))
 
 
 def _ordered_findings(findings: list[Finding]) -> list[Finding]:
@@ -76,16 +83,16 @@ def _insights_section(insights: list[Insight], lang: str) -> str:
     if not insights:
         return f"{heading}\n<p class=\"empty\">{t('dashboard_insights_empty', lang)}</p>"
     head = (
-        f"<th>{t('dashboard_insights_col_symbol', lang)}</th>"
-        f"<th>{t('dashboard_insights_col_market', lang)}</th>"
-        f"<th>{t('dashboard_insights_col_direction', lang)}</th>"
-        f"<th>{t('dashboard_insights_col_stars', lang)}</th>"
-        f"<th>{t('dashboard_insights_col_confidence', lang)}</th>"
-        f"<th>{t('dashboard_insights_col_reason', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_insights_col_symbol', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_insights_col_market', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_insights_col_direction', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_insights_col_stars', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_insights_col_confidence', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_insights_col_reason', lang)}</th>"
     )
     ordered = sorted(insights, key=lambda i: (-i.stars, i.symbol))
     rows = "\n".join(_insight_row(i, lang) for i in ordered)
-    return f"{heading}\n<table><tr>{head}</tr>\n{rows}\n</table>"
+    return heading + render_table(head, rows, t("dashboard_section_insights", lang))
 
 
 def _insight_row(ins: Insight, lang: str) -> str:
@@ -108,13 +115,13 @@ def _scorecard_section(buckets: list[BucketStat], lang: str) -> str:
     if not buckets:
         return f"{heading}\n<p class=\"empty\">{t('dashboard_scorecard_insufficient', lang)}</p>"
     head = (
-        f"<th>{t('dashboard_scorecard_col_dimension', lang)}</th>"
-        f"<th>{t('dashboard_scorecard_col_key', lang)}</th>"
-        f"<th>{t('dashboard_scorecard_col_market', lang)}</th>"
-        f"<th>{t('dashboard_scorecard_col_horizons', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_scorecard_col_dimension', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_scorecard_col_key', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_scorecard_col_market', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_scorecard_col_horizons', lang)}</th>"
     )
     rows = "\n".join(_bucket_row(b, lang) for b in buckets)
-    return f"{heading}\n<table><tr>{head}</tr>\n{rows}\n</table>"
+    return heading + render_table(head, rows, t("dashboard_section_scorecard", lang))
 
 
 def _bucket_row(b: BucketStat, lang: str) -> str:
@@ -139,8 +146,13 @@ def _historical_section(historical: list[HistoricalInsight], lang: str) -> str:
     heading = f"<h2>{t('dashboard_section_historical', lang)}</h2>"
     if not historical:
         return f"{heading}\n<p class=\"empty\">{t('dashboard_historical_empty', lang)}</p>"
+    head = (
+        f"<th scope=\"col\">{t('dashboard_insights_col_symbol', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_historical_col_event', lang)}</th>"
+        f"<th scope=\"col\">{t('dashboard_historical_col_horizons', lang)}</th>"
+    )
     rows = "\n".join(_historical_row(h, lang) for h in historical)
-    return f"{heading}\n<table>\n{rows}\n</table>"
+    return heading + render_table(head, rows, t("dashboard_section_historical", lang))
 
 
 def _historical_row(h: HistoricalInsight, lang: str) -> str:
@@ -172,13 +184,13 @@ def _collection_section(run: RunRecord | None, lang: str) -> str:
     if run is None:
         return f"{heading}\n<p class=\"empty\">{t('dashboard_collection_empty', lang)}</p>"
     head = (
-        f"<th>{t('status_table_header_source', lang)}</th>"
-        f"<th>{t('status_table_header_status', lang)}</th>"
-        f"<th>{t('status_table_header_detail', lang)}</th>"
+        f"<th scope=\"col\">{t('status_table_header_source', lang)}</th>"
+        f"<th scope=\"col\">{t('status_table_header_status', lang)}</th>"
+        f"<th scope=\"col\">{t('status_table_header_detail', lang)}</th>"
     )
     rows = "\n".join(_collection_row(r, lang) for r in run.results)
     link = f'<p><a href="{_STATUS_HTML_HREF}">{t("dashboard_collection_link", lang)}</a></p>'
-    return f"{heading}\n<table><tr>{head}</tr>\n{rows}\n</table>\n{link}"
+    return heading + render_table(head, rows, t("dashboard_section_collection", lang)) + link
 
 
 def _collection_row(r: SourceResult, lang: str) -> str:
@@ -222,28 +234,13 @@ def build_dashboard_html(
         ]
     )
     return f"""<!doctype html>
-<html lang="{lang}"><head><meta charset="utf-8">
+<html lang="{lang}"><head><meta charset="utf-8">{VIEWPORT_META}
 <title>{t("dashboard_page_title", lang)}</title>
-<style>
- body{{font-family:system-ui,-apple-system,sans-serif;margin:2rem;background:#0b0f17;color:#e5e7eb}}
- h1{{font-size:1.4rem}} a{{color:#7c3aed}}
- h2{{font-size:1.1rem;margin-top:2rem;color:#cbd5e1}}
- .meta{{color:#9ca3af;margin-bottom:1rem}}
- .badges{{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}}
- .hb{{color:#fff;border-radius:6px;padding:.2rem .6rem;font-size:.8rem}}
- table{{border-collapse:collapse;width:100%;margin:.5rem 0;font-size:.9rem}}
- td,th{{border:1px solid #1f2937;padding:.4rem .7rem;text-align:left}}
- th{{color:#94a3b8;font-weight:600;background:#111827}}
- .sym{{font-weight:700}}
- .stars{{color:#fbbf24}}
- .badge,.sev{{color:#fff;border-radius:6px;padding:.1rem .5rem;font-size:.8rem}}
- .empty{{color:#9ca3af}}
- .dis{{color:#6b7280;font-size:.8rem;margin-top:2rem;border-top:1px solid #1f2937;padding-top:1rem}}
-</style></head>
-<body>
+<style>{REPORT_CSS}</style></head>
+<body><main>
 <h1>{t("dashboard_heading", lang)}</h1>
 <p class="meta">{t("dashboard_generated_at", lang, time=generated)}</p>
 {badges}
 {sections}
 <p class="dis">{t("disclaimer_report", lang)}</p>
-</body></html>"""
+</main></body></html>"""

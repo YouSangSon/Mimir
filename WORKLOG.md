@@ -1,5 +1,13 @@
 # Work Log
 
+## 2026-10-25 — REPORT-HTML-MOBILE-A11Y
+
+- Resumed the preserved UI diff. Nine new regressions failed before implementation; 53 focused report tests then passed. Earlier temporary logs expired during interruption; source/session evidence was retained and new browser fixtures are reproducible.
+- All five static pages share viewport/zoom support, theme-aware readable colors, landmarks, and named keyboard-scrollable tables. Historical columns now have EN/KO/ZH headers; original output paths and escaping stay intact.
+- Rendered inspection caught character-split labels despite passing structural checks; compact cells and detail-column width were corrected. Browser fixtures are explicitly synthetic, including long symbol/path/error inputs and empty state.
+- Final 48 browser combinations and keyboard/link/error flows passed; four screenshots were inspected. Final suite: 698 passed, production coverage 97%; strict mypy, Ruff and diff-check pass. Independent final-delta review found no Critical/Important issue. CI/main integration pending.
+
+
 ## 2026-10-24 — DOCTOR-MACRO-SINGLE-SCAN
 
 - RED: mixed-series regression preserved expected findings but observed four macro reads instead of one.

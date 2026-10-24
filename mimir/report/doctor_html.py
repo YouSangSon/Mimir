@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from mimir.doctor.report import DoctorReport, Finding, Severity
-from mimir.report.html import SEVERITY_COLOR, esc
+from mimir.report.html import REPORT_CSS, SEVERITY_COLOR, VIEWPORT_META, esc, render_table
 from mimir.report.i18n import DEFAULT_LANG, normalize_lang, t
 
 _SEVERITY_RANK: dict[Severity, int] = {
@@ -43,13 +43,13 @@ def _findings_section(report: DoctorReport, lang: str) -> str:
         return f'<p class="empty">{t("doctor_all_clear", lang)}</p>'
 
     headers = (
-        f"<th>{t('doctor_col_dataset', lang)}</th>"
-        f"<th>{t('doctor_col_scope', lang)}</th>"
-        f"<th>{t('doctor_col_severity', lang)}</th>"
-        f"<th>{t('doctor_col_detail', lang)}</th>"
+        f"<th scope=\"col\">{t('doctor_col_dataset', lang)}</th>"
+        f"<th scope=\"col\">{t('doctor_col_scope', lang)}</th>"
+        f"<th scope=\"col\">{t('doctor_col_severity', lang)}</th>"
+        f"<th scope=\"col\">{t('doctor_col_detail', lang)}</th>"
     )
     rows = "\n".join(_finding_row(finding, lang) for finding in _ordered_findings(report.findings))
-    return f"<table><tr>{headers}</tr>\n{rows}\n</table>"
+    return render_table(headers, rows, t("doctor_heading", lang))
 
 
 def render_doctor_html(
@@ -64,27 +64,17 @@ def render_doctor_html(
     findings = _findings_section(report, lang)
 
     doc = f"""<!doctype html>
-<html lang="{lang}"><head><meta charset="utf-8">
+<html lang="{lang}"><head><meta charset="utf-8">{VIEWPORT_META}
 <title>{t("doctor_page_title", lang)}</title>
-<style>
- body{{font-family:system-ui,-apple-system,sans-serif;margin:2rem;background:#0b0f17;color:#e5e7eb}}
- h1{{font-size:1.4rem;margin-bottom:.5rem}}
- .meta{{color:#9ca3af;margin:.2rem 0}}
- table{{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9rem}}
- td,th{{border:1px solid #1f2937;padding:.4rem .7rem;text-align:left;vertical-align:top}}
- th{{color:#94a3b8;font-weight:600;background:#111827}}
- .sev{{color:#fff;border-radius:6px;padding:.1rem .5rem;font-size:.8rem;white-space:nowrap}}
- .empty{{color:#9ca3af;margin-top:1.5rem}}
- .dis{{color:#6b7280;font-size:.8rem;margin-top:2rem;border-top:1px solid #1f2937;padding-top:1rem}}
-</style></head>
-<body>
+<style>{REPORT_CSS}</style></head>
+<body><main>
 <h1>{t("doctor_heading", lang)}</h1>
 <p class="meta">{t("doctor_checked_at", lang)}: {checked_at}</p>
 <p class="meta">{t("doctor_data_root", lang)}: {data_root}</p>
 <p class="meta">{t("doctor_worst", lang)}: {worst}</p>
 {findings}
 <p class="dis">{t("disclaimer_status", lang)}</p>
-</body></html>"""
+</main></body></html>"""
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(doc, encoding="utf-8")

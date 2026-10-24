@@ -21,20 +21,20 @@ RSS discovery, and new cloud infrastructure remain outside this goal.
 - Current delivery evidence: `GATES.md`
 - Decisions and work evidence: `DECISIONS.md`, `WORKLOG.md`
 
-## Current Loop — DOCTOR-MACRO-SINGLE-SCAN
+## Current Loop — REPORT-HTML-MOBILE-A11Y
 
-Per-series macro freshness computes latest record dates in one dataset scan,
-preserving cadence and diagnostic ordering. Focused doctor/dashboard tests
-pass (41), as does independent spec/quality review. Final full suite: 689 passed;
-production coverage 97%, Ruff and strict mypy pass. CI/main integration pending.
+Goal resumed on 2026-10-25. Current branch:
+`codex/mimir-report-a11y-20261024`. Viewport/theme/table accessibility changes
+and their regressions are implemented. Independent review passed; rendered
+inspection led to a compact-cell/detail-column CSS correction. Final local
+(698 tests, production coverage 97%, Ruff/mypy) and browser checks pass. CI and
+main integration remain pending. Evidence:
+`/tmp/mimir-20261025-ui/`; completed units are copied to the resume portfolio.
 
-Previous CLI date loop merged in PR #13 at `1f8e23c`; CI run `39984146712`
-passed in 32 seconds, and main matches reviewed head `442c8f1`.
-
-Remaining work stays in `BACKLOG.md`: provenance/attribution across raw and
-derived data, report accessibility/demo, cadence regression, and docs truth.
-Research evidence is retained locally; ECOS provider terms alone do not grant
-rights to every third-party series or authorize old stored data.
+Doctor optimization merged in PR #14 (`00b103b`); YAML/date fixes merged in
+PR #12/#13. Continue the finite `BACKLOG.md` queue, runnable CLI demo, and
+verified branch/resource cleanup after this unit. Rights research does not
+constitute runtime provenance enforcement or approval for third-party data.
 
 ## Canonical Sources
 
