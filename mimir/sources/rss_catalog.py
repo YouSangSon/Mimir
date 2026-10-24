@@ -16,7 +16,7 @@ from pydantic import (
     model_validator,
 )
 
-from mimir.sources.rss import RssFeed
+from mimir.sources.rss import RssFeed, mark_builtin_feed
 
 
 class RssCatalogSelection(BaseModel):
@@ -185,7 +185,7 @@ def resolve_rss_catalogs(
         entry = RSS_CATALOG.get(selection.id)
         if entry is None:
             raise ValueError(f"unknown RSS catalog id: {selection.id}")
-        feeds.append(entry.feed.model_copy(deep=True))
+        feeds.append(mark_builtin_feed(entry.feed.model_copy(deep=True), f"catalog:{selection.id}"))
     _validate_unique_feeds(feeds)
     return feeds
 
@@ -214,11 +214,14 @@ def resolve_sec_company_filing_feeds(
         forms: Sequence[str | None] = selection.forms or (None,)
         for form in forms:
             feeds.append(
-                RssFeed(
-                    url=_sec_company_filing_url(selection, form, sec_ticker_cik_map),
-                    publisher="SEC",
-                    market="US",
-                    symbol=selection.symbol,
+                mark_builtin_feed(
+                    RssFeed(
+                        url=_sec_company_filing_url(selection, form, sec_ticker_cik_map),
+                        publisher="SEC",
+                        market="US",
+                        symbol=selection.symbol,
+                    ),
+                    "sec_company_filings",
                 )
             )
     _validate_unique_feeds(feeds)

@@ -189,8 +189,9 @@ sources:
 | `stat_code` | 한국은행 ECOS 통계 코드 |
 | `cycle` | 주기. `D`, `M`, `Q`, `A` 형식을 사용한다 |
 | `item_code` | 통계 항목 코드 |
+| `provenance` | 아래 §4.4의 사용 근거. 정확한 내장 기본 tuple 외에는 필수 |
 
-ECOS API key가 없으면 `ecos` 소스 자체가 실행되지 않는다. Runtime 지원은 유지되지만 내장 기본값과 모든 사용자 지정 ECOS 시리즈의 provenance, 작성 기관, 적용 약관, 상업적 이용 권리, attribution, 파생 산출물 의무는 아직 검증되지 않았다. 이 유한 검증은 `ECOS-PROVENANCE-RIGHTS-BOUNDARY`로 추적한다.
+ECOS API key가 없으면 `ecos` 소스 자체가 실행되지 않는다. 내장 사용 근거는 **`722Y001 / M / 0101000`** 한국은행 기준금리만 포함한다. 같은 통계 코드라도 주기나 항목이 다르면 별도 근거가 필요하다. `provenance.target`은 `ecos:{stat_code}:{cycle}:{item_code}`와 일치해야 한다. `ECOS-PROVENANCE-RIGHTS-BOUNDARY`의 조사 근거와 한계는 §4.4가 소유한다.
 
 ### 4.2 RSS
 
@@ -210,25 +211,18 @@ sources:
           forms: ["10-K", "10-Q", "8-K"]
           count: 40
           owner: "exclude"
-    feeds:
-      - url: "https://www.sec.gov/news/pressreleases.rss"
-        publisher: "SEC"
-        market: "US"
-      - url: "https://example.com/aapl.rss"
-        publisher: "Example"
-        market: "US"
-        symbol: "AAPL"
+    feeds: []  # 수동 URL은 §4.4의 provenance를 함께 지정한다.
 ```
 
 RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 전문을 가져오지 않는다. LLM 뉴스 감성 시그널도 저장된 제목과 요약만 사용한다.
 
-`sources.rss.feeds`에 직접 넣는 URL의 소유권, 약관, 허용된 수집·저장·분석 범위는 운영자 책임이다. 이 책임 고지는 완료됐다. `MANUAL-RSS-LEGAL-OWNERSHIP`의 남은 결과는 URL별 publisher/owner, 적용 약관, 허용/상업적 이용 결정, 근거 확인일을 provenance record로 만들고, 검증 불가능한 URL을 거부·제거하며, 모든 configured manual URL에 record가 있는지 guard로 고정하는 것이다.
+`sources.rss.feeds`에 직접 넣는 **모든 URL**은 §4.4의 `provenance`가 필요하다. SEC URL을 직접 넣어도 수동 경로이므로 예외가 아니다. 운영자는 소유권·적용 약관·허용된 사용의 사실 여부를 확인한다. Mimir는 대상 URL과 증빙 필드의 완전성을 검사하며 법적 사실을 자동 판정하지 않는다. `MANUAL-RSS-LEGAL-OWNERSHIP`은 이 경계를 추적한다.
 
 `build_sources()`로 만든 RSS source는 `MIMIR_SEC_USER_AGENT` 값을 모든 RSS HTTP 요청의 `User-Agent` header로 보낸다. 이 header는 SEC feed뿐 아니라 manual RSS feed에도 같이 적용된다.
 
 | 필드 | 필수 | 의미 |
 |---|---|---|
-| `catalogs` | 아니오 | Mimir가 코드에 담아 둔 검증된 RSS feed catalog 선택 목록 |
+| `catalogs` | 아니오 | 코드에 담긴 공식 RSS 발견 경로. 상업적 사용 승인 목록은 아님 |
 | `catalogs[].id` | 예 | catalog id. 아래 표의 내장 id 중 하나 |
 | `sec.company_filings` | 아니오 | SEC EDGAR Company Search Atom feed를 CIK 또는 ticker token과 form 설정에서 조립하는 목록 |
 | `sec.watchlist_company_filings` | 아니오 | 켜진 경우 `watchlist.yaml`의 `us` symbols에서 SEC company filing feeds를 생성하는 opt-in 설정 |
@@ -239,6 +233,7 @@ RSS는 공식 feed의 제목과 요약 metadata만 저장한다. 기사 본문 �
 | `publisher` | 예 | payload에 저장할 발행자 이름 |
 | `market` | 예 | payload에 저장할 feed market. record envelope market은 source 특성상 `GLOBAL`이다 |
 | `symbol` | 아니오 | 이 feed가 특정 watchlist symbol 전용일 때 쓰는 값. 공백은 제거하고 빈 값은 오류로 처리한다 |
+| `provenance` | 수동 feed에 필수 | 대상 URL에 묶인 §4.4의 사용 근거 |
 
 `sources.rss.catalogs`는 반복해서 쓰는 공식 feed URL을 id로 고르는 편의 기능이다. Resolver는 코드 안의 정적 catalog만 읽는다. Catalog를 해석하는 동안 네트워크를 호출하지 않으며, generic live discovery나 vendor URL 추측도 하지 않는다.
 
@@ -374,6 +369,61 @@ Mimir core는 plugin block이 mapping인지까지만 검증한다. 실제 필드
 Built-in source 설정은 이 namespace에 넣지 않는다. 예를 들어 RSS feed는 `sources.rss.feeds`를 써야 하고, `sources.plugins.rss`는 warning을 남긴다.
 
 민감한 값은 이 파일에 쓰지 않는다. API key, token, password는 환경변수나 GitHub Secrets에 둔다. Plugin factory는 `Settings`도 받으므로 secret은 그 경로로 읽어야 한다.
+
+### 4.4 출처와 사용 근거의 저장 경계
+
+설정의 발행자 이름을 나중에 바꾸면 과거 결과의 출처까지 바뀌어서는 안 된다. 수집 시 사용한 출처와 근거를 레코드에 붙이고, 실제 분석 입력에서 시그널·평가·HTML·digest로 전달한다. 현재 설정으로 과거의 허가를 소급 추정하지 않는다.
+
+다음은 **문법 설명용 가상 예제**이며 실제 사용 허가는 아니다. 운영자는 URL별 소유자와 허용 범위를 확인한 값으로 교체해야 한다. 확인할 수 없는 수동 URL이나 사용자 ECOS 시리즈는 설정에서 제외한다.
+
+```yaml
+sources:
+  rss:
+    feeds:
+      - url: "https://example.test/aapl.rss"
+        publisher: "Example publisher"
+        market: "US"
+        symbol: "AAPL"
+        provenance:
+          target: "https://example.test/aapl.rss"
+          author: "Example author"
+          rights_holder: "Example rights holder"
+          source_url: "https://example.test/source"
+          terms_urls: ["https://example.test/terms"]
+          checked_on: "2026-10-25"
+          permissions: [store, analyze, commercial, redistribute, publish_derived]
+          basis: "Replace with the verified grant and applicable conditions."
+          attribution: "Replace with the required source credit."
+```
+
+| 필드 | 검사와 운영자 판단 |
+|---|---|
+| `target` | 수동 RSS는 feed URL, ECOS는 정확한 `ecos:통계코드:주기:항목코드`와 일치 |
+| `author`, `rights_holder` | 작성 기관·권리 소유자를 구분해 기록. `publisher` 표시만으로 대체하지 않음 |
+| `source_url`, `terms_urls` | 공개 HTTP(S) 근거 URL. 하나 이상의 약관 URL 필요. userinfo·일반적인 credential query key는 거부 |
+| `checked_on` | 운영자가 근거를 확인한 날짜. 약관 변경 시 재검토 필요 |
+| `permissions` | 저장·분석·상업적 이용·재배포·파생물 공개의 다섯 사용을 모두 기록해야 함 |
+| `basis`, `attribution` | 허용 판단의 근거와 필요한 출처 표시. 빈 문자열은 거부 |
+
+근거 누락·불일치·잘못된 구조는 키가 없거나 소스가 disabled여도 설정 경계에서 실패한다. 수집 builder와 typed backfill도 SEC mapping refresh, plugin loading, HTTP, 출력 전에 검사한다. 오류에는 잘못된 입력값이나 credential을 출력하지 않는다. 이는 **증빙의 구조 검사**다. 허위로 작성한 허가나 URL의 실제 내용을 자동 검증하는 법률 엔진은 아니다. 외부 source plugin의 별도 권리 계약은 plugin 운영자가 소유한다.
+
+**내장 기준금리 조사 — 2026-10-25 확인.** [ECOS 항목 metadata](https://ecos.bok.or.kr/api/StatisticItemList/sample/json/kr/1/10/722Y001/)에서 `722Y001`, `M`, `0101000`, 한국은행기준금리를 확인했다. 작성 기관은 metadata의 독립 권리 필드가 아니라 [한국은행 기준금리 결정 설명](https://www.bok.or.kr/portal/singl/baseRate/progress.do?dataSeCd=01&menuNo=200656)과 항목 이름으로 판단했다. [ECOS 이용안내](https://ecos.bok.or.kr/)는 한국은행 작성 통계의 출처 표시를 전제로 상업적 이용·가공·재배포를 허용하고, 타 기관 작성 통계의 상업적 이용에는 작성 기관 승인을 요구한다. [API 약관](https://ecos.bok.or.kr/api/)은 이 안내를 적용한다. [한국은행 저작권 정책](https://www.bok.or.kr/portal/main/contents.do?menuNo=200228)의 출처 및 가공 사실 표시를 HTML/digest에 반영한다. 이 판단을 모든 ECOS 시리즈로 확대하지 않는다. API 약관 응답의 개정일은 확인일과 구분한다.
+
+**내장 RSS.** 기본 SEC feed, 정적 catalog, SEC company feed 생성기는 실제 URL과 코드 경로를 `rss_builtin`으로 저장한다. 이것은 공식 발견 경로의 증거이며 사용 권리 승인은 **미검증**으로 표시한다. YAML은 내장 marker를 지정할 수 없고 marker는 원래 URL에 묶인다. 같은 URL을 수동 `feeds`에 넣으면 위 근거가 필요하다. 제목·요약만 저장한다는 제한 자체도 사용 허가를 대신하지 않는다.
+
+**저장과 파생 결과.** raw snapshot은 normalize와 JSONL을 거쳐 사용한 시그널 입력에만 붙는다. 뉴스 기준 기간, LLM headline cap, 평가의 유효 forward bar를 통과한 관측치의 근거만 전달한다. 설정 A로 만든 결과를 설정 B에서 읽어도 A의 출처가 남는다. HTML은 text를 escape하고 공개 근거 URL만 링크한다. digest가 Telegram 길이 제한을 넘으면 출처를 자르지 않고 전송을 보류하며 전체 HTML은 저장한다. 실제 유료 LLM·Telegram 호출은 이 검증에 사용하지 않았다.
+
+기존 원자료·결과는 읽을 수 있다. 다만 출처가 없는 기존 ECOS/RSS 원자료는 새 source-aware 시그널에서 제외한다. `macro_regime`·`news_volume`·`llm_sentiment`에 `attributions` 필드가 없는 기존 insight와 이 세 시그널의 출처 필드가 없는 기존 per-signal 평가 bucket과 입력을 복원할 수 없는 기존 종합 평가 bucket은 새 평가·리포트에서 제외한다. 가격·공시·외부 plugin의 기존 per-signal bucket은 유지한다. 필드 부재를 자동으로 `[]`로 바꾸지 않는다. 새 plugin 입력처럼 이 경계 밖의 자료는 명시적인 빈 목록을 사용할 수 있다. 현재 허용된 입력으로 결과를 재생성해야 한다. 기존 RSS key와 first-write-wins, ECOS key·파티션·개정 정책은 유지하므로 재수집만으로 오래된 RSS 레코드가 업그레이드되지는 않는다. 기존 데이터의 자동 삭제·재작성은 수행하지 않는다.
+
+| 선택지 | 판단 |
+|---|---|
+| 현재 설정으로 report footer 생성 | 과거 출처·권리 변경을 숨기므로 제외 |
+| 외부 권리 registry와 join | 별도 저장소·가용성·revision 관리가 필요해 현재 규모에는 제외 |
+| 레코드별 작은 snapshot | JSONL 중복 크기는 늘지만 과거 입력을 독립적으로 읽고 재현할 수 있어 선택 |
+
+개념 참고는 로컬 Codex checkout `970111f6cb62cc02fe36a82ea7d71b37a2889c97`의 [실제 turn context snapshot](https://github.com/openai/codex/blob/970111f6cb62cc02fe36a82ea7d71b37a2889c97/codex-rs/core/src/session/turn_context.rs#L903-L928)이다. 실행 당시 정보를 기록한다는 원리만 참고했다. Codex 코드·의존성을 복사하지 않았고, 새 session에서는 일부 현재 설정이 다시 적용되므로 전체 설정 동결이라고 해석하지 않는다. Mimir의 target별 사용 근거와 파생 출처 전달은 별도 구현이다. 해당 SHA는 조사한 로컬 버전이며 최신 remote 확인이나 성능 비교 결과는 아니다.
+
+재현 검사는 `tests/core/test_source_provenance.py`, `test_provenance_review_regressions.py`, `tests/analysis/test_source_attribution.py`가 소유한다. 가상 근거·fake HTTP로 누락 거부, credential 비노출, 과거 저장 호환, 실제 입력의 출처 전달을 검사한다. 실제 약관의 미래 유효성이나 운영 환경 전체를 증명하지 않는다.
 
 ---
 

@@ -20,10 +20,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    SerializerFunctionWrapHandler,
+    ValidationError,
+    model_serializer,
+    model_validator,
+)
 
 from mimir.analysis.schema import Insight
 from mimir.core.errors import PayloadSchemaError
+from mimir.core.provenance import SourceProvenance
 from mimir.core.source import Dataset
 from mimir.evaluation.schema import BucketStat
 from mimir.historical.schema import HistoricalInsight
@@ -38,6 +46,15 @@ if TYPE_CHECKING:
 
 class _Payload(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
+
+    @model_serializer(mode="wrap")
+    def _serialize(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        # Preserve legacy payload bytes; absence must not invent provenance.
+        for field in ("provenance", "feed_url"):
+            if field not in self.model_fields_set:
+                data.pop(field, None)
+        return data
 
 
 # --- PRICES (stooq + pykrx, single shape) ---
@@ -59,6 +76,18 @@ class EcosMacroPayload(_Payload):
     value: float
     unit: str | None
     time: str  # "YYYYMM" etc., ECOS raw string
+    provenance: SourceProvenance | None = None
+
+    @model_validator(mode="after")
+    def _provenance_target(self) -> EcosMacroPayload:
+        if self.provenance is not None:
+            parts = self.provenance.target.split(":")
+            if (
+                self.provenance.origin != "ecos" or len(parts) != 4 or parts[0] != "ecos"
+                or parts[1] != self.stat_code or parts[3] != self.item_code
+            ):
+                raise ValueError("macro provenance target does not match payload")
+        return self
 
 
 MacroPayload = EcosMacroPayload
@@ -72,6 +101,17 @@ class NewsPayload(_Payload):
     market: str  # "US" | "KR" | "GLOBAL" (distinct from envelope market)
     published_at: str | None
     summary: str  # may be "", never None (rss.py: `(... or "")[:SUMMARY_MAX]`)
+    feed_url: str | None = None
+    provenance: SourceProvenance | None = None
+
+    @model_validator(mode="after")
+    def _provenance_target(self) -> NewsPayload:
+        if self.provenance is not None and (
+            self.provenance.origin not in {"rss_manual", "rss_builtin"}
+            or self.provenance.target != self.feed_url
+        ):
+            raise ValueError("news provenance target does not match feed URL")
+        return self
 
 
 # --- FILINGS (source-specific) ---

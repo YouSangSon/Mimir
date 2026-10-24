@@ -9,7 +9,7 @@ from mimir.analysis.schema import Insight
 from mimir.analysis.signals.base import SignalDirection
 from mimir.evaluation.schema import BucketStat
 from mimir.historical.schema import HistoricalInsight
-from mimir.report.html import REPORT_CSS, VIEWPORT_META, render_table, stars
+from mimir.report.html import REPORT_CSS, VIEWPORT_META, render_attributions, render_table, stars
 from mimir.report.i18n import DEFAULT_LANG, normalize_lang, t
 
 DEFAULT_REPORTS_ROOT = Path("reports")
@@ -111,7 +111,9 @@ def build_report_html(
 ) -> str:
     lang = normalize_lang(lang)
     cadence = html.escape(cadence)
-    ordered = sorted(insights, key=lambda i: (-i.stars, i.symbol))
+    ordered = sorted(
+        (i for i in insights if i.source_evidence_ready), key=lambda i: (-i.stars, i.symbol)
+    )
     if ordered:
         body = "\n".join(_card(i, lang) for i in ordered)
     else:
@@ -126,8 +128,12 @@ def build_report_html(
         historical_section = f"<h2>{t('historical_section_heading', lang)}</h2>\n{cards}"
     else:
         historical_section = ""
-    eval_buckets = evaluation or []
+    eval_buckets = [b for b in (evaluation or []) if b.source_evidence_ready]
     evaluation_section = _evaluation_section(eval_buckets, lang) if eval_buckets else ""
+    attributions = render_attributions(
+        [p for i in ordered for s in i.signals for p in s.attributions]
+        + [p for b in eval_buckets for p in b.attributions], lang,
+    )
     return f"""<!doctype html>
 <html lang="{lang}"><head><meta charset="utf-8">{VIEWPORT_META}
 <title>{t("report_page_title", lang, cadence=cadence, date=as_of.isoformat())}</title>
@@ -138,6 +144,7 @@ def build_report_html(
 {body}
 {historical_section}
 {evaluation_section}
+{attributions}
 <p class="dis">{t("disclaimer_report", lang)}</p>
 </main></body></html>"""
 

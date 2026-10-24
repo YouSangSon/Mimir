@@ -52,6 +52,8 @@ class NewsMentionMatcher:
         return tuple(terms)
 
     def mentions(self, record: Record, symbol: str) -> bool:
+        if record.source == "rss" and news_payload(record).provenance is None:
+            return False  # Legacy rows do not identify their original feed path.
         if record.symbol == symbol:
             return True
         payload = news_payload(record)

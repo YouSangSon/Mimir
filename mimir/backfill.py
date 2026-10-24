@@ -21,6 +21,7 @@ from mimir.config import (
 from mimir.core.builder import SourceSpec, build_sources, load_source_specs
 from mimir.core.errors import NormalizationError
 from mimir.core.normalize import normalize
+from mimir.core.provenance import ProvenanceError
 from mimir.core.source import Cadence, FetchContext
 from mimir.manifest.manifest import Manifest, SourceResult
 from mimir.settings import Settings
@@ -87,12 +88,16 @@ def run_backfill(
     now: datetime | None = None,
 ) -> int:
     now = now or datetime.now(UTC)
+    try:
+        runtime = (
+            sources_config
+            if isinstance(sources_config, RuntimeSourcesConfig)
+            else parse_runtime_sources_config(sources_config or {})
+        )
+        runtime.source_config.validate_provenance()
+    except ProvenanceError as exc:
+        raise SourcesConfigError(str(exc)) from None
     settings = Settings.from_env(env)
-    runtime = (
-        sources_config
-        if isinstance(sources_config, RuntimeSourcesConfig)
-        else parse_runtime_sources_config(sources_config or {})
-    )
     specs = load_source_specs()
     spec = _source_spec_for_id(specs, source_id)
     if spec is None:

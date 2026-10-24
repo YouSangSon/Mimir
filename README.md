@@ -13,7 +13,7 @@ stores it as time series in the repo (git-as-DB), and turns it into ⭐ star-rat
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-701%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-746%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -114,17 +114,17 @@ Built-in adapters require no paid subscription, but availability or an `official
 | Source | Market | Dataset | Cadence | Auth | Legality |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **SEC EDGAR** | 🇺🇸 US | filings (10-K/Q · 8-K) | daily | User-Agent only (no signup) | ✅ Official (scripted access explicitly allowed) |
-| **RSS** | 🌐 | news headlines | hourly | None | Built-in catalog entries are official; manual URLs require operator review |
+| **RSS** | 🌐 | news headlines | hourly | None | Built-in routes record official discovery, with rights unverified; manual URLs require usage evidence |
 | **Stooq** | 🇺🇸 US | EOD prices (OHLCV) | daily | Free `apikey` (issued via captcha) | ✅ Free |
 | **DART** | 🇰🇷 KR | filings | daily | Free API key | ✅ Official |
-| **ECOS** | 🇰🇷 KR | macro time series | daily | Free API key | Runtime supported; built-in/custom-series provenance and rights remain unverified |
+| **ECOS** | 🇰🇷 KR | macro time series | daily | Free API key | Evidence recorded for the exact default monthly BOK rate; custom series require usage evidence |
 | **pykrx** | 🇰🇷 KR | OHLCV prices | daily | None (`pip install -e '.[kr]'`) | ⚠️ Gray (scraping) |
 
 With no keys or packages, only **SEC EDGAR + RSS** work right away. Adding free keys turns on Stooq/DART/ECOS, and installing the `[kr]` extra turns on pykrx. `yfinance` (Yahoo) is excluded as a primary price source because its ToS prohibits automated collection.
 
 > **FRED removal:** Built-in FRED support has been removed because the current [FRED Services Terms](https://fred.stlouisfed.org/legal/terms/) and [FRED API Terms of Use](https://fred.stlouisfed.org/docs/api/terms_of_use.html) conflict with Mimir's software/ML-connected persistent collection model; attribution alone does not cure that conflict. Re-enable only after written permission for the intended use and verification of each series owner's rights, then implement every applicable notice, terms, privacy, and citation obligation. Existing installations should stop collection and use, identify raw and derived FRED artifacts, and may quarantine them temporarily; deletion or rebuild requires explicit operator approval.
 
-Manual `sources.rss.feeds` URLs are operator-provided. Mimir does not verify their ownership or terms, so the operator remains responsible for confirming permission before collection and use.
+Every manual `sources.rss.feeds` URL requires target-specific owner, terms, permission, date and attribution evidence. Mimir checks completeness before side effects; the operator verifies legal facts. Stored input snapshots follow signals, evaluations and reports. See the [source evidence contract](docs/reference/config/sources.md#44-출처와-사용-근거의-저장-경계).
 
 ---
 
@@ -183,8 +183,8 @@ Adding a built-in source is done with a single adapter in `sources/` plus one `S
 | Boundary | Behavior |
 | :--- | :--- |
 | **Per-source legality** | Each source carries `legal_status` (official/gray) and `rate_limit`; the throttler enforces only `rate_limit`, while `Registry` applies the GRAY-source policy |
-| **Official APIs first** | Official status is metadata, not legal clearance. ECOS runtime support is preserved while built-in/custom-series provenance, authoring institution, controlling terms, commercial-use rights, attribution, and derived-output obligations remain the finite `ECOS-PROVENANCE-RIGHTS-BOUNDARY` verification |
-| **Manual RSS** | Operators must verify the ownership, terms, and permitted use of every manual `sources.rss.feeds` URL |
+| **Official APIs first** | Official status is metadata, not legal clearance. `ECOS-PROVENANCE-RIGHTS-BOUNDARY` records evidence only for the exact default monthly BOK rate; custom series need target-specific evidence. See the source evidence contract |
+| **Manual RSS** | Every manual URL requires recorded usage evidence; structural validation does not verify legal truth |
 | **GRAY toggle** | pykrx (scraping) is throttled, retried with short backoff, and limited to internal analysis; it can be blocked via `gray_enabled: false` in `sources.yaml` |
 | **Secret separation** | All keys/tokens live only in `.env` (local) and Actions Secrets (CI); never committed |
 | **No silent failures** | `collect` and `backfill` failures are recorded in the manifest and signaled with a non-zero exit — never swallowed quietly |
@@ -232,7 +232,7 @@ Each command also keeps its module form, for example `.venv/bin/python -m mimir.
 
 | Item | Value |
 | :--- | :--- |
-| **Tests** | 701 passing (adapters verified with recorded fixtures, no network) |
+| **Tests** | 746 passing (adapters verified with recorded fixtures, no network) |
 | **Coverage** | `mimir/` 97% (gate 80%) |
 | **lint/type** | ruff + mypy (`pyproject.toml` strict config) clean |
 | **CI** | `.github/workflows/ci.yml` — lint · type · test · coverage on every push/PR |

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from collections.abc import Mapping
 from datetime import UTC, date, datetime
@@ -26,12 +27,13 @@ from mimir.report.daily_report import (
 )
 from mimir.report.digest import build_digest
 from mimir.report.i18n import DEFAULT_LANG
-from mimir.report.telegram import send_ping
+from mimir.report.telegram import MAX_MESSAGE, send_ping
 from mimir.settings import Settings
 from mimir.storage.jsonl_store import JsonlStore
 from mimir.storage.paths import DEFAULT_ROOT
 from mimir.storage.reader import DataReader
 
+logger = logging.getLogger(__name__)
 
 class DeliveryResult(dict[str, Any]):
     pass
@@ -54,6 +56,13 @@ def run_deliver(
     historical = [HistoricalInsight.model_validate(r.payload) for r in hist_records]
     eval_records = reader.read(Dataset.EVALUATION, since=as_of, until=as_of)
     evaluation = [BucketStat.model_validate(r.payload) for r in eval_records]
+    admissible = [ins for ins in insights if ins.source_evidence_ready]
+    current_evaluation = [bucket for bucket in evaluation if bucket.source_evidence_ready]
+    if len(admissible) != len(insights) or len(current_evaluation) != len(evaluation):
+        logger.warning(
+            "legacy derived results omitted: source evidence is absent; regenerate first"
+        )
+    insights, evaluation = admissible, current_evaluation
 
     html_doc = build_report_html(
         insights, as_of, cadence, historical=historical, evaluation=evaluation, lang=lang
@@ -63,9 +72,14 @@ def run_deliver(
 
     settings = Settings.from_env(env)
     digest = build_digest(insights, cadence, as_of, lang=lang)
-    sent = send_ping(
-        bot_token=settings.telegram_bot_token, chat_id=settings.telegram_chat_id, text=digest
-    )
+    if len(digest) > MAX_MESSAGE:
+        # Truncation could remove mandatory attribution; keep the complete HTML.
+        logger.warning("digest not sent: complete content exceeds Telegram message limit")
+        sent = False
+    else:
+        sent = send_ping(
+            bot_token=settings.telegram_bot_token, chat_id=settings.telegram_chat_id, text=digest
+        )
     return DeliveryResult(
         report=report_path,
         insights=len(insights),

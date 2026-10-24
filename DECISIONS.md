@@ -3,6 +3,10 @@
 This file records durable loop-level decisions. Canonical domain tech specs live
 in `docs/decisions/tech-spec/README.md`.
 
+## 2026-10-25 — SOURCE PROVENANCE
+
+`ECOS-PROVENANCE-RIGHTS-BOUNDARY` / `MANUAL-RSS-LEGAL-OWNERSHIP` use snapshots attached to actual stored inputs. A current-config footer would rewrite past provenance; an external rights registry adds storage/version coordination at this scale. Inline snapshots preserve historical evidence at the cost of repeated JSONL metadata. Completeness checks do not decide legal truth. Only the exact default BOK monthly rate has built-in researched rights; code-owned RSS routes retain unverified discovery evidence. Missing legacy evidence stays distinct from a new explicit empty list, so old results cannot silently become newly publishable. Detailed research, alternatives, compatibility and Codex concept-only reference have one owner: [sources §4.4](docs/reference/config/sources.md#44-출처와-사용-근거의-저장-경계).
+
 ## 2026-10-25 — DELIVERY-CADENCE-CONTRACT
 
 Keep cadence handling in the existing runtime path. Prove all four supported
@@ -81,16 +85,7 @@ FRED artifacts, and may quarantine them temporarily. Deletion or rebuild is a
 separate destructive action requiring explicit operator approval. This checkout
 contained no tracked or local `data/` or `reports/` files, so none were deleted.
 
-Follow-ups:
-
-- `ECOS-PROVENANCE-RIGHTS-BOUNDARY`: preserve runtime support while verifying
-  the built-in default and every custom series' provenance, authoring
-  institution, controlling terms, commercial-use rights, attribution, and
-  derived-output obligations.
-- `MANUAL-RSS-LEGAL-OWNERSHIP`: operator responsibility is already documented;
-  inventory every configured URL, record publisher/owner, controlling terms,
-  permission/commercial-use decision and evidence date, reject or remove
-  unverifiable URLs, and guard that every manual URL has a provenance record.
+Follow-ups were implemented on 2026-10-25 as `ECOS-PROVENANCE-RIGHTS-BOUNDARY` and `MANUAL-RSS-LEGAL-OWNERSHIP`; see the current source-provenance decision above. Their structural checks are not blanket legal clearance.
 
 ## 2026-06-29 — CAPTURED-INDEX-MEASUREMENT-RECHECK
 

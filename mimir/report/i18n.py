@@ -8,6 +8,15 @@ LANGS = ("en", "ko", "zh")
 
 STRINGS: dict[str, dict[str, str]] = {
     "en": {
+        "attribution_heading": "Sources and processing",
+        "attribution_processed": (
+            "Processed and analyzed by Mimir; "
+            "these signals are not issued by the source institutions."
+        ),
+        "attribution_unverified": "Rights unverified; built-in feed discovery only.",
+        "attribution_recorded": (
+            "Usage evidence recorded on {date}; author: {author}; rights holder: {holder}."
+        ),
         "report_page_title": "Mimir {cadence} report {date}",
         "report_heading": "🧭 Mimir — {cadence} report",
         "report_meta_insight_count": "{count} insight(s)",
@@ -96,6 +105,12 @@ STRINGS: dict[str, dict[str, str]] = {
         "dashboard_no_data": "No data yet.",
     },
     "ko": {
+        "attribution_heading": "출처와 가공",
+        "attribution_processed": (
+            "Mimir가 가공·분석한 결과이며 출처 기관이 발행한 시그널이 아닙니다."
+        ),
+        "attribution_unverified": "권리 미검증: 내장 피드 발견 경로만 확인했습니다.",
+        "attribution_recorded": "이용 근거 확인일: {date}; 작성 기관: {author}; 권리자: {holder}.",
         "report_page_title": "Mimir {cadence} 리포트 {date}",
         "report_heading": "🧭 Mimir — {cadence} 리포트",
         "report_meta_insight_count": "인사이트 {count}건",
@@ -184,6 +199,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "dashboard_no_data": "아직 데이터가 없습니다.",
     },
     "zh": {
+        "attribution_heading": "来源与加工",
+        "attribution_processed": "由 Mimir 加工和分析；这些信号并非来源机构发布。",
+        "attribution_unverified": "权利未验证；仅确认内置订阅源的发现路径。",
+        "attribution_recorded": "使用依据记录日期：{date}；作者：{author}；权利人：{holder}。",
         "report_page_title": "Mimir {cadence} 报告 {date}",
         "report_heading": "🧭 Mimir — {cadence} 报告",
         "report_meta_insight_count": "{count} 条洞察",

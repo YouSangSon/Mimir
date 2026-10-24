@@ -33,11 +33,12 @@ llm_sentiment_max_headlines: 50   # per-run cap on newly classified headlines (c
 #
 # sources:
 #   ecos:
-#     # Bank of Korea ECOS series. Default: BOK base rate (722Y001 / 0101000).
+#     # Bank of Korea ECOS series. Default: BOK base rate (722Y001 / M / 0101000).
 #     series:
 #       - { stat_code: "722Y001", cycle: "M", item_code: "0101000" }   # base rate
 #   rss:
-#     # Static, verified feed catalog. The resolver is local/no-network.
+#     # Static official discovery catalog; usage rights remain unverified.
+#     # The resolver is local/no-network.
 #     # Unknown catalog IDs fail fast instead of silently falling back.
 #     catalogs:
 #       - { id: "sec_press_releases" }
@@ -56,14 +57,10 @@ llm_sentiment_max_headlines: 50   # per-run cap on newly classified headlines (c
 #       ticker_cik_map_path: "company_tickers.json"
 #       company_filings:
 #         - { ticker: "AAPL", symbol: "AAPL", forms: ["10-K", "10-Q", "8-K"] }
-#     # Official, headline/metadata-only feeds. Default: SEC press releases.
-#     # Add `symbol` for per-symbol feeds; news_volume and opt-in llm_sentiment
-#     # will count that feed's headlines for the symbol even when the title has no ticker.
-#     # Manual feeds are appended after catalog feeds. Duplicate (url, symbol)
-#     # pairs fail instead of being silently deduped.
-#     feeds:
-#       - { url: "https://www.sec.gov/news/pressreleases.rss", publisher: "SEC", market: "US" }
-#       - { url: "https://example.com/aapl.rss", publisher: "Example", market: "US", symbol: "AAPL" }
+#     # Manual feeds require target-specific usage evidence, even for SEC URLs.
+#     # See docs/reference/config/sources.md section 4.4 for the full template.
+#     # They append after catalog feeds; duplicate (url, symbol) pairs fail.
+#     feeds: []
 #   plugins:
 #     # External source plugins read their own block by SourceSpec.id.
 #     # Keep secrets in environment variables / GitHub Secrets, not in this file.

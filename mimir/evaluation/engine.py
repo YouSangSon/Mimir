@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import UTC, date, datetime
 
 from mimir.analysis.schema import Insight
+from mimir.core.provenance import unique_provenance
 from mimir.core.source import Dataset, Market
 from mimir.evaluation.metrics import Obs, anchor_index, evaluate_bucket
 from mimir.evaluation.schema import EvaluationReport, to_record
@@ -26,6 +27,7 @@ class EvaluationEngine:
             Insight.model_validate(r.payload)
             for r in self._reader.read(Dataset.INSIGHTS, until=as_of)
         ]
+        insights = [ins for ins in insights if ins.source_evidence_ready]
         bars_by_symbol = self._load_bars(until=as_of)
 
         acc: dict[BucketKey, list[Obs]] = defaultdict(list)
@@ -68,11 +70,16 @@ class EvaluationEngine:
         acc: dict[BucketKey, list[Obs]], ins: Insight, series: list[Bar], anchor: int
     ) -> None:
         market = ins.market
+        attributions = tuple(unique_provenance(p for s in ins.signals for p in s.attributions))
         # per-direction / per-star: scored by the insight's aggregate direction
         acc[("per_direction", ins.direction.value, market)].append(
-            Obs(series, anchor, ins.direction)
+            Obs(series, anchor, ins.direction, attributions)
         )
-        acc[("per_star", str(ins.stars), market)].append(Obs(series, anchor, ins.direction))
+        acc[("per_star", str(ins.stars), market)].append(
+            Obs(series, anchor, ins.direction, attributions)
+        )
         # per-signal: each composing signal contributes with ITS OWN direction
         for sig in ins.signals:
-            acc[("per_signal", sig.signal, market)].append(Obs(series, anchor, sig.direction))
+            acc[("per_signal", sig.signal, market)].append(
+                Obs(series, anchor, sig.direction, tuple(sig.attributions))
+            )

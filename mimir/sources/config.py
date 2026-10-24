@@ -5,6 +5,7 @@ from typing import Any, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from mimir.core.provenance import ProvenanceError, ecos_provenance, require_rights
 from mimir.report.i18n import DEFAULT_LANG, normalize_lang
 from mimir.sources.ecos import EcosSeries
 from mimir.sources.rss import RssFeed
@@ -55,6 +56,22 @@ class SourcesConfig(BaseModel):
     llm_sentiment_enabled: bool = False
     llm_sentiment_max_headlines: int = Field(default=50, ge=1, le=50)
     analysis_plugin_settings: dict[str, dict[str, Any]] = Field(default_factory=dict)
+
+    def validate_provenance(self) -> None:
+        """Recheck mutable/programmatic input before refresh, plugins or factories."""
+        try:
+            for series in self.ecos_series or ():
+                ecos_provenance(
+                    series.stat_code, series.cycle, series.item_code, series.provenance
+                )
+            for feed in self.rss_feeds or ():
+                # Even an identical built-in URL is manual on this input path.
+                require_rights(feed.url, feed.provenance)
+                feed.snapshot()
+        except ValueError:
+            raise ProvenanceError(
+                "source provenance requires target-specific, complete usage evidence"
+            ) from None
 
     def plugin_config(self, source_id: str) -> dict[str, Any]:
         """Return a copy of the plugin config block for ``source_id``."""
@@ -152,7 +169,7 @@ class RuntimeSourcesConfig(BaseModel):
 def _source_config_from_top_level(top_level: _TopLevelSourcesConfig) -> SourcesConfig:
     block = top_level.sources or _SourcesBlock()
     news_block = top_level.analysis.news if top_level.analysis and top_level.analysis.news else None
-    return SourcesConfig(
+    config = SourcesConfig(
         ecos_series=block.ecos.series if block.ecos else None,
         rss_feeds=block.rss.feeds if block.rss else None,
         rss_catalogs=block.rss.catalogs if block.rss else None,
@@ -183,6 +200,8 @@ def _source_config_from_top_level(top_level: _TopLevelSourcesConfig) -> SourcesC
         llm_sentiment_enabled=top_level.llm_sentiment_enabled,
         llm_sentiment_max_headlines=top_level.llm_sentiment_max_headlines,
     )
+    config.validate_provenance()
+    return config
 
 
 def parse_sources_config(raw: dict[str, Any]) -> SourcesConfig:

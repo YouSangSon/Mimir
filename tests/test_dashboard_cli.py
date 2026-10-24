@@ -66,6 +66,7 @@ def _seed(data_root: Path) -> None:
             eval_to_record(
                 BucketStat(
                     dimension="per_signal",
+                    attributions=[],
                     key="momentum",
                     market=Market.US,
                     horizons=[

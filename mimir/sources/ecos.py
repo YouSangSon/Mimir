@@ -5,10 +5,11 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 import requests
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from mimir.core.errors import FetchError
 from mimir.core.macro_series import default_ecos_series_specs
+from mimir.core.provenance import UsageRights, ecos_provenance
 from mimir.core.source import (
     Cadence,
     Dataset,
@@ -29,9 +30,12 @@ MAX_PAGES = 100  # safety cap on pagination
 
 
 class EcosSeries(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     stat_code: str
     cycle: str  # D | M | Q | A
     item_code: str
+    provenance: UsageRights | None = None
 
 
 # A small default macro set (Bank of Korea base rate); override via constructor.
@@ -83,7 +87,9 @@ class EcosSource(BaseSource):
     ) -> None:
         super().__init__(session=session, throttle=throttle)
         self._api_key = api_key
-        self._series = series or list(DEFAULT_SERIES)
+        self._series = [s.model_copy(deep=True) for s in (series or DEFAULT_SERIES)]
+        for s in self._series:
+            ecos_provenance(s.stat_code, s.cycle, s.item_code, s.provenance)
 
     def fetch(self, ctx: FetchContext) -> Iterable[RawRecord]:
         start = ctx.backfill_since or date(ctx.now.year - 1, 1, 1)
@@ -151,5 +157,8 @@ class EcosSource(BaseSource):
                 "value": float(value),
                 "unit": row.get("UNIT_NAME"),
                 "time": t,
+                "provenance": ecos_provenance(
+                    s.stat_code, s.cycle, s.item_code, s.provenance
+                ).model_dump(mode="json"),
             },
         )

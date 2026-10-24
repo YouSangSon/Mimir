@@ -283,6 +283,7 @@ def build_sources(
             "Set it to e.g. 'Your Name you@example.com'."
     )
     try:
+        (config or SourcesConfig()).validate_provenance()
         cfg = _config_with_sec_watchlist_company_filings(config or SourcesConfig(), watchlist)
     except ValueError as exc:
         raise SourcesConfigError(str(exc)) from exc

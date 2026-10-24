@@ -5,6 +5,8 @@ from datetime import date, timedelta
 
 from mimir.analysis.signals.base import SignalDirection, SignalResult
 from mimir.analysis.signals.news_matching import NewsMentionMatcher
+from mimir.core.payloads import news_payload
+from mimir.core.provenance import unique_provenance
 from mimir.core.source import Dataset, Market
 from mimir.storage.reader import DataReader
 
@@ -43,4 +45,5 @@ class NewsVolumeSignal:
             confidence=0.5,
             reason=f"{len(today)} news mention(s) today vs ~{base_daily:.1f}/day baseline",
             weight=WEIGHT,
+            attributions=unique_provenance(news_payload(r).provenance for r in [*today, *base]),
         )

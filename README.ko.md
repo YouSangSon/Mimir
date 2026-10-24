@@ -13,7 +13,7 @@ repo에 시계열로 저장(git-as-DB)하고, ⭐별점 인사이트와 일일 �
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-701%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-746%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -114,17 +114,17 @@ reports/status.html               # 소스별 수집 현황
 | 소스 | 시장 | 데이터셋 | cadence | 인증 | 합법성 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **SEC EDGAR** | 🇺🇸 US | filings (10-K/Q·8-K) | daily | User-Agent만 (가입 불필요) | ✅ 공식(스크립트 접근 명시 허용) |
-| **RSS** | 🌐 | news 헤드라인 | hourly | 불필요 | 내장 catalog는 공식 feed; 수동 URL은 운영자 검토 필요 |
+| **RSS** | 🌐 | news 헤드라인 | hourly | 불필요 | 내장 경로는 공식 발견 증거, 권리는 미검증; 수동 URL은 사용 근거 필수 |
 | **Stooq** | 🇺🇸 US | EOD 가격(OHLCV) | daily | 무료 `apikey`(캡차 발급) | ✅ 무료 |
 | **DART** | 🇰🇷 KR | 공시 | daily | 무료 API 키 | ✅ 공식 |
-| **ECOS** | 🇰🇷 KR | 거시 시계열 | daily | 무료 API 키 | runtime 지원 유지; 내장/사용자 시리즈 provenance·권리는 미검증 |
+| **ECOS** | 🇰🇷 KR | 거시 시계열 | daily | 무료 API 키 | 정확한 기본 월간 기준금리 근거 기록; 사용자 시리즈는 사용 근거 필수 |
 | **pykrx** | 🇰🇷 KR | OHLCV 가격 | daily | 불필요 (`pip install -e '.[kr]'`) | ⚠️ 그레이(스크래핑) |
 
 키·패키지가 없으면 **SEC EDGAR + RSS**만 즉시 동작한다. 무료 키를 넣으면 Stooq/DART/ECOS가 켜지고, `[kr]` extra를 설치하면 pykrx가 켜진다. `yfinance`(야후)는 ToS가 자동수집을 금지하므로 1차 가격원에서 제외했다.
 
 > **FRED 제거:** 내장 FRED 지원은 제거되었습니다. 현재 [FRED Services Terms](https://fred.stlouisfed.org/legal/terms/)와 [FRED API Terms of Use](https://fred.stlouisfed.org/docs/api/terms_of_use.html)가 Mimir의 software/ML 연계 영구 수집 모델과 충돌하며, 출처 표시만으로 이 충돌이 해소되지는 않는다. 의도한 사용에 대한 서면 허가와 각 시리즈 소유자의 권리를 확인한 뒤, 적용되는 고지·약관·개인정보·인용 의무를 모두 구현한 경우에만 다시 활성화한다. 기존 설치는 수집과 사용을 멈추고 FRED 원본·파생 산출물을 식별해야 한다. 임시 격리는 가능하지만 삭제나 재구축에는 운영자의 명시적 승인이 필요하다.
 
-수동 `sources.rss.feeds` URL은 운영자가 제공한다. Mimir가 소유권이나 약관을 검증하지 않으므로, 수집·사용 전 허용 여부 확인은 운영자 책임이다.
+모든 수동 `sources.rss.feeds` URL에는 대상별 소유자·약관·허용 판단·확인일·출처 표시 근거가 필요하다. Mimir는 부수 효과 전에 완전성을 검사하고, 운영자가 법적 사실을 확인한다. 저장된 입력의 출처는 시그널·평가·리포트로 전달한다. [출처 증빙 계약](docs/reference/config/sources.md#44-출처와-사용-근거의-저장-경계)을 참고한다.
 
 ---
 
@@ -183,8 +183,8 @@ flowchart LR
 | 경계 | 동작 |
 | :--- | :--- |
 | **소스 단위 합법성** | 각 소스가 `legal_status`(official/gray)·`rate_limit`을 메타로 가진다. 스로틀러는 `rate_limit`만 강제하고 `Registry`가 GRAY 소스 정책을 적용 |
-| **공식 API 우선** | 공식 표시는 법적 허가가 아니다. ECOS runtime 지원은 유지하지만 내장/사용자 시리즈의 provenance, 작성 기관, 적용 약관, 상업적 이용 권리, attribution, 파생 산출물 의무는 `ECOS-PROVENANCE-RIGHTS-BOUNDARY`에서 유한하게 검증할 미해결 범위 |
-| **수동 RSS** | 운영자가 모든 수동 `sources.rss.feeds` URL의 소유권·약관·허용된 사용을 확인해야 함 |
+| **공식 API 우선** | 공식 표시는 법적 허가가 아니다. `ECOS-PROVENANCE-RIGHTS-BOUNDARY`는 정확한 기본 월간 기준금리에만 조사 근거를 기록한다. 사용자 시리즈에는 대상별 근거가 필요하며 자세한 범위는 출처 증빙 계약을 따른다 |
+| **수동 RSS** | 모든 수동 URL에 사용 근거 필수. 구조 검사는 법적 사실의 자동 검증이 아님 |
 | **GRAY 토글** | pykrx(스크래핑)는 스로틀 + 짧은 backoff 재시도 + 내부분석 한정, `sources.yaml`의 `gray_enabled: false`로 차단 가능 |
 | **시크릿 분리** | 모든 키/토큰은 `.env`(로컬)·Actions Secrets(CI)로만, 커밋 금지 |
 | **무침묵 실패** | `collect`와 `backfill` 실패는 매니페스트에 기록하고 비제로 종료로 신호 — 조용히 삼키지 않음 |
@@ -232,7 +232,7 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 
 | 항목 | 값 |
 | :--- | :--- |
-| **테스트** | 701 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
+| **테스트** | 746 passing (어댑터는 녹화 픽스처로 네트워크 없이 검증) |
 | **커버리지** | `mimir/` 97% (게이트 80%) |
 | **lint/type** | ruff + mypy (`pyproject.toml` strict config) clean |
 | **CI** | `.github/workflows/ci.yml` — push/PR마다 lint·type·test·coverage |

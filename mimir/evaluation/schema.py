@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer
 
+from mimir.analysis.signals.base import SOURCE_AWARE_SIGNALS
+from mimir.core.provenance import SourceProvenance
 from mimir.core.source import Dataset, Market
 
 if TYPE_CHECKING:
@@ -30,6 +32,21 @@ class BucketStat(BaseModel):
     key: str  # e.g. "momentum" | "bullish" | "4"
     market: Market
     horizons: list[HorizonEval]
+    attributions: list[SourceProvenance] = Field(default_factory=list)
+
+    @property
+    def source_evidence_ready(self) -> bool:
+        # Legacy aggregates cannot identify inputs; unrelated per-signal rows can.
+        return "attributions" in self.model_fields_set or (
+            self.dimension == "per_signal" and self.key not in SOURCE_AWARE_SIGNALS
+        )
+
+    @model_serializer(mode="wrap")
+    def _serialize(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        if "attributions" not in self.model_fields_set:
+            data.pop("attributions", None)
+        return data
 
 
 class EvaluationReport(BaseModel):
