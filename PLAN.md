@@ -29,34 +29,37 @@ RSS discovery, and new cloud infrastructure remain outside this goal.
 - Current delivery evidence: `GATES.md`
 - Decisions and work evidence: `DECISIONS.md`, `WORKLOG.md`
 
-## Current Loop — ECOS / MANUAL-RSS SOURCE PROVENANCE
+## Current Loop — PORTFOLIO / RUNTIME VERIFICATION
 
-Branch `codex/mimir-source-provenance-20261025`, based on main `3d777bc`
-(PR #17 doc-health CI `40107271983` passed; main tree equals reviewed `9afc8e1`).
-Seven original boundary regressions and five Important review findings have
-reproducing tests and fixes. Source/config/payload/attribution propagation and
-current documentation are implemented. Final scoped units: 680 passed; partial
-source coverage 94%, mypy84/Ruff/diff-check pass. Astra and independent quality
-reviews found no Critical/Important issues. Do not merge before required remote
-CI passes.
+Source provenance merged through PR18 after CI40113216793 passed746 tests,
+production coverage97%, mypy84/Ruff. Main410c876 tree equals reviewed c7c5453.
+The finite code queue is closed; no new feature scope is needed.
 
-Astra design review chose a bounded distinction: custom ECOS and every manual
-RSS require target-specific usage evidence; code-owned SEC discovery routes
-snapshot their actual origin but remain rights-unverified. Legacy source-aware
-results cannot silently gain evidence; unrelated per-signal buckets remain
-usable. The canonical contract and research limits live in
-`docs/reference/config/sources.md` §4.4. Research and local logs are under
-`/tmp/mimir-20261025-{rights,provenance}/`, with the research manifest copied
-to resume evidence.
+Actual installed CLI demo passed16 checks with synthetic data: insight8,
+historical1, evaluation buckets3; invalid date/YAML/missing evidence and empty
+store paths verified. Browser375/1280px, source preservation, keyboard table
+scroll and report link verified. No paid LLM or external delivery was called.
+Evidence is under resume `자료수집/2026-10-25/mimir-portfolio/`; root README
+there maps problems, decisions, PRs, measured facts and limits. The source
+contract remains `docs/reference/config/sources.md` §4.4.
 
-Continue final relevant unit/type/lint/docs/review gates, then commit, required
-CI and main integration. Finish the actual CLI demo and private my-cloud
-verification afterward, then branch/resource cleanup and final evidence audit.
-Provider billing showed 9.9 MB / 3 TB with zero estimated overage, but its last
-aggregation is not real-time and hard blocking is unconfirmed. SSH through
-`my-cloud` to TCP 22 did not establish (SYN_SENT); asked for the current path.
-The owned Orca terminal was closed with confirmed PTY termination. No VM lock,
-workload or local HTTP service is owned. Temporary browser login tabs/server were stopped. No new VM deployment is claimed.
+Remaining required gate: private my-cloud runtime verification. Provider display
+showed9.9MB/3TB and zero estimated overage, with last aggregation2026-10-24
+13:07:39 (timezone unspecified); hard overage blocking is unconfirmed. The
+`my-cloud` SSH connection to TCP22 stayed SYN_SENT. Asked for the current
+connection path. Guest resource/lock/current-version/backup/runtime readiness
+cannot be claimed. Do not deploy until these checks and the shared lock pass.
+
+Owned local HTTP/browser/SSH resources are stopped; no VM lock or workload was
+created. Merged cadence/doc-health/provenance branches were audited and removed;
+historical main, unmerged macro-policy branch and this verification branch are
+preserved. Only the three original user-owned untracked artifacts remain.
+
+When the connection path is available, check current guest services, memory,
+disk, OOM and lock; use a bounded private synthetic CLI smoke, verify exact
+source/artifact/runtime mapping, then stop owned resources and finish the Goal
+review. Without that evidence the VM gate and whole Goal remain incomplete.
+The scheduled stop deadline above still applies.
 
 ## Canonical Sources
 

@@ -18,12 +18,20 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
 - Preserve user-owned untracked files and clean only processes or temporary
   resources created by this loop.
 
-## Current Loop — ECOS / MANUAL-RSS SOURCE PROVENANCE (2026-10-25)
+## Current Loop — PORTFOLIO / RUNTIME VERIFICATION (2026-10-25)
+
+- Actual installed CLI, synthetic/offline data: 16 command checks passed. Prices/news45 each → insights8, historical1, evaluation buckets3. Invalid date exits2; malformed YAML and missing source evidence exit1 without echoing input; failure attempts preserve JSONL hashes. Empty-store report and credential-free Telegram false verified.
+- Browser: actual generated dashboard375px, report1280px; no document overflow, unsafe href or console errors. ArrowRight scrolls a named table; index→report link works; stored publisherA survives current configB. Pages visibly label synthetic values; these are not investment results.
+- Cleanup: owned SSH terminal PTY terminated, local HTTP59682 exited, browser servers/tabs stopped, viewport reset. Three further merged local/remote branches deleted after exact PR/tree/unique-commit/worktree audit. Historical main, unmerged macro-policy branch and active verification branch remain.
+- Durable evidence: resume `자료수집/2026-10-25/mimir-portfolio/{source-provenance,cli-demo,cleanup}/`; no resume push/merge. Temporary demo copies removed only after byte-for-byte evidence verification.
+- VM gate: NOT PASSED. Provider billing display below threshold does not establish guest resource/lock/runtime readiness or hard overage blocking. SSH TCP22 did not establish; browser console opening was not proven. No VM write/deploy/lock/workload. Current connection path requested; no security/billing settings changed.
+
+## Previous Loop — ECOS / MANUAL-RSS SOURCE PROVENANCE (2026-10-25)
 
 - Official research: exact default BOK monthly rate only; target-bound structural evidence for custom ECOS/manual RSS. Canonical contract: `docs/reference/config/sources.md` §4.4. Built-in RSS is unverified discovery evidence.
 - RED: seven original boundaries; review bypass regressions 8 failed / 1 passed; unrelated legacy bucket scope regression failed.
 - Focused GREEN before last scope fix: source/config/payload/builder/catalog 210 passed; actual attribution 8 passed; related analysis/report/CLI 199 passed; final review regressions and render/evaluation units 139 passed.
-- Final scoped local units: 680 passed in 9.51s; their `mimir/*` coverage is 94% (partial scope, not the full-suite metric). Strict mypy: 84 source files clean; Ruff/diff-check pass. Independent Astra final re-review and separate quality review found no Critical/Important issues. Full required free remote CI/main pending.
+- Final scoped local units: 680 passed in 9.51s; their `mimir/*` coverage is 94% (partial scope, not the full-suite metric). Strict mypy: 84 source files clean; Ruff/diff-check pass. Independent Astra final re-review and separate quality review found no Critical/Important issues. Full free remote CI PASS: PR18/run40113216793, 746 tests, production97% (3443 statements/87 missed). Main410c876 tree equals reviewed c7c5453.
 - VM billing screen: 9.9 MB / 3 TB, estimated overage zero; aggregation time 2026-10-24 13:07:39, timezone unspecified. SSH TCP 22 connection did not establish. Owned terminal confirmed closed; no VM lock or workload acquired.
 
 ## Previous Loop — CURRENT-HEALTH-DOC-TRUTH (2026-10-25)
