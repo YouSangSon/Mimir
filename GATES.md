@@ -10,19 +10,28 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
   that source's network or data writes. Existing GRAY-source policy is preserved.
 - Trust-boundary validation, error handling, and accessibility are not optional.
 - Focused tests must prove RED then GREEN for changed behavior.
-- Full pytest, coverage `>=80%`, Ruff, mypy, docs guards, diff-check, secrets
-  scan, independent spec review, and independent quality review must pass.
+- Required CI runs full pytest and coverage `>=80%`. Current user policy limits
+  local execution to relevant lightweight sequential units. Ruff, mypy, docs
+  guards, diff-check, secrets scan and independent required review must pass.
 - Stage and commit only loop-owned files. Never push, deploy, publish, change
   credentials, or perform live-money actions without explicit approval.
 - Preserve user-owned untracked files and clean only processes or temporary
   resources created by this loop.
 
-## Current Loop — CURRENT-HEALTH-DOC-TRUTH (2026-10-25)
+## Current Loop — ECOS / MANUAL-RSS SOURCE PROVENANCE (2026-10-25)
+
+- Official research: exact default BOK monthly rate only; target-bound structural evidence for custom ECOS/manual RSS. Canonical contract: `docs/reference/config/sources.md` §4.4. Built-in RSS is unverified discovery evidence.
+- RED: seven original boundaries; review bypass regressions 8 failed / 1 passed; unrelated legacy bucket scope regression failed.
+- Focused GREEN before last scope fix: source/config/payload/builder/catalog 210 passed; actual attribution 8 passed; related analysis/report/CLI 199 passed; final review regressions and render/evaluation units 139 passed.
+- Final scoped local units: 680 passed in 9.51s; their `mimir/*` coverage is 94% (partial scope, not the full-suite metric). Strict mypy: 84 source files clean; Ruff/diff-check pass. Independent Astra final re-review and separate quality review found no Critical/Important issues. Full required free remote CI/main pending.
+- VM billing screen: 9.9 MB / 3 TB, estimated overage zero; aggregation time 2026-10-24 13:07:39, timezone unspecified. SSH TCP 22 connection did not establish. Owned terminal confirmed closed; no VM lock or workload acquired.
+
+## Previous Loop — CURRENT-HEALTH-DOC-TRUTH (2026-10-25)
 
 - Doc-only changes: source/test tree equality to `848ff80` reuses its 701-test,
   97% production coverage, strict mypy and Ruff evidence.
 - Docs guard: 36 passed; diff-check, source/test equality and independent review pass.
-- Initial docs failures preserved completed-ID/health-owner contracts in the corrected text. CI/main pending.
+- Initial docs failures preserved completed-ID/health-owner contracts in the corrected text. PR #17 CI `40107271983` passed; main `3d777bc` equals reviewed `9afc8e1`.
 - Cadence PR #16: CI `40106816741` passed; main `b902c89` equals reviewed `848ff80`.
 
 ## Previous Loop — DELIVERY-CADENCE-CONTRACT (2026-10-25)

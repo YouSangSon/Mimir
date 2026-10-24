@@ -1,5 +1,13 @@
 # Work Log
 
+## 2026-10-25 — ECOS / MANUAL-RSS SOURCE PROVENANCE
+
+- Added target-bound usage evidence and pre-side-effect guards for custom ECOS and every manual RSS URL. The tracked config has no active custom series or manual URL; only the exact default monthly BOK rate has built-in researched evidence. Official sources, the authoring inference, checked date and limits have one owner in `docs/reference/config/sources.md` §4.4. Built-in RSS records discovery with rights unverified.
+- Stored snapshots follow actual source inputs into signals, eligible evaluation observations, HTML and complete digests. Existing keys, partitions and raw legacy reads remain compatible. Missing legacy source-aware evidence is preserved as missing and omitted from new derived use; unrelated per-signal buckets remain visible. Oversized digest delivery is withheld rather than stripping attribution.
+- Initial seven boundary regressions failed before implementation. Astra review found four Important bypass/legacy issues, reproduced as 8 failed / 1 passed and fixed to 9 passed. Re-review found overly broad legacy bucket filtering; a new renderer regression failed before narrowing the filter. Final scoped units: 680 passed, partial production coverage94%, strict mypy84/Ruff/diff-check pass. Astra and independent quality review found no Critical/Important issue. Required full CI/main pending; detailed gates in `GATES.md`.
+- Provider usage screen showed 9.9 MB / 3 TB and zero estimated overage for 2026-10-23–11-22; last aggregation displayed 2026-10-24 13:07:39 (timezone unspecified), observed after reload on 2026-10-25 KST. Hard overage blocking was not confirmed. `my-cloud` TCP 22 stayed SYN_SENT; the owned Orca terminal was closed with ptyKilled=true. No VM lock, process, file or service was changed. Asked for the current SSH path while continuing local work.
+- Prior doc-health PR #17 passed CI `40107271983`; main `3d777bc` equals reviewed head `9afc8e1`.
+
 ## 2026-10-25 — CURRENT-HEALTH-DOC-TRUTH
 
 - Removed the catalog's stale ~150-line ceiling (current measured maximum: rss_catalog.py, 344 lines) and replaced its exhaustive remaining-work conclusion with canonical BACKLOG/PLAN links.

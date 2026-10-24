@@ -9,6 +9,7 @@ import responses
 from mimir.core.errors import FetchError
 from mimir.core.source import Dataset, FetchContext, LegalStatus, Market
 from mimir.sources.ecos import EcosSeries, EcosSource
+from tests.provenance import synthetic_rights
 
 OK = {
     "StatisticSearch": {
@@ -77,7 +78,14 @@ def test_ecos_parses_quarterly_rows():
         }
     }
     responses.add(responses.GET, URL_RE, body=json.dumps(quarterly), status=200)
-    series = [EcosSeries(stat_code="722Y001", cycle="Q", item_code="0101000")]
+    series = [
+        EcosSeries(
+            stat_code="722Y001",
+            cycle="Q",
+            item_code="0101000",
+            provenance=synthetic_rights("ecos:722Y001:Q:0101000"),
+        )
+    ]
     src = EcosSource(api_key="dummy", series=series, session=requests.Session())
     recs = list(src.fetch(_ctx()))
     assert len(recs) == 1
@@ -106,7 +114,14 @@ def test_ecos_parses_annual_rows():
         }
     }
     responses.add(responses.GET, URL_RE, body=json.dumps(annual), status=200)
-    series = [EcosSeries(stat_code="722Y001", cycle="A", item_code="0101000")]
+    series = [
+        EcosSeries(
+            stat_code="722Y001",
+            cycle="A",
+            item_code="0101000",
+            provenance=synthetic_rights("ecos:722Y001:A:0101000"),
+        )
+    ]
     src = EcosSource(api_key="dummy", series=series, session=requests.Session())
     recs = list(src.fetch(_ctx()))
     assert len(recs) == 1

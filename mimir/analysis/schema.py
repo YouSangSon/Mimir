@@ -31,6 +31,11 @@ class Insight(BaseModel):
     reasons: list[str]
     disclaimer: str = DISCLAIMER
 
+    @property
+    def source_evidence_ready(self) -> bool:
+        # Dropping only one signal would leave its aggregate score/reasons unchanged.
+        return all(signal.source_evidence_ready for signal in self.signals)
+
 
 def to_record(insight: Insight, captured_at: datetime) -> Record:
     # Function-local import breaks the phase-4 cycle: storage.schema imports

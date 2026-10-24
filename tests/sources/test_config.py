@@ -12,6 +12,7 @@ from mimir.sources.config import (
 from mimir.sources.ecos import EcosSeries
 from mimir.sources.rss import RssFeed
 from mimir.sources.rss_catalog import RssCatalogSelection, SecCompanyFilingFeed
+from tests.provenance import synthetic_rights
 
 
 def test_empty_dict_yields_all_none():
@@ -66,12 +67,13 @@ def test_full_block_parses_typed_models():
     raw = {
         "sources": {
             "ecos": {"series": [{"stat_code": "722Y001", "cycle": "M", "item_code": "0101000"}]},
-            "rss": {"feeds": [{"url": "https://x/feed.rss", "publisher": "SEC", "market": "US"}]},
+            "rss": {"feeds": [{"url": "https://x/feed.rss", "publisher": "SEC", "market": "US",
+                               "provenance": synthetic_rights("https://x/feed.rss").model_dump(mode="json")}]},
         }
     }
     cfg = parse_sources_config(raw)
     assert cfg.ecos_series == [EcosSeries(stat_code="722Y001", cycle="M", item_code="0101000")]
-    assert cfg.rss_feeds == [RssFeed(url="https://x/feed.rss", publisher="SEC", market="US")]
+    assert cfg.rss_feeds == [RssFeed(url="https://x/feed.rss", publisher="SEC", market="US", provenance=synthetic_rights('https://x/feed.rss'))]
 
 
 def test_legacy_fred_config_is_rejected():
@@ -89,6 +91,7 @@ def test_rss_feed_symbol_parses_from_config():
                         "publisher": "Example",
                         "market": "US",
                         "symbol": " AAPL ",
+                        "provenance": synthetic_rights("https://x/feed.rss").model_dump(mode="json"),
                     }
                 ]
             }
@@ -98,7 +101,7 @@ def test_rss_feed_symbol_parses_from_config():
     cfg = parse_sources_config(raw)
 
     assert cfg.rss_feeds == [
-        RssFeed(url="https://x/feed.rss", publisher="Example", market="US", symbol="AAPL")
+        RssFeed(url="https://x/feed.rss", publisher="Example", market="US", symbol="AAPL", provenance=synthetic_rights('https://x/feed.rss'))
     ]
     assert cfg.rss_feeds[0].symbol == "AAPL"
 
@@ -327,9 +330,14 @@ def test_rss_sec_watchlist_company_filings_parse_enabled_options():
 
 
 def test_partial_block_only_configures_present_source():
-    series = [{"stat_code": "X", "cycle": "M", "item_code": "Y"}]
+    series = [{"stat_code": "X", "cycle": "M", "item_code": "Y",
+               "provenance": synthetic_rights("ecos:X:M:Y").model_dump(mode="json")}]
     cfg = parse_sources_config({"sources": {"ecos": {"series": series}}})
-    assert cfg.ecos_series == [EcosSeries(stat_code="X", cycle="M", item_code="Y")]
+    assert cfg.ecos_series == [
+        EcosSeries(
+            stat_code="X", cycle="M", item_code="Y", provenance=synthetic_rights("ecos:X:M:Y")
+        )
+    ]
     assert cfg.rss_feeds is None
 
 

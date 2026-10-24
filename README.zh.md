@@ -13,7 +13,7 @@
 ![python](https://img.shields.io/badge/python-%3E%3D3.14-3776ab)
 ![runtime](https://img.shields.io/badge/runtime-GitHub%20Actions%20cron-2088ff)
 ![storage](https://img.shields.io/badge/storage-git--as--DB%20JSONL-2563eb)
-![tests](https://img.shields.io/badge/tests-701%20passing%20%C2%B7%2097%25%20cov-3da639)
+![tests](https://img.shields.io/badge/tests-746%20passing%20%C2%B7%2097%25%20cov-3da639)
 ![types](https://img.shields.io/badge/mypy-strict-1f6feb)
 ![license](https://img.shields.io/badge/license-MIT-3da639)
 
@@ -114,17 +114,17 @@ reports/status.html               # 各数据源采集状况
 | 数据源 | 市场 | 数据集 | cadence | 认证 | 合法性 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **SEC EDGAR** | 🇺🇸 US | filings (10-K/Q·8-K) | daily | 仅需 User-Agent（无需注册） | ✅ 官方（明确允许脚本访问） |
-| **RSS** | 🌐 | news 头条 | hourly | 不需要 | 内置 catalog 为官方 feed；手动 URL 需操作员审查 |
+| **RSS** | 🌐 | news 头条 | hourly | 不需要 | 内置路径记录官方发现依据，使用权尚未验证；手动 URL 须提供使用依据 |
 | **Stooq** | 🇺🇸 US | EOD 价格(OHLCV) | daily | 免费 `apikey`（验证码发放） | ✅ 免费 |
 | **DART** | 🇰🇷 KR | 公告 | daily | 免费 API 密钥 | ✅ 官方 |
-| **ECOS** | 🇰🇷 KR | 宏观时间序列 | daily | 免费 API 密钥 | 保留 runtime 支持；内置/自定义系列的来源与权利尚未验证 |
+| **ECOS** | 🇰🇷 KR | 宏观时间序列 | daily | 免费 API 密钥 | 仅为默认月度韩国银行基准利率记录依据；自定义系列须提供使用依据 |
 | **pykrx** | 🇰🇷 KR | OHLCV 价格 | daily | 不需要（`pip install -e '.[kr]'`） | ⚠️ 灰色（爬取） |
 
 无密钥·无安装包时，只有 **SEC EDGAR + RSS** 可即时运行。填入免费密钥即可开启 Stooq/DART/ECOS，安装 `[kr]` extra 即可开启 pykrx。`yfinance`（雅虎）的 ToS 禁止自动采集，因此已将其排除在一级价格源之外。
 
 > **FRED 移除：** 内置 FRED 支持已移除。现行 [FRED Services Terms](https://fred.stlouisfed.org/legal/terms/) 与 [FRED API Terms of Use](https://fred.stlouisfed.org/docs/api/terms_of_use.html) 和 Mimir 的软件/ML 连接式持久采集模型冲突；仅添加署名不能消除该冲突。只有在取得涵盖预期用途的书面许可、核实每个系列所有者的权利，并落实所有适用的声明、条款、隐私与引用义务后才能重新启用。现有安装应停止采集与使用，识别原始及派生 FRED 产物；可暂时隔离，但删除或重建需要操作员明确批准。
 
-手动 `sources.rss.feeds` URL 由操作员提供。Mimir 不验证其所有权或条款，操作员必须在采集和使用前确认许可。
+每个手动 `sources.rss.feeds` URL 均须提供对应的所有者、条款、许可判断、确认日期和署名依据。Mimir 在副作用前检查完整性，操作员核实法律事实。已保存输入的来源随信号、评估和报告传递。见[来源依据契约](docs/reference/config/sources.md#44-출처와-사용-근거의-저장-경계)。
 
 ---
 
@@ -183,8 +183,8 @@ flowchart LR
 | 边界 | 行为 |
 | :--- | :--- |
 | **数据源级合法性** | 各数据源以元数据携带 `legal_status`（official/gray）与 `rate_limit`；限流器只强制 `rate_limit`，`Registry` 负责应用 GRAY 数据源策略 |
-| **官方 API 优先** | “官方”只是元数据，不等于法律许可。ECOS runtime 支持予以保留，但内置/自定义系列的来源、创作机构、控制条款、商业使用权、署名及派生产物义务仍是 `ECOS-PROVENANCE-RIGHTS-BOUNDARY` 的有限待验证范围 |
-| **手动 RSS** | 操作员必须核实每个手动 `sources.rss.feeds` URL 的所有权、条款与许可用途 |
+| **官方 API 优先** | “官方”只是元数据，不等于法律许可。`ECOS-PROVENANCE-RIGHTS-BOUNDARY` 仅为默认月度韩国银行基准利率记录调查依据；自定义系列须提供对应依据。范围见来源依据契约 |
+| **手动 RSS** | 每个手动 URL 均须记录使用依据；结构验证不等于法律事实验证 |
 | **GRAY 切换** | pykrx（爬取）限于限流、短 backoff 重试和内部分析，可通过 `sources.yaml` 的 `gray_enabled: false` 阻断 |
 | **密钥隔离** | 所有密钥/令牌仅放在 `.env`（本地）·Actions Secrets（CI），禁止提交 |
 | **无静默失败** | `collect` 和 `backfill` 的失败都会记录到清单并以非零退出发出信号——绝不悄悄吞掉 |
@@ -232,7 +232,7 @@ mimir dashboard [--config-dir config] [--data-root data] [--reports-root reports
 
 | 项目 | 值 |
 | :--- | :--- |
-| **测试** | 701 passing（适配器使用录制 fixture 验证，无需网络） |
+| **测试** | 746 passing（适配器使用录制 fixture 验证，无需网络） |
 | **覆盖率** | `mimir/` 97%（门槛 80%） |
 | **lint/type** | ruff + mypy (`pyproject.toml` strict config) clean |
 | **CI** | `.github/workflows/ci.yml` — 每次 push/PR 执行 lint·type·test·coverage |

@@ -3,7 +3,7 @@
 > **상태**: Increment 1–5 구현 완료 + 2026-06-16 hardening/A2/A3/A3b/A3c/AN1-SIGNAL-PLUGIN-ENTRYPOINTS/AN2-LLM-CLASSIFIER-CARDINALITY/AN3-ANALYSIS-PLUGIN-BUILTIN-GUARD/AN4-ANALYSIS-ENGINE-SIGNAL-ISOLATION/AN5-ANALYSIS-SIGNAL-SPECS-INJECTION/R1a/R1b/C2a-CAPTURED-NEWS-CACHE/R1c/R1d/R1e/R1f-SEC/R1g-SEC-STRUCTURED/R1h-SEC-TICKER/R1i-SEC-CIK/R1j-SEC-CIK-ERRORS/R1k-SEC-CIK-ENTRY-ERRORS/R1l-SEC-CIK-CLI-ERRORS/R1m-SEC-CIK-MISSING-PATH/R1n-SEC-CIK-CLI-PATH-CONTRACT/MR1/C3/OPS1/DCHTML/DOCHEALTH/ENV1/CFG1/CFG2/CFG3-CONFIG-GUARDRAILS/COV1-CONTRACT-COVERAGE/I18N1-PARITY-GUARD/BF-PREFLIGHT 구현 완료 + AN6-ANALYSIS-SIGNAL-RESULT-BOUNDARY 구현 완료 + R1o-SEC-WATCHLIST-FILING-FEEDS 구현 완료 + FRED-TERMS-SAFETY-BOUNDARY 완료
 > **목적**: S1–S4가 완성된 코드베이스에서 "원래 스코프 이상으로 더 확장성 있고, 개선·발전할 수 있는 점"을 식별하고, 각 항목을 **지금 구현 / 지금 설계(spec) / 보류**로 분류한다.
 > **선행**: [로드맵](roadmap.md) · [개선 백로그](../IMPROVEMENTS.md)
-> **현재 경계**: 2026-08-31 terms 결정이 이전 FRED 구현 설명을 대체한다. 내장 경로와 typed payload acceptance는 제거됐고, 아래 표와 설명은 ECOS/RSS의 runtime 계약만 뜻한다. ECOS provenance·권리와 수동 RSS URL별 근거는 각각 `ECOS-PROVENANCE-RIGHTS-BOUNDARY`, `MANUAL-RSS-LEGAL-OWNERSHIP`의 미해결 검증이다. FRED 재활성화에는 서면 허가와 시리즈별 권리 검증이 필요하다([Services Terms](https://fred.stlouisfed.org/legal/terms/), [API Terms](https://fred.stlouisfed.org/docs/api/terms_of_use.html)).
+> **현재 경계:** 내장 FRED 경로와 typed payload acceptance는 제거됐다. 재활성화에는 서면 허가와 시리즈별 권리 검증이 필요하다([Services Terms](https://fred.stlouisfed.org/legal/terms/), [API Terms](https://fred.stlouisfed.org/docs/api/terms_of_use.html)). `ECOS-PROVENANCE-RIGHTS-BOUNDARY`와 `MANUAL-RSS-LEGAL-OWNERSHIP`은 대상별 증빙 검사와 파생 출처 전달을 구현했다. 정확한 범위와 운영자의 법적 사실 확인 책임은 [설정 reference §4.4](../reference/config/sources.md#44-출처와-사용-근거의-저장-경계)를 따른다.
 
 ---
 
@@ -454,10 +454,10 @@ MR1 ──────── macro revision storage policy · Dataset.MACRO last
 
 ## 6. 보류 항목 — 근거 명시
 
+`ECOS-PROVENANCE-RIGHTS-BOUNDARY`와 `MANUAL-RSS-LEGAL-OWNERSHIP`은 대상별 사용 근거 검사와 저장 입력의 파생 출처 전달로 구현했다. 정확한 기본 월간 기준금리만 내장 조사 근거를 가지며, 내장 RSS 발견 경로는 권리 승인으로 해석하지 않는다. 사실 확인·변경 시 재검토는 운영자 책임이다. [설정 reference §4.4](../reference/config/sources.md#44-출처와-사용-근거의-저장-경계)가 범위와 한계의 owner다.
+
 | 항목 | 보류 근거 |
 |---|---|
-| **ECOS-PROVENANCE-RIGHTS-BOUNDARY** | Runtime 지원은 유지한다. 내장 기본값과 모든 사용자 지정 ECOS 시리즈별 provenance, 작성 기관, 적용 약관, 상업적 이용 권리, attribution, 파생 산출물 의무를 공식 근거와 확인일로 검증하기 전에는 권리 적합 결론을 내리지 않는다. |
-| **MANUAL-RSS-LEGAL-OWNERSHIP** | 운영자 책임 고지는 완료됐다. 남은 유한 결과는 모든 운영자 제공 URL inventory와 publisher/owner, 적용 약관, 허용/상업적 이용 결정, 근거 확인일을 provenance record로 남기고, 검증 불가능한 URL을 거부·제거하며, configured manual URL마다 record가 존재하는지 guard로 고정하는 것이다. |
 | **C2 파티션 인덱스** | `read_window` 파티션 프루닝이 이미 일반 날짜 윈도우 핫패스를 처리한다. R1b의 captured-window 반복 scan은 C2a 인메모리 cache로 완화했다. persistent index나 보조 파티션은 데이터가 수년 누적되고 cache rebuild 자체가 병목이라는 측정이 나온 뒤 설계한다. 엄밀한 설계와 측정 기반 unblock 기준은 [설계문서](../superpowers/specs/2026-06-19-captured-date-persistent-index-design.md)로 승격했고, unblock 선행 조건인 **측정 계기는 구현됐다**: `DataReader._captured_date_index`가 재빌드 시 records/days/elapsed_ms를 DEBUG 로그로 남긴다. on-disk index 구현은 이 측정이 병목 임계를 넘을 때 착수한다(아직 미도달). |
 | **R1f Generic provider RSS discovery** | R1f-SEC는 공식 SEC Company Search Atom URL 조립을 해결했고, R1g-SEC-STRUCTURED는 SEC의 broad XBRL feed catalog를 정적으로 추가했다. R1h-SEC-TICKER는 SEC Company Search RSS의 ticker token 입력을 추가했다. R1i-SEC-CIK는 사용자가 제공한 로컬 SEC `company_tickers.json` lookup과 ambiguity failure policy를 추가했다. R1j-SEC-CIK-ERRORS, R1k-SEC-CIK-ENTRY-ERRORS, R1l-SEC-CIK-CLI-ERRORS, R1m-SEC-CIK-MISSING-PATH, R1n-SEC-CIK-CLI-PATH-CONTRACT는 잘못된 로컬 파일, 개별 entry, CLI 출력, missing ticker lookup, CLI stderr 회귀 계약의 오류 표면을 정리했다. SEC mapping file refresh/cache는 [설계문서](../superpowers/specs/2026-06-19-sec-ticker-cik-map-cache-design.md) 후 **off-by-default로 구현됐다**(`sources.rss.sec.ticker_cik_map_refresh.enabled`; 기본 `false` → 네트워크 0, 켜면 conditional GET + TTL + fallback). R1o-SEC-WATCHLIST-FILING-FEEDS는 SEC 공식 source만 쓰는 watchlist feed generation slice를 기본 `false` opt-in으로 구현했다. 2026-06-28 `GENERIC-RSS-DISCOVERY-BOUNDARY-RECHECK`에서도 새 non-SEC official static RSS slice는 승격하지 않았다. 남은 부채는 generic live discovery, SEC 외 provider discovery, HTML RSS link crawling, vendor URL pattern inference처럼 provider 정책과 ToS 검토가 더 필요한 범위다. |
 | **D3 spec/ro드맵 번역** | 내부 설계문서와 상세 reference docs는 Korean-first/KO-only로 유지한다(백로그 재확인). 사용자 진입 문서(README ×3)는 이미 trilingual이고, 향후 번역이 필요하면 내부 specs 전체가 아니라 bounded reference-doc translation slice로 별도 설계한다. |

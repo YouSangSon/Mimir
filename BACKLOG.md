@@ -19,17 +19,13 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-1. `ECOS-PROVENANCE-RIGHTS-BOUNDARY` — for the built-in default and every
-   operator-configured ECOS series, verify provenance, authoring institution,
-   controlling terms, commercial-use rights, attribution, and derived-output
-   obligations. Runtime support is preserved, but none of these legal facts is
-   claimed complete.
-2. `MANUAL-RSS-LEGAL-OWNERSHIP` — inventory every operator-supplied URL; record
-   its publisher/owner, controlling terms, permission/commercial-use decision,
-   and evidence date; reject or remove unverifiable URLs; and add a guard tying
-   every configured manual URL to a provenance record. Current docs already
-   state operator responsibility; this evidence boundary is the unsolved work.
+The finite implementation queue is closed; demo, CI/main and VM verification
+remain completion gates in `PLAN.md`, not new feature work.
+
 ## Done
+
+- `ECOS-PROVENANCE-RIGHTS-BOUNDARY` — built-in default and every operator-configured ECOS series now pass target-bound evidence checks for authoring institution, controlling terms, commercial-use rights and derived-output obligations. Only the exact default monthly BOK rate has built-in researched evidence; operator assertions are not legal verification. See `docs/reference/config/sources.md` §4.4.
+- `MANUAL-RSS-LEGAL-OWNERSHIP` — inventory every operator-supplied URL through required target-bound records: publisher/owner, controlling terms, permission/commercial-use decision and evidence date. The requirement to reject or remove unverifiable URLs remains operator policy; the runtime rejects missing/incomplete records and carries actual stored provenance into derived outputs. Built-in RSS discovery stays rights-unverified. Every manual URL requires a provenance record.
 
 - `CURRENT-HEALTH-DOC-TRUTH` — production coverage scope stays explicit; removed
   the stale file-size ceiling and exhaustive remaining-work conclusion; README

@@ -13,6 +13,7 @@ from mimir.report.html import (
     SEVERITY_COLOR,
     VIEWPORT_META,
     esc,
+    render_attributions,
     render_table,
     stars,
 )
@@ -221,6 +222,8 @@ def build_dashboard_html(
     Every user-derived string is escaped; every section degrades gracefully.
     """
     lang = normalize_lang(lang)
+    insights = [ins for ins in insights if ins.source_evidence_ready]
+    buckets = [bucket for bucket in buckets if bucket.source_evidence_ready]
     sufficient = bool(buckets)
     generated = now.isoformat(timespec="seconds")
     badges = _badges(doctor_report, run, len(insights), sufficient, lang)
@@ -233,6 +236,10 @@ def build_dashboard_html(
             _collection_section(run, lang),
         ]
     )
+    attributions = render_attributions(
+        [p for i in insights for s in i.signals for p in s.attributions]
+        + [p for b in buckets for p in b.attributions], lang,
+    )
     return f"""<!doctype html>
 <html lang="{lang}"><head><meta charset="utf-8">{VIEWPORT_META}
 <title>{t("dashboard_page_title", lang)}</title>
@@ -242,5 +249,6 @@ def build_dashboard_html(
 <p class="meta">{t("dashboard_generated_at", lang, time=generated)}</p>
 {badges}
 {sections}
+{attributions}
 <p class="dis">{t("disclaimer_report", lang)}</p>
 </main></body></html>"""

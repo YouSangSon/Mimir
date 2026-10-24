@@ -6,6 +6,7 @@ import responses
 from mimir.core.source import Cadence, Dataset, FetchContext, LegalStatus
 from mimir.sources.rss import RssFeed, RssSource
 from mimir.sources.rss_catalog import RssCatalogSelection, resolve_rss_feeds
+from tests.provenance import synthetic_rights
 
 RSS = """<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel>
@@ -19,13 +20,13 @@ RSS = """<?xml version="1.0" encoding="UTF-8"?>
 </channel></rss>
 """
 
-FEEDS = [RssFeed(url="https://example.test/feed", publisher="Example", market="US")]
+FEEDS = [RssFeed(url="https://example.test/feed", publisher="Example", market="US", provenance=synthetic_rights('https://example.test/feed'))]
 SYMBOL_FEEDS = [
-    RssFeed(url="https://example.test/feed", publisher="Example", market="US", symbol="AAPL")
+    RssFeed(url="https://example.test/feed", publisher="Example", market="US", symbol="AAPL", provenance=synthetic_rights('https://example.test/feed'))
 ]
 MULTI_SYMBOL_FEEDS = [
-    RssFeed(url="https://example.test/aapl", publisher="Example", market="US", symbol="AAPL"),
-    RssFeed(url="https://example.test/msft", publisher="Example", market="US", symbol="MSFT"),
+    RssFeed(url="https://example.test/aapl", publisher="Example", market="US", symbol="AAPL", provenance=synthetic_rights('https://example.test/aapl')),
+    RssFeed(url="https://example.test/msft", publisher="Example", market="US", symbol="MSFT", provenance=synthetic_rights('https://example.test/msft')),
 ]
 
 
@@ -84,6 +85,8 @@ def test_rss_parses_entries_with_feed_symbol():
         "market": "US",
         "published_at": "Fri, 29 May 2026 13:00:00 GMT",
         "summary": "Short summary.",
+        "feed_url": SYMBOL_FEEDS[0].url,
+        "provenance": SYMBOL_FEEDS[0].snapshot().model_dump(mode="json"),
     }
 
 

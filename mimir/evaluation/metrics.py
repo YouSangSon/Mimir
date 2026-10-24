@@ -4,6 +4,7 @@ from datetime import date
 from typing import NamedTuple
 
 from mimir.analysis.signals.base import DIRECTION_SIGN, SignalDirection
+from mimir.core.provenance import SourceProvenance, unique_provenance
 from mimir.core.source import Market
 from mimir.evaluation.schema import BucketStat, HorizonEval
 from mimir.historical.analog import DEFAULT_HORIZONS, forward_returns
@@ -20,6 +21,7 @@ class Obs(NamedTuple):
     series: list[Bar]
     anchor: int
     direction: SignalDirection
+    attributions: tuple[SourceProvenance, ...] = ()
 
 
 def anchor_index(series: list[Bar], as_of: date) -> int | None:
@@ -45,11 +47,11 @@ def _horizon_eval(horizon: int, obs: list[Obs], min_n: int) -> HorizonEval | Non
     """
     edges: list[float] = []  # signed returns e for directional obs with a forward bar
     neutral_n = 0
-    for series, anchor, direction in obs:
-        rets = forward_returns(series, [anchor], horizon)
+    for observation in obs:
+        rets = forward_returns(observation.series, [observation.anchor], horizon)
         if not rets:  # no forward bar at this horizon (S4 boundary drop)
             continue
-        sign = DIRECTION_SIGN[direction]
+        sign = DIRECTION_SIGN[observation.direction]
         if sign == 0.0:  # neutral: excluded from hit-rate denominator
             neutral_n += 1
             continue
@@ -81,4 +83,12 @@ def evaluate_bucket(
     evals = [e for e in (_horizon_eval(h, obs, min_n) for h in horizons) if e is not None]
     if not evals:
         return None
-    return BucketStat(dimension=dimension, key=bucket_key, market=market, horizons=evals)
+    attributions = unique_provenance(
+        source for observation in obs
+        if any(forward_returns(observation.series, [observation.anchor], e.horizon) for e in evals)
+        for source in observation.attributions
+    )
+    return BucketStat(
+        dimension=dimension, key=bucket_key, market=market,
+        horizons=evals, attributions=attributions,
+    )

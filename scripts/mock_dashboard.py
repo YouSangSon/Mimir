@@ -25,7 +25,9 @@ AS_OF = date(2026, 6, 14)
 
 
 def _sig(name: str, d: SignalDirection, strength: float, reason: str) -> SignalResult:
-    return SignalResult(signal=name, direction=d, strength=strength, confidence=0.8, reason=reason)
+    return SignalResult(
+        signal=name, direction=d, strength=strength, confidence=0.8, reason=reason, attributions=[]
+    )
 
 
 INSIGHTS = [
@@ -63,16 +65,37 @@ INSIGHTS = [
 ]
 
 BUCKETS = [
-    BucketStat(dimension="per_signal", key="price_momentum", market=Market.US, horizons=[
-        HorizonEval(horizon=1, n=42, hit_rate=0.55, mean_fwd_return=0.003, neutral_n=6),
-        HorizonEval(horizon=5, n=38, hit_rate=0.61, mean_fwd_return=0.014, neutral_n=6),
-        HorizonEval(horizon=20, n=31, hit_rate=0.58, mean_fwd_return=0.041, neutral_n=5)]),
-    BucketStat(dimension="per_direction", key="bullish", market=Market.US, horizons=[
-        HorizonEval(horizon=5, n=55, hit_rate=0.58, mean_fwd_return=0.011, neutral_n=0),
-        HorizonEval(horizon=20, n=44, hit_rate=0.62, mean_fwd_return=0.037, neutral_n=0)]),
-    BucketStat(dimension="per_star", key="5", market=Market.US, horizons=[
-        HorizonEval(horizon=5, n=19, hit_rate=0.68, mean_fwd_return=0.022, neutral_n=0),
-        HorizonEval(horizon=20, n=16, hit_rate=0.75, mean_fwd_return=0.058, neutral_n=0)]),
+    BucketStat(
+        dimension="per_signal",
+        key="price_momentum",
+        market=Market.US,
+        attributions=[],
+        horizons=[
+            HorizonEval(horizon=1, n=42, hit_rate=0.55, mean_fwd_return=0.003, neutral_n=6),
+            HorizonEval(horizon=5, n=38, hit_rate=0.61, mean_fwd_return=0.014, neutral_n=6),
+            HorizonEval(horizon=20, n=31, hit_rate=0.58, mean_fwd_return=0.041, neutral_n=5),
+        ],
+    ),
+    BucketStat(
+        dimension="per_direction",
+        key="bullish",
+        market=Market.US,
+        attributions=[],
+        horizons=[
+            HorizonEval(horizon=5, n=55, hit_rate=0.58, mean_fwd_return=0.011, neutral_n=0),
+            HorizonEval(horizon=20, n=44, hit_rate=0.62, mean_fwd_return=0.037, neutral_n=0),
+        ],
+    ),
+    BucketStat(
+        dimension="per_star",
+        key="5",
+        market=Market.US,
+        attributions=[],
+        horizons=[
+            HorizonEval(horizon=5, n=19, hit_rate=0.68, mean_fwd_return=0.022, neutral_n=0),
+            HorizonEval(horizon=20, n=16, hit_rate=0.75, mean_fwd_return=0.058, neutral_n=0),
+        ],
+    ),
 ]
 
 HISTORICAL = [
@@ -109,7 +132,18 @@ RUN = RunRecord(ran_at=NOW, cadence=Cadence.DAILY, results=[
     SourceResult(source="dart", ok=True, fetched=7, stored=7),
 ])
 
-print(build_dashboard_html(
-    doctor_report=DOCTOR, insights=INSIGHTS, buckets=BUCKETS,
-    historical=HISTORICAL, run=RUN, lang="en", now=NOW,
-))
+print(
+    build_dashboard_html(
+        doctor_report=DOCTOR,
+        insights=INSIGHTS,
+        buckets=BUCKETS,
+        historical=HISTORICAL,
+        run=RUN,
+        lang="en",
+        now=NOW,
+    ).replace(
+        "<body>",
+        "<body><p><strong>MOCK DATA — illustrative values, not measured results.</strong></p>",
+        1,
+    )
+)

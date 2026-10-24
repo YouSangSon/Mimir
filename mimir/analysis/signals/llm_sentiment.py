@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field
 from mimir.analysis.signals.base import DIRECTION_SIGN, SignalDirection, SignalResult
 from mimir.analysis.signals.news_matching import NewsMentionMatcher
 from mimir.core.payloads import news_payload
+from mimir.core.provenance import unique_provenance
 from mimir.core.source import Dataset, Market
 from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
@@ -115,7 +116,10 @@ class LlmSentimentSignal:
             logger.exception("signal 'llm_sentiment' classifier failed for %s; skipping", symbol)
             return None
 
-        return self._aggregate(verdicts, unclassified)
+        result = self._aggregate(verdicts, unclassified)
+        if result is not None:
+            result.attributions = unique_provenance(news_payload(r).provenance for r in capped)
+        return result
 
     def _aggregate(self, verdicts: list[HeadlineVerdict], unclassified: int) -> SignalResult | None:
         if not verdicts:

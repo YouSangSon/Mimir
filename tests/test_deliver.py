@@ -48,6 +48,7 @@ def _bucket() -> BucketStat:
         dimension="per_signal",
         key="price_momentum",
         market=Market.US,
+        attributions=[],
         horizons=[
             HorizonEval(horizon=5, n=12, hit_rate=0.58, mean_fwd_return=0.004, neutral_n=2)
         ],

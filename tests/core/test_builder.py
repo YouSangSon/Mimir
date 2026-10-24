@@ -19,9 +19,10 @@ from mimir.sources.config import SourcesConfig
 from mimir.sources.ecos import DEFAULT_SERIES as ECOS_DEFAULT_SERIES
 from mimir.sources.ecos import EcosSeries, EcosSource
 from mimir.sources.rss import DEFAULT_FEEDS as RSS_DEFAULT_FEEDS
-from mimir.sources.rss import RssFeed, RssSource
+from mimir.sources.rss import RssFeed, RssSource, mark_builtin_feed
 from mimir.sources.rss_catalog import RssCatalogSelection, SecCompanyFilingFeed
 from mimir.sources.sec_edgar import SecEdgarSource
+from tests.provenance import synthetic_rights
 
 
 class _FakeEntryPoint:
@@ -413,7 +414,11 @@ def test_explicit_empty_config_still_carries_defaults():
 
 def test_config_overrides_ecos_series():
     settings = Settings.from_env({"ECOS_API_KEY": "b"})
-    series = [EcosSeries(stat_code="X", cycle="M", item_code="Y")]
+    series = [
+        EcosSeries(
+            stat_code="X", cycle="M", item_code="Y", provenance=synthetic_rights("ecos:X:M:Y")
+        )
+    ]
     cfg = SourcesConfig(ecos_series=series)
     by_id = _by_id(build_sources(settings, cfg))
     assert by_id["ecos"]._series == series
@@ -423,7 +428,7 @@ def test_config_overrides_ecos_series():
 
 def test_config_overrides_rss_feeds():
     settings = Settings.from_env({})
-    feed = RssFeed(url="https://x/feed.rss", publisher="P", market="US")
+    feed = RssFeed(url="https://x/feed.rss", publisher="P", market="US", provenance=synthetic_rights('https://x/feed.rss'))
     by_id = _by_id(build_sources(settings, SourcesConfig(rss_feeds=[feed])))
     assert by_id["rss"]._feeds == [feed]
 
@@ -460,7 +465,7 @@ def test_build_sources_generates_sec_watchlist_company_filing_feeds(monkeypatch)
 
     assert isinstance(rss, RssSource)
     assert rss._feeds == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url=(
                 "https://www.sec.gov/cgi-bin/browse-edgar?"
                 "action=getcompany&CIK=AAPL&type=10-K&owner=exclude&count=40&output=atom"
@@ -468,7 +473,7 @@ def test_build_sources_generates_sec_watchlist_company_filing_feeds(monkeypatch)
             publisher="SEC",
             market="US",
             symbol="AAPL",
-        )
+        ), 'sec_company_filings')
     ]
 
 
@@ -524,11 +529,11 @@ def test_build_sources_resolves_rss_catalog_feeds(monkeypatch):
 
     assert isinstance(rss, RssSource)
     assert rss._feeds == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url="https://www.sec.gov/news/pressreleases.rss",
             publisher="SEC",
             market="US",
-        )
+        ), 'catalog:sec_press_releases')
     ]
 
 
@@ -548,7 +553,7 @@ def test_build_sources_resolves_sec_company_filing_feeds(monkeypatch):
 
     assert isinstance(rss, RssSource)
     assert rss._feeds == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url=(
                 "https://www.sec.gov/cgi-bin/browse-edgar?"
                 "action=getcompany&CIK=0000320193&type=10-K%2FA&owner=exclude&count=40&output=atom"
@@ -556,7 +561,7 @@ def test_build_sources_resolves_sec_company_filing_feeds(monkeypatch):
             publisher="SEC",
             market="US",
             symbol="AAPL",
-        )
+        ), 'sec_company_filings')
     ]
     assert rss._headers == {"User-Agent": "Mimir Test test@example.com"}
 
@@ -577,7 +582,7 @@ def test_build_sources_resolves_sec_company_filing_feeds_with_ticker(monkeypatch
 
     assert isinstance(rss, RssSource)
     assert rss._feeds == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url=(
                 "https://www.sec.gov/cgi-bin/browse-edgar?"
                 "action=getcompany&CIK=AAPL&type=10-K&owner=exclude&count=40&output=atom"
@@ -585,7 +590,7 @@ def test_build_sources_resolves_sec_company_filing_feeds_with_ticker(monkeypatch
             publisher="SEC",
             market="US",
             symbol="AAPL",
-        )
+        ), 'sec_company_filings')
     ]
     assert rss._headers == {"User-Agent": "Mimir Test test@example.com"}
 
@@ -612,7 +617,7 @@ def test_build_sources_resolves_sec_company_filing_ticker_with_map(monkeypatch, 
 
     assert isinstance(rss, RssSource)
     assert rss._feeds == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url=(
                 "https://www.sec.gov/cgi-bin/browse-edgar?"
                 "action=getcompany&CIK=0000320193&type=10-K&owner=exclude&count=40&output=atom"
@@ -620,7 +625,7 @@ def test_build_sources_resolves_sec_company_filing_ticker_with_map(monkeypatch, 
             publisher="SEC",
             market="US",
             symbol="AAPL",
-        )
+        ), 'sec_company_filings')
     ]
 
 
@@ -631,7 +636,8 @@ def test_build_sources_combines_rss_catalog_and_manual_feeds(monkeypatch):
         publisher="Example",
         market="US",
         symbol="AAPL",
-    )
+                 provenance=synthetic_rights('https://example.com/aapl.rss'),
+             )
     cfg = SourcesConfig(
         rss_catalogs=[RssCatalogSelection(id="sec_press_releases")],
         rss_feeds=[manual],
@@ -642,11 +648,11 @@ def test_build_sources_combines_rss_catalog_and_manual_feeds(monkeypatch):
 
     assert isinstance(rss, RssSource)
     assert rss._feeds == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url="https://www.sec.gov/news/pressreleases.rss",
             publisher="SEC",
             market="US",
-        ),
+        ), 'catalog:sec_press_releases'),
         manual,
     ]
 
@@ -658,7 +664,8 @@ def test_build_sources_combines_catalog_sec_and_manual_feeds(monkeypatch):
         publisher="Example",
         market="US",
         symbol="AAPL",
-    )
+                 provenance=synthetic_rights('https://example.com/aapl.rss'),
+             )
     cfg = SourcesConfig(
         rss_catalogs=[RssCatalogSelection(id="sec_press_releases")],
         rss_sec_company_filings=[SecCompanyFilingFeed(cik="320193", symbol="AAPL")],
@@ -684,7 +691,8 @@ def test_build_sources_rejects_duplicate_rss_catalog_and_manual_feed(monkeypatch
         url="https://www.sec.gov/news/pressreleases.rss",
         publisher="SEC",
         market="US",
-    )
+                 provenance=synthetic_rights('https://www.sec.gov/news/pressreleases.rss'),
+             )
     cfg = SourcesConfig(
         rss_catalogs=[RssCatalogSelection(id="sec_press_releases")],
         rss_feeds=[manual],

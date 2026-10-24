@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from mimir.sources.rss import RssFeed
+from mimir.sources.rss import RssFeed, mark_builtin_feed
 from mimir.sources.rss_catalog import (
     RssCatalogSelection,
     SecCompanyFilingFeed,
@@ -34,11 +34,11 @@ def test_resolve_known_rss_catalog_id():
     feeds = resolve_rss_catalogs([RssCatalogSelection(id="sec_press_releases")])
 
     assert feeds == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url="https://www.sec.gov/news/pressreleases.rss",
             publisher="SEC",
             market="US",
-        )
+        ), "catalog:sec_press_releases")
     ]
 
 
@@ -49,11 +49,11 @@ def test_resolve_known_rss_catalog_returns_copy():
     resolved_again = resolve_rss_catalogs([RssCatalogSelection(id="sec_press_releases")])
 
     assert resolved_again == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url="https://www.sec.gov/news/pressreleases.rss",
             publisher="SEC",
             market="US",
-        )
+        ), "catalog:sec_press_releases")
     ]
 
 
@@ -62,11 +62,11 @@ def test_resolve_sec_structured_rss_catalog_ids(catalog_id: str, url: str):
     feeds = resolve_rss_catalogs([RssCatalogSelection(id=catalog_id)])
 
     assert feeds == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url=url,
             publisher="SEC",
             market="US",
-        )
+        ), f"catalog:{catalog_id}")
     ]
 
 
@@ -78,11 +78,11 @@ def test_resolve_sec_structured_rss_catalog_returns_copy(catalog_id: str, url: s
     resolved_again = resolve_rss_catalogs([RssCatalogSelection(id=catalog_id)])
 
     assert resolved_again == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url=url,
             publisher="SEC",
             market="US",
-        )
+        ), f"catalog:{catalog_id}")
     ]
 
 
@@ -112,11 +112,11 @@ def test_resolve_rss_feeds_combines_catalogs_before_manual_feeds():
     feeds = resolve_rss_feeds([RssCatalogSelection(id="sec_press_releases")], [manual])
 
     assert feeds == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url="https://www.sec.gov/news/pressreleases.rss",
             publisher="SEC",
             market="US",
-        ),
+        ), "catalog:sec_press_releases"),
         manual,
     ]
 
@@ -172,7 +172,7 @@ def test_resolve_sec_company_filing_feed_without_form_filter():
     )
 
     assert feeds == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url=(
                 "https://www.sec.gov/cgi-bin/browse-edgar?"
                 "action=getcompany&CIK=0000320193&owner=exclude&count=40&output=atom"
@@ -180,7 +180,7 @@ def test_resolve_sec_company_filing_feed_without_form_filter():
             publisher="SEC",
             market="US",
             symbol="AAPL",
-        )
+        ), "sec_company_filings")
     ]
 
 
@@ -192,7 +192,7 @@ def test_resolve_sec_company_filing_feed_with_ticker():
     )
 
     assert feeds == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url=(
                 "https://www.sec.gov/cgi-bin/browse-edgar?"
                 "action=getcompany&CIK=AAPL&owner=exclude&count=40&output=atom"
@@ -200,7 +200,7 @@ def test_resolve_sec_company_filing_feed_with_ticker():
             publisher="SEC",
             market="US",
             symbol="AAPL",
-        )
+        ), "sec_company_filings")
     ]
 
 
@@ -213,7 +213,7 @@ def test_resolve_sec_company_filing_feed_maps_ticker_to_cik():
     )
 
     assert feeds == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url=(
                 "https://www.sec.gov/cgi-bin/browse-edgar?"
                 "action=getcompany&CIK=0000320193&owner=exclude&count=40&output=atom"
@@ -221,7 +221,7 @@ def test_resolve_sec_company_filing_feed_maps_ticker_to_cik():
             publisher="SEC",
             market="US",
             symbol="AAPL",
-        )
+        ), "sec_company_filings")
     ]
 
 
@@ -410,7 +410,7 @@ def test_resolve_sec_company_filing_feeds_with_encoded_form_filters():
     )
 
     assert feeds == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url=(
                 "https://www.sec.gov/cgi-bin/browse-edgar?"
                 "action=getcompany&CIK=0000320193&type=10-K&owner=include&count=20&output=atom"
@@ -418,8 +418,8 @@ def test_resolve_sec_company_filing_feeds_with_encoded_form_filters():
             publisher="SEC",
             market="US",
             symbol="AAPL",
-        ),
-        RssFeed(
+        ), "sec_company_filings"),
+        mark_builtin_feed(RssFeed(
             url=(
                 "https://www.sec.gov/cgi-bin/browse-edgar?"
                 "action=getcompany&CIK=0000320193&type=10-K%2FA&owner=include&count=20&output=atom"
@@ -427,7 +427,7 @@ def test_resolve_sec_company_filing_feeds_with_encoded_form_filters():
             publisher="SEC",
             market="US",
             symbol="AAPL",
-        ),
+        ), "sec_company_filings"),
     ]
 
 
@@ -447,7 +447,7 @@ def test_resolve_sec_company_filing_feeds_with_ticker_and_form_filters():
     )
 
     assert feeds == [
-        RssFeed(
+        mark_builtin_feed(RssFeed(
             url=(
                 "https://www.sec.gov/cgi-bin/browse-edgar?"
                 "action=getcompany&CIK=BRK-B&type=10-K&owner=include&count=20&output=atom"
@@ -455,8 +455,8 @@ def test_resolve_sec_company_filing_feeds_with_ticker_and_form_filters():
             publisher="SEC",
             market="US",
             symbol="BRK.B",
-        ),
-        RssFeed(
+        ), "sec_company_filings"),
+        mark_builtin_feed(RssFeed(
             url=(
                 "https://www.sec.gov/cgi-bin/browse-edgar?"
                 "action=getcompany&CIK=BRK-B&type=10-K%2FA&owner=include&count=20&output=atom"
@@ -464,7 +464,7 @@ def test_resolve_sec_company_filing_feeds_with_ticker_and_form_filters():
             publisher="SEC",
             market="US",
             symbol="BRK.B",
-        ),
+        ), "sec_company_filings"),
     ]
 
 

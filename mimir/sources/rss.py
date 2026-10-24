@@ -7,8 +7,9 @@ from typing import Any
 
 import feedparser
 import requests
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, PrivateAttr, field_validator
 
+from mimir.core.provenance import SourceProvenance, UsageRights, public_url, require_rights
 from mimir.core.source import (
     Cadence,
     Dataset,
@@ -32,6 +33,23 @@ class RssFeed(BaseModel):
     publisher: str
     market: str  # US | KR | GLOBAL — recorded in payload (envelope market stays GLOBAL)
     symbol: str | None = None
+    provenance: UsageRights | None = None
+    _builtin_route: str | None = PrivateAttr(default=None)
+    _builtin_url: str | None = PrivateAttr(default=None)
+
+    _url = field_validator("url")(public_url)
+
+    def snapshot(self) -> SourceProvenance:
+        builtin = (
+            self._builtin_route is not None and self.url == self._builtin_url
+            and self.provenance is None
+        )
+        rights = None if builtin else require_rights(self.url, self.provenance)
+        return SourceProvenance(
+            target=self.url, publisher=self.publisher, source_url=self.url,
+            origin="rss_builtin" if builtin else "rss_manual",
+            route=(self._builtin_route or "") if builtin else "sources.rss.feeds", rights=rights,
+        )
 
     @field_validator("symbol")
     @classmethod
@@ -44,9 +62,19 @@ class RssFeed(BaseModel):
         return symbol
 
 
-# Official, headline/metadata-only feeds. Override via constructor / config.
+def mark_builtin_feed(feed: RssFeed, route: str) -> RssFeed:
+    """Code-only discovery marker; operator YAML cannot set private attributes."""
+    feed._builtin_route = route
+    feed._builtin_url = feed.url
+    return feed
+
+
+# Discovery evidence only; no blanket commercial-rights approval.
 DEFAULT_FEEDS = [
-    RssFeed(url="https://www.sec.gov/news/pressreleases.rss", publisher="SEC", market="US"),
+    mark_builtin_feed(
+        RssFeed(url="https://www.sec.gov/news/pressreleases.rss", publisher="SEC", market="US"),
+        "default:sec_press_releases",
+    ),
 ]
 
 
@@ -70,7 +98,9 @@ class RssSource(BaseSource):
         user_agent: str | None = None,
     ) -> None:
         super().__init__(session=session, throttle=throttle)
-        self._feeds = feeds or list(DEFAULT_FEEDS)
+        self._feeds = [feed.model_copy(deep=True) for feed in (feeds or DEFAULT_FEEDS)]
+        for feed in self._feeds:
+            feed.snapshot()
         self._parse_fn = parse_fn
         self._headers = {"User-Agent": user_agent} if user_agent else None
 
@@ -98,6 +128,8 @@ class RssSource(BaseSource):
                         "market": feed.market,
                         "published_at": entry.get("published"),
                         "summary": (entry.get("summary") or "")[:SUMMARY_MAX],
+                        "feed_url": feed.url,
+                        "provenance": feed.snapshot().model_dump(mode="json"),
                     },
                 )
 

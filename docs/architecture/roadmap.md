@@ -11,7 +11,7 @@ Mímir는 북유럽 신화에서 지혜의 샘을 지키는 존재다. 이 프�
 ## 1. 제품 원칙
 
 1. **무료(free)** — 상시 서버 없이 GitHub Actions 무료 cron으로 돌리고, 데이터는 repo에 저장한다(git-as-DB).
-2. **합법(legal)** — 공식 표시는 법적 허가가 아니다. SEC EDGAR·DART 같은 공식 API를 우선하고, 스크래핑 의존(pykrx)은 ⚠️ 표시·스로틀·내부분석 한정으로 관리한다. ECOS runtime 지원은 유지하지만 내장 기본값과 사용자 지정 시리즈의 provenance, 작성 기관, 적용 약관, 상업적 이용 권리, attribution, 파생 산출물 의무는 `ECOS-PROVENANCE-RIGHTS-BOUNDARY`에서 검증할 미해결 범위다. 수동 RSS의 책임 고지는 완료됐고, URL별 근거 record와 guard는 `MANUAL-RSS-LEGAL-OWNERSHIP`에 남아 있다.
+2. **합법(legal)** — 공식 표시는 법적 허가가 아니다. 기존 GRAY 정책은 유지한다. `ECOS-PROVENANCE-RIGHTS-BOUNDARY`와 `MANUAL-RSS-LEGAL-OWNERSHIP`은 기본 월간 기준금리 조사와 사용자 입력의 대상별 증빙 검사·파생 출처 전달을 구현했다. 내장 RSS 발견 증거는 권리 승인과 구분한다. 법적 사실의 운영자 확인과 정확한 범위는 [출처 증빙 계약](../reference/config/sources.md#44-출처와-사용-근거의-저장-경계)이 소유한다.
 3. **투명한 평가** — 인사이트에는 ⭐별점을 붙이되 근거를 함께 남긴다. 모든 평가에 "투자 권유가 아님" 면책 문구를 포함한다.
 4. **분석과 실행의 분리** — Mimir는 *시그널만 발행*한다. 주문 실행은 별도 엔진이 소비한다. 이 경계를 처음부터 긋는다.
 5. **점진적 가치 전달** — 각 단계가 끝날 때마다 손에 잡히는 결과가 나온다.
@@ -103,7 +103,7 @@ Mímir는 북유럽 신화에서 지혜의 샘을 지키는 존재다. 이 프�
 
 | 시장 | 가격 | 공시/기업 | 거시지표 | 뉴스 | 합법성 |
 |---|---|---|---|---|---|
-| 🇺🇸 US | Stooq (무료 apikey, 캡차 발급) | SEC EDGAR (10 req/s, UA 헤더) | — | SEC RSS, 수동 RSS | 수동 RSS는 URL별 provenance record/guard 미구현 |
-| 🇰🇷 KR | pykrx (OHLCV) | DART OpenAPI (무료 키) | 한국은행 ECOS (runtime 지원 유지) | 수동 RSS | ⚠️ pykrx는 GRAY; ECOS 내장/사용자 시리즈 provenance·권리 검증 미완료 |
+| 🇺🇸 US | Stooq (무료 apikey, 캡차 발급) | SEC EDGAR (10 req/s, UA 헤더) | — | SEC RSS, 수동 RSS | 수동 RSS는 URL별 증빙 필수; 내장 RSS 권리는 미검증 |
+| 🇰🇷 KR | pykrx (OHLCV) | DART OpenAPI (무료 키) | 한국은행 ECOS (runtime 지원 유지) | 수동 RSS | ⚠️ pykrx는 GRAY; ECOS 기본 월간 기준금리 근거 기록, 사용자 시리즈 증빙 필수 |
 
 소스별 상세(인증·한도·라이선스·라이브러리)는 S1 설계문서의 "데이터 소스 카탈로그" 참고.

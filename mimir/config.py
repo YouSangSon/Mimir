@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError, field_validator
 
+from mimir.core.provenance import ProvenanceError
 from mimir.sources.config import RuntimeSourcesConfig, parse_runtime_sources_config
 
 DEFAULT_CONFIG_DIR = Path("config")
@@ -74,7 +75,10 @@ def load_validated_sources_config(
     config_dir: Path = DEFAULT_CONFIG_DIR,
 ) -> tuple[dict[str, Any], RuntimeSourcesConfig]:
     raw = _resolve_sources_config_paths(load_sources_config(config_dir), config_dir)
-    return raw, parse_runtime_sources_config(raw)
+    try:
+        return raw, parse_runtime_sources_config(raw)
+    except ProvenanceError as exc:
+        raise SourcesConfigError(str(exc)) from None
 
 
 def _resolve_sources_config_paths(raw: Any, config_dir: Path) -> Any:
@@ -105,7 +109,15 @@ def report_invalid_sources(exc: ValidationError | SourcesConfigError) -> int:
     """Turn a malformed ``sources.yaml`` ``ValidationError`` into a friendly
     ``[mimir] invalid sources.yaml: <detail>`` message and exit code 1 (spec §5),
     instead of a raw pydantic traceback. Call from a CLI ``main``'s except clause."""
-    print(f"[mimir] invalid sources.yaml: {exc}", file=sys.stderr)
+    if isinstance(exc, ValidationError):
+        # Model error reprs include operator input, potentially credentials.
+        detail = "; ".join(
+            f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
+            for error in exc.errors(include_input=False, include_context=False)
+        )
+    else:
+        detail = str(exc)
+    print(f"[mimir] invalid sources.yaml: {detail}", file=sys.stderr)
     return 1
 
 

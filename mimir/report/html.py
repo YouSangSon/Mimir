@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import html
+from collections.abc import Iterable
 
+from mimir.core.provenance import SourceProvenance, unique_provenance
 from mimir.doctor.report import Severity
+from mimir.report.i18n import t
 
 """Shared HTML-rendering primitives for the report layer.
 
@@ -70,4 +73,40 @@ def render_table(headers: str, rows: str, label: str) -> str:
     return (
         f'<div class="table-scroll" role="region" tabindex="0" aria-label="{esc(label)}">'
         f"<table><thead><tr>{headers}</tr></thead><tbody>{rows}</tbody></table></div>"
+    )
+
+
+def attribution_description(source: SourceProvenance, lang: str) -> str:
+    rights = source.rights
+    if rights is None:
+        return t("attribution_unverified", lang)
+    return rights.attribution + " " + t(
+        "attribution_recorded", lang, date=rights.checked_on.isoformat(),
+        author=rights.author, holder=rights.rights_holder,
+    )
+
+
+def attribution_urls(source: SourceProvenance) -> list[str]:
+    rights = source.rights
+    return list(dict.fromkeys([
+        source.source_url, *([rights.source_url, *rights.terms_urls] if rights else []),
+    ]))
+
+
+def render_attributions(items: Iterable[SourceProvenance], lang: str) -> str:
+    sources = unique_provenance(items)
+    if not sources:
+        return ""
+    rows = []
+    for source in sources:
+        links = " · ".join(
+            f'<a href="{esc(url)}">{esc(url)}</a>' for url in attribution_urls(source)
+        )
+        rows.append(
+            f"<li><strong>{esc(source.publisher)}</strong> — {esc(source.target)}<br>"
+            f"{esc(attribution_description(source, lang))}<br>{links}</li>"
+        )
+    return (
+        f"<h2>{t('attribution_heading', lang)}</h2>"
+        f"<p>{t('attribution_processed', lang)}</p><ul>{''.join(rows)}</ul>"
     )

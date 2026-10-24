@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from mimir.analysis.signals.base import SignalDirection, SignalResult
 from mimir.core.macro_series import DEFAULT_MACRO_RATE_SERIES
 from mimir.core.payloads import macro_payload
+from mimir.core.provenance import unique_provenance
 from mimir.core.source import Dataset, Market
 from mimir.storage.reader import DataReader
 from mimir.storage.schema import Record
@@ -33,6 +34,7 @@ class MacroRegimeSignal:
                 Dataset.MACRO, since=as_of - timedelta(days=WINDOW_DAYS), until=as_of
             )
             if r.market == market and r.symbol in self._rate_series
+            and (r.source != "ecos" or macro_payload(r).provenance is not None)
         ]
         if len(recs) < 2:
             return None
@@ -61,4 +63,5 @@ class MacroRegimeSignal:
             confidence=0.4,
             reason=f"{series[0].symbol} {first}->{last} ({trend})",
             weight=WEIGHT,
+            attributions=unique_provenance(macro_payload(r).provenance for r in series),
         )
