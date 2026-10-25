@@ -1,5 +1,12 @@
 # Work Log
 
+## 2026-10-25 — POPULATED-CADENCE-PIPELINE
+
+- 새 Goal 첨부는 이전 지시와 byte가 같았다. 최신 Git은 PR21/mainf7e5f34이며 사용자 untracked3개는 그대로였다. 새 실행의 실제 주간 사용량·크레딧 비교 기준을 별도로 잡았고 VM 제외 요청은 유지했다.
+- 완료 근거 점검에서 기존 run 회귀는 빈 입력, 기존 CLI 데모는 직접 저장한 합성 자료에서 시작함을 확인했다. 제품 결함으로 단정하지 않고 HTTP mock→실제 collector/normalize/storage→analysis/history/evaluation→HTML의 연결 근거를 보강했다. 앱 코드·의존성 변경은 없다.
+- 합성45세션 중 평가 최소 표본5개가 성숙하는 날짜를 사용하고 응답을 각 as-of까지 제한한다. 수집403 뒤에는 가격 bytes 보존, 실패 manifest/상태 화면, 기존 출력 제거 후 리포트 재생성을 확인한다. 독립 검토에서 HTML/재생성 증거 두 항목을 보완했다. 단계의 호출만으로 실제 데이터 전달을 증명하지 않는다.
+- 원본 검사 로그·검토·CI/main·보존/정리 근거는 resume `자료수집/2026-10-25/mimir-portfolio/populated-pipeline/`에 보존한다. 기존 CLI16개·화면 검증은 별도 근거로 유지하며 mock 검사를 실제 API/VM 운영 증거로 합치지 않는다.
+
 ## 2026-10-25 — VM 제외 / 포트폴리오 종료 범위
 
 - 사용자 최신 요청 "우선 안되면 vm은 건너뛰어"에 따라 이번 목표의 VM 배포·runtime 검증을 제외했다. 추가 SSH 재시도나 대체 인프라는 만들지 않는다. 제외는 검증 통과가 아니며 guest 내부·Linux runtime은 미검증으로 남긴다.

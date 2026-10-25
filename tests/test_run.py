@@ -1,11 +1,17 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pytest
+import responses
 from pydantic import BaseModel, ValidationError
 
 from mimir import run as run_module
+from mimir.analysis.schema import Insight
+from mimir.core.source import Dataset
+from mimir.manifest.manifest import Manifest
 from mimir.run import run_pipeline
+from mimir.storage.jsonl_store import JsonlStore
+from mimir.storage.reader import DataReader
 
 
 def test_run_pipeline_chains_all_stages_no_network(tmp_path: Path):
@@ -27,6 +33,77 @@ def test_run_pipeline_chains_all_stages_no_network(tmp_path: Path):
     assert result["telegram_sent"] is False
     assert (tmp_path / "reports/2026/05/31.html").exists()
     assert (tmp_path / "reports/index.html").exists()
+
+
+def test_run_pipeline_collects_prices_to_reports_and_preserves_them_on_failure(tmp_path: Path):
+    # Synthetic observations only. Five prior insights meet the evaluation sample gate.
+    rows = []
+    close = 100.0
+    for offset in range(61):
+        day = date(2026, 8, 24) + timedelta(days=offset)
+        if day.weekday() < 5:
+            close *= 0.93 if len(rows) % 10 == 5 else 1.02
+            rows.append((day, f"{day},{close},{close},{close},{close},1000\n"))
+    data, reports = tmp_path / "data", tmp_path / "reports"
+    config = {
+        "disabled_ids": ["sec_edgar", "rss"],
+        "gray_enabled": False,
+        "llm_sentiment_enabled": False,
+    }
+    # Prior observations mature by the final session; no future prices are returned early.
+    for as_of in [day for day, _ in rows[-10:-5]] + [rows[-1][0]]:
+        csv = "Date,Open,High,Low,Close,Volume\n" + "".join(
+            line for day, line in rows if day <= as_of
+        )
+        with responses.RequestsMock() as http:
+            http.get("https://stooq.com/q/d/l/", body=csv)
+            result = run_pipeline(
+                cadence="daily", env={"STOOQ_API_KEY": "synthetic-fixture"},
+                watchlist={"us": ["AAPL"], "kr": []}, data_root=data,
+                reports_root=reports, sources_config=config,
+                now=datetime.combine(as_of, datetime.min.time(), tzinfo=UTC),
+            )
+            assert len(http.calls) == 1
+        assert result["collect_failures"] is False
+        assert result["insights"] == 1
+
+    reader = DataReader(JsonlStore(root=data))
+    assert len(reader.read(Dataset.PRICES)) == len(rows)
+    assert {record.source for record in reader.read(Dataset.PRICES)} == {"stooq"}
+    assert result["historical"] > 0
+    assert result["evaluation"] > 0
+    assert reader.read(Dataset.HISTORICAL) and reader.read(Dataset.EVALUATION)
+    assert result["telegram_sent"] is False
+    html = Path(result["report"]).read_text(encoding="utf-8")
+    current = Insight.model_validate(
+        reader.read(Dataset.INSIGHTS, since=as_of, until=as_of)[0].payload
+    )
+    assert current.reasons[0] in html
+    assert "Signal scorecard" in html and "per_signal" in html and "(n=5)" in html
+    prices_before = {path: path.read_bytes() for path in (data / "prices").rglob("*.jsonl")}
+    for path in (Path(result["report"]), reports / "status.html", reports / "index.html"):
+        path.unlink()  # Prove the failed run regenerates outputs, rather than finding old files.
+
+    with responses.RequestsMock() as http:
+        http.get("https://stooq.com/q/d/l/", status=403)
+        failed = run_pipeline(
+            cadence="daily", env={"STOOQ_API_KEY": "synthetic-fixture"},
+            watchlist={"us": ["AAPL"], "kr": []}, data_root=data,
+            reports_root=reports, sources_config=config,
+            now=datetime.combine(as_of, datetime.min.time(), tzinfo=UTC),
+        )
+        assert len(http.calls) == 1
+    assert failed["collect_failures"] is True
+    assert failed["insights"] == 1 and failed["evaluation"] > 0
+    assert prices_before == {path: path.read_bytes() for path in (data / "prices").rglob("*.jsonl")}
+    latest = Manifest(data).latest_run()
+    assert latest is not None
+    source = next(result for result in latest.results if result.source == "stooq")
+    assert source.ok is False and "HTTP 403" in (source.error or "")
+    html = Path(failed["report"]).read_text(encoding="utf-8")
+    assert current.reasons[0] in html and "Signal scorecard" in html
+    assert "HTTP 403" in (reports / "status.html").read_text(encoding="utf-8")
+    assert (reports / "index.html").exists()
 
 
 def test_run_pipeline_runs_evaluation_before_delivery(tmp_path: Path, monkeypatch):
