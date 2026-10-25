@@ -19,8 +19,9 @@ free, legal public-data collection and investment insight generation.
 
 ## Queue
 
-The finite implementation queue is closed; demo, CI/main and VM verification
-remain completion gates in `PLAN.md`, not new feature work.
+The finite implementation queue is closed. Demo and implementation CI/main
+evidence are complete; the user excluded VM verification from this delivery on
+2026-10-25. `PLAN.md` owns the final scope and preserved verification limits.
 
 ## Done
 

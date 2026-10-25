@@ -18,14 +18,16 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
 - Preserve user-owned untracked files and clean only processes or temporary
   resources created by this loop.
 
-## Current Loop — PORTFOLIO / RUNTIME VERIFICATION (2026-10-25)
+## Current Delivery — PORTFOLIO / VM EXCLUDED (2026-10-25)
 
 - PR19 문서 CI40114726727: PASS, 746개 테스트·프로덕션97%. main1146307 tree는 리뷰한 fd2e268과 같고 소스·테스트·실행 설정은 구현 main410c876과 같다.
+- PR20 문서 CI40146225888: PASS, 746개 테스트·프로덕션97%. mainffbd336 tree는 리뷰한169b4c0과 같으며 구현 소스·테스트·실행 설정은 main410c876과 같다. 이번 VM 제외 문서도 기존 필수 CI와 main 반영 절차를 유지한다.
 - Actual installed CLI, synthetic/offline data: 16 command checks passed. Prices/news45 each → insights8, historical1, evaluation buckets3. Invalid date exits2; malformed YAML and missing source evidence exit1 without echoing input; failure attempts preserve JSONL hashes. Empty-store report and credential-free Telegram false verified.
 - Browser: actual generated dashboard375px, report1280px; no document overflow, unsafe href or console errors. ArrowRight scrolls a named table; index→report link works; stored publisherA survives current configB. Pages visibly label synthetic values; these are not investment results.
 - Cleanup: owned SSH terminal PTY terminated, local HTTP59682 exited, browser servers/tabs stopped, viewport reset. Four further merged local/remote branches deleted after exact PR/tree/unique-commit/worktree audit. Historical main, unmerged macro-policy branch and active verification branch remain.
 - Durable evidence: resume `자료수집/2026-10-25/mimir-portfolio/{source-provenance,cli-demo,cleanup}/`; no resume push/merge. Temporary demo copies removed only after byte-for-byte evidence verification.
-- VM gate: 미통과. 이번 재개에서 TCP22(5.03초 timeout), 실제 Orca alias/config(요청 호스트·port22, proxy 없음), 기존 SSH transport(없음)를 확인했다. 제공사 탭은 다른 browser session이 사용 중이라 제어하지 않았다. 현재 콘솔·청구량·guest 상태는 미검증이다. 인증정보 전송이나 VM 쓰기·배포·잠금·workload는 없었다. 이번 차단 확인은 1회이며 이전 Goal 횟수·마감은 과거 기록이다.
+- VM gate: 이번 완료 조건에서 제외. 사용자 최신 요청은 "우선 안되면 vm은 건너뛰어"다. 직접 SSH는 인증 전 port22 연결이8.03초 후 timeout(exit255)됐으며 추가 재시도하지 않는다. guest 자원·잠금·기존 서비스·복구·Linux/runtime은 미검증이다. VM 쓰기·배포·잠금·workload·credential 변경은 없었다. 제외를 PASS나 배포 완료로 표현하지 않는다.
+- Final scope/integration/cleanup receipt: resume `자료수집/2026-10-25/mimir-portfolio/completion/`. 기존 사용자 파일과 미병합·복구 이력은 보존한다. VM을 제외한 구현·데모·CI 근거는 그대로 유지한다.
 
 ## Previous Loop — ECOS / MANUAL-RSS SOURCE PROVENANCE (2026-10-25)
 
