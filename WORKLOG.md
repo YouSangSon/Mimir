@@ -1,5 +1,16 @@
 # Work Log
 
+## 2026-10-25 — 새 Goal의 접속 재확인
+
+- 새 첨부 지시를 완독했으며 이전 파일과 byte가 같다. 과거 중단 예약 시각은 지났고 timer handle은 완료됐다. 새 사용량·크레딧 기준과 차단 확인 횟수로 재개하며 기존 구현·증거는 보존한다.
+- 인증정보 없는 TCP22 연결은 5.03초 후 timeout됐다. 실제 Orca alias는 요청 호스트·port22·proxy 없음으로 확인했고 기존 SSH transport도 없었다. 일반 도구 shell에 interactive alias가 없다는 관측을 사용자 설정 삭제로 해석하지 않았다. 제공사 두 탭은 다른 browser session이 사용 중이라 제어하지 않았다.
+- 임시 alias 진단은 metadata만 출력했고 parser self-check가 통과했다. 소유 Orca terminal은 ptyKilled=true로 종료했다. 진단 코드와 비밀 없는 receipt는 resume vm-access-recheck/에 보존했다. 현재 guest·청구량·잠금·runtime은 미검증이다.
+
+## 2026-10-25 — VM 인증 재개점
+
+- PR19 CI40114726727: 746개 테스트가 8.90초에 통과하고 프로덕션97%를 기록했다. main1146307 treeaff623a는 리뷰한 fd2e268과 같으며 소스·테스트·실행 설정은 구현 main410c876과 같다. 병합된 portfolio branch는 검증 후 정리했고 VM branch는 당시 새 main에서 시작했다.
+- 앞선 입력 관측 timeout 뒤 같은 화면을 다시 확인해 실제 인증 dialog가 열렸음을 확인했다. 당시 server105는 제공사 UI에서 SSH 인증이 필요했다. 사용자 로그인 또는 다른 SSH 경로를 요청했으며 인증정보 값은 읽거나 제출하지 않았다. 이 과거 관측을 현재 접속·VM 검증 완료로 사용하지 않는다.
+
 ## 2026-10-25 — PORTFOLIO / RUNTIME VERIFICATION
 
 - PR18 CI40113216793 passed746 tests in10.68s; production3443 statements/87 missed=97%. Squash main410c876 tree7ed770d equals reviewed headc7c5453. Required reviews had no Critical/Important finding.

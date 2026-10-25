@@ -20,11 +20,12 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
 
 ## Current Loop — PORTFOLIO / RUNTIME VERIFICATION (2026-10-25)
 
+- PR19 문서 CI40114726727: PASS, 746개 테스트·프로덕션97%. main1146307 tree는 리뷰한 fd2e268과 같고 소스·테스트·실행 설정은 구현 main410c876과 같다.
 - Actual installed CLI, synthetic/offline data: 16 command checks passed. Prices/news45 each → insights8, historical1, evaluation buckets3. Invalid date exits2; malformed YAML and missing source evidence exit1 without echoing input; failure attempts preserve JSONL hashes. Empty-store report and credential-free Telegram false verified.
 - Browser: actual generated dashboard375px, report1280px; no document overflow, unsafe href or console errors. ArrowRight scrolls a named table; index→report link works; stored publisherA survives current configB. Pages visibly label synthetic values; these are not investment results.
-- Cleanup: owned SSH terminal PTY terminated, local HTTP59682 exited, browser servers/tabs stopped, viewport reset. Three further merged local/remote branches deleted after exact PR/tree/unique-commit/worktree audit. Historical main, unmerged macro-policy branch and active verification branch remain.
+- Cleanup: owned SSH terminal PTY terminated, local HTTP59682 exited, browser servers/tabs stopped, viewport reset. Four further merged local/remote branches deleted after exact PR/tree/unique-commit/worktree audit. Historical main, unmerged macro-policy branch and active verification branch remain.
 - Durable evidence: resume `자료수집/2026-10-25/mimir-portfolio/{source-provenance,cli-demo,cleanup}/`; no resume push/merge. Temporary demo copies removed only after byte-for-byte evidence verification.
-- VM gate: NOT PASSED. Provider billing display below threshold does not establish guest resource/lock/runtime readiness or hard overage blocking. SSH TCP22 did not establish; browser console opening was not proven. No VM write/deploy/lock/workload. Current connection path requested; no security/billing settings changed.
+- VM gate: 미통과. 이번 재개에서 TCP22(5.03초 timeout), 실제 Orca alias/config(요청 호스트·port22, proxy 없음), 기존 SSH transport(없음)를 확인했다. 제공사 탭은 다른 browser session이 사용 중이라 제어하지 않았다. 현재 콘솔·청구량·guest 상태는 미검증이다. 인증정보 전송이나 VM 쓰기·배포·잠금·workload는 없었다. 이번 차단 확인은 1회이며 이전 Goal 횟수·마감은 과거 기록이다.
 
 ## Previous Loop — ECOS / MANUAL-RSS SOURCE PROVENANCE (2026-10-25)
 
