@@ -24,6 +24,7 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
 - Scope: 미래 가격을 제외한 합성45세션, 과거 관측5개와 이후 평가 세션, HTTP403 수집 실패 시 가격 bytes 보존·실패 manifest/상태 화면·리포트 재생성. LLM·Telegram·실제 외부 요청은 실행하지 않는다.
 - Verification owner: resume `자료수집/2026-10-25/mimir-portfolio/populated-pipeline/`의 최종 관련 검사·독립 검토·정확한 PR head/CI/main tree 영수증. 전체 필수 CI는 이 변경 head로 확인하며 기존 검사를 면제하지 않는다. 기존 UI 근거는 앱 source 동일성을 확인해 재사용한다.
 - VM: 앞서 사용자가 제외한 상태를 유지한다. 이 회귀의 성공을 live API·Linux VM·실서비스 검증으로 표현하지 않는다.
+- PASS: 최종 파이프라인9개/문서36개, Ruff·diff-check·독립 읽기 전용 검토. PR22 CI40152251520은747개(11.75초), strict mypy84개, 프로덕션3443 statements/85 missed로 통과했다. mainadca1bf tree는 리뷰한09b1186과 같다. 커버리지 표시는 반올림98%이며 README의 이전97% 표시를 맞춘다. 앱 코드가 늘거나 실제 운영 성능이 개선된 수치는 아니다.
 
 ## Previous Delivery — PORTFOLIO / VM EXCLUDED (2026-10-25)
 

@@ -20,13 +20,17 @@ S5 거래, 유료 LLM, 범용 RSS discovery와 새 인프라는 범위 밖이다
 새 Goal의 첨부 지시는 이전과 byte가 같으며 VM 제외 요청을 유지한다. 완료 근거를
 대조한 결과, 기존 run 검사는 빈 입력이고 실제 CLI 데모는 이미 저장된 자료에서
 시작했다. `tests/test_run.py`에 HTTP mock 응답의 실제 수집·정규화·저장부터
-분석·historical·evaluation·HTML까지 이어지는 작은 검사를 보완한다.
+분석·historical·evaluation·HTML까지 이어지는 작은 검사를 보완했다.
 
 5개 과거 관측이 평가의 최소 표본 gate를 넘도록 이후 세션까지 진행하며, 응답에
 미래 가격을 미리 넣지 않는다. 수집403 실패 때는 기존 가격 bytes를 보존하고
-manifest·상태 화면에 오류를 남기면서 새 리포트를 생성하는지 확인한다. 앱 코드·
+manifest·상태 화면에 오류를 남기면서 새 리포트를 생성하는지 확인했다. 앱 코드·
 설정·의존성은 바꾸지 않는다. 실제 API·개인 VM·실서비스를 검증한 것으로 표현하지 않는다.
 최종 검사·리뷰·CI/main·정리 근거는 resume 기존 폴더의 `populated-pipeline/`에 남긴다.
+
+PR22의 필수 CI40152251520은747개 테스트·프로덕션3443 statements/85 missed로
+통과해 main `adca1bf`에 반영됐다. 표시 단위로 반올림하면98%이며, 새 검사가 추가로
+덮은 코드량은2줄이다. README 세 언어의 현재 커버리지 표시는 이 결과에 맞춘다.
 
 ## Completed Implementation and Verification
 
