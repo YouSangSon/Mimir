@@ -18,7 +18,14 @@ active loop; dated detail stays in `WORKLOG.md` and `DECISIONS.md`.
 - Preserve user-owned untracked files and clean only processes or temporary
   resources created by this loop.
 
-## Current Delivery — PORTFOLIO / VM EXCLUDED (2026-10-25)
+## Current Verification — POPULATED-CADENCE-PIPELINE (2026-10-25)
+
+- Gap: 기존 빈 입력 run 검사와 저장 자료 기반 CLI 데모만으로는 populated collect→report 연결을 한 번에 증명하지 못했다. HTTP mock CSV로 실제 앱 단계들을 실행하는 회귀1개를 보강한다. 앱 코드·설정·의존성은 그대로다.
+- Scope: 미래 가격을 제외한 합성45세션, 과거 관측5개와 이후 평가 세션, HTTP403 수집 실패 시 가격 bytes 보존·실패 manifest/상태 화면·리포트 재생성. LLM·Telegram·실제 외부 요청은 실행하지 않는다.
+- Verification owner: resume `자료수집/2026-10-25/mimir-portfolio/populated-pipeline/`의 최종 관련 검사·독립 검토·정확한 PR head/CI/main tree 영수증. 전체 필수 CI는 이 변경 head로 확인하며 기존 검사를 면제하지 않는다. 기존 UI 근거는 앱 source 동일성을 확인해 재사용한다.
+- VM: 앞서 사용자가 제외한 상태를 유지한다. 이 회귀의 성공을 live API·Linux VM·실서비스 검증으로 표현하지 않는다.
+
+## Previous Delivery — PORTFOLIO / VM EXCLUDED (2026-10-25)
 
 - PR19 문서 CI40114726727: PASS, 746개 테스트·프로덕션97%. main1146307 tree는 리뷰한 fd2e268과 같고 소스·테스트·실행 설정은 구현 main410c876과 같다.
 - PR20 문서 CI40146225888: PASS, 746개 테스트·프로덕션97%. mainffbd336 tree는 리뷰한169b4c0과 같으며 구현 소스·테스트·실행 설정은 main410c876과 같다. 이번 VM 제외 문서도 기존 필수 CI와 main 반영 절차를 유지한다.
