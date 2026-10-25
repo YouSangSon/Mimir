@@ -1,86 +1,63 @@
 # Project Plan
 
-This file is the root resume point for active work. It intentionally stays
-small; detailed plans live under `docs/superpowers/plans/`.
+This file owns the delivery scope and resume boundary. Detailed plans stay in
+`docs/superpowers/plans/`; implementation history stays in Git and `WORKLOG.md`.
 
-## Active Goal
+## Delivery Scope — PORTFOLIO CLOSEOUT (2026-10-25)
 
-이전 Goal의 중단 예약 시각(2026-10-25 05:15 KST)은 지났고 타이머 handle도
-완료됐다. 2026-10-25 새 Goal로 재개했으며 이번 요청에는 고정 실행 시간 제한이
-없다. 명시적인 중단 요청과 실제 사용량·크레딧 조건은 계속 적용한다.
-차단 상태의 연속 확인 횟수는 이번 재개부터 새로 센다.
+Mimir의 기존 S1–S4 파이프라인을 사용할 수 있게 다듬는 유한 구현 대기열은
+닫혔다. 사용자의 최신 요청 "우선 안되면 vm은 건너뛰어"에 따라 이번 목표에서
+my-cloud 배포·runtime 검증을 제외한다. VM 접속을 더 재시도하거나 이를 대신할
+새 서버·공개 데모를 만들지 않는다. 새로운 요청이 있을 때만 VM 검증을 재개한다.
 
-Finish a usable, verified portfolio version of Mimir's existing S1–S4 pipeline.
-The latest 2026-10-25 user request supersedes older execution limits and
-continues the existing Goal scope. Commit/push/PR/main merge remain authorized.
-Local checks must be lightweight, relevant and sequential; do not launch heavy
-integration stacks. Required free remote CI stays mandatory. Use only existing
-my-cloud for the requested minimal VM verification, after current resource,
-shared-lock, billing-traffic and recovery checks. No paid execution, credential
-changes, workflow reactivation, public demo or new cloud resources are authorized.
-Preserve the existing GRAY-source policy and user-owned files.
+구현·로컬 데모·필수 무료 CI·main 반영·소유 자원 정리·포트폴리오 근거는 이번
+목표에 유지한다. commit/push/PR/main merge의 기존 승인은 유지하며 필수 CI를
+생략하지 않는다. 유료 실행·credential 변경·외부 발송은 승인되지 않았다.
+S5 거래, 유료 LLM, 범용 RSS discovery와 새 인프라는 범위 밖이다.
 
-Completion requires the finite `BACKLOG.md` queue, a runnable local demo with
-real CLI/report success and failure flows, required local/review/CI gates,
-main integration, verified branch/resource cleanup, and evidence under the
-existing resume `자료수집` structure. S5 trading, paid LLM execution, generic
-RSS discovery, and new cloud infrastructure remain outside this goal.
+## Completed Implementation and Verification
 
-- Original loop contract: `GOAL.md`
-- Current delivery evidence: `GATES.md`
-- Decisions and work evidence: `DECISIONS.md`, `WORKLOG.md`
+- `BACKLOG.md`의 구현 대기열은 비어 있다. 입력 오류 경계, macro 단일 읽기,
+  리포트 접근성, 네 cadence 계약, 문서 건강도와 실제 입력의 출처 snapshot을
+  PR12–18로 반영했다. 상세 계약은 `docs/reference/config/sources.md` §4.4가 소유한다.
+- 구현 main `410c876`의 필수 원격 CI40113216793은 746개 테스트와 프로덕션
+  `mimir/*` 커버리지97%로 통과했다. PR20 CI40146225888도 같은 결과로 통과했다.
+  문서 체크포인트 main `ffbd336`의 소스·테스트·실행 설정은 구현 main과 같다.
+- 실제 설치된 CLI의 합성·offline 데모16개 검사를 통과했다. insight8,
+  historical1, evaluation3과 날짜/YAML/출처 증빙 실패·빈 저장소 경로를 확인했다.
+  실제 생성 HTML의 모바일/desktop 링크·키보드 표 스크롤·출처 보존도 확인했다.
+  합성 수치는 투자 성과나 실제 외부 API 운영 경험이 아니다.
+- 원본 로그·스크립트·스크린샷·리뷰·CI/main 근거는 resume
+  `자료수집/2026-10-25/mimir-portfolio/`에 보존한다. 별도 resume 저장소의
+  push·merge는 하지 않는다. 최종 문서 반영과 정리는 그 폴더의 `completion/`이 기록한다.
 
-## Current Loop — VM AUTHENTICATION / RUNTIME VERIFICATION
+## VM Verification — EXCLUDED, NOT VERIFIED
 
-구현과 포트폴리오 체크포인트는 main에 반영됐다. PR18·PR19의 필수 CI는
-746개 테스트·프로덕션 커버리지 97%로 통과했다. 체크포인트 main1146307의 tree는
-리뷰한 fd2e268과 같고 소스·테스트·실행 설정은 구현 main410c876과 같다.
-유한 구현 대기열은 닫혔으며 새 기능을 추가할 필요가 없다. 활성 worktree와
-branch 식별자는 현재 Git 상태를 따른다. VM 검증 단위는 아직 완료하지 못했다.
+Orca의 실제 my-cloud 대상은 요청한 호스트·port22이며 proxy가 없다. 직접 SSH는
+인증 전에 연결 timeout(8.03초, exit255)으로 실패했다. 같은 맥에서 GitHub22/443은
+연결됐지만 VM22/443은 timeout됐다. guest 네트워크·방화벽·sshd 중 원인은 미확인이다.
+제공사 화면의 실행중 표시와 청구량은 guest runtime 검증을 대신하지 않는다.
 
-Actual installed CLI demo passed16 checks with synthetic data: insight8,
-historical1, evaluation buckets3; invalid date/YAML/missing evidence and empty
-store paths verified. Browser375/1280px, source preservation, keyboard table
-scroll and report link verified. No paid LLM or external delivery was called.
-Evidence is under resume `자료수집/2026-10-25/mimir-portfolio/`; root README
-there maps problems, decisions, PRs, measured facts and limits. The source
-contract remains `docs/reference/config/sources.md` §4.4.
+VM 배포·잠금·workload·credential 변경은 없었다. guest 자원·공통 잠금·기존 서비스·
+백업/복구·Linux 설치·실행 버전은 미검증이다. 자동 초과 과금 차단도 미확인이다.
+107KB 순수 Python wheel은 준비됐지만 VM에는 설치하지 않았다. 이 항목은 사용자가
+이번 완료 조건에서 제외한 것이며 통과한 검사로 표현하지 않는다.
 
-남은 필수 gate는 my-cloud의 비공개 실행 환경 검증이다. 이전 제공사 화면은
-9.9MB/3TB·예상 초과 요금 0원, 마지막 집계 2026-10-24 13:07:39(표시 timezone
-미상)였다. 이번 재개의 현재 청구량 확인으로 재사용하지 않으며 자동 초과 과금
-차단도 미확인이다.
+## Preservation and Future Resume
 
-2026-10-25 재확인: 인증정보를 보내지 않은 TCP22 연결은 5.03초 후 timeout됐다.
-Orca의 실제 my-cloud alias도 요청한 호스트의 22번 포트를 사용하고
-ProxyJump/ProxyCommand가 없다. 대상 VM으로 연결된 기존 SSH transport도 없다.
-제공사 상세 탭은 다른 browser session이 사용 중이므로 제어하지 않았다.
-과거 인증 창을 현재 접속 증거로 취급하지 않는다. 사용자 직접 로그인이나
-정상 동작하는 승인된 SSH 경로가 필요하다. guest 자원·공통 잠금·현재 버전·복구·
-runtime은 미검증이며, 이 조건과 잠금을 확인하기 전에는 배포하지 않는다.
+이번 작업 소유 HTTP/browser/SSH 프로세스는 종료했다. 병합 branch 정리는 대응
+PR/head/main tree·고유 커밋·worktree·최신 remote ref를 확인한 대상만 수행한다.
+과거 main 복구 이력, 미병합 macro-policy branch와 처음부터 있던 사용자 소유
+`CLAUDE.md`, `docs/superpowers/handoffs/`, `uv.lock`은 보존한다.
 
-이번 작업 소유의 로컬 HTTP/browser/SSH 자원은 종료했고 VM 잠금·workload는
-만들지 않았다. 병합된 cadence/doc-health/provenance/portfolio branch는 검증 후
-정리했다. 과거 main 복구 이력, 미병합 macro-policy branch와 활성 작업 branch는
-보존한다. 처음부터 있던 사용자 소유 untracked 3개는 stage하지 않았다.
-
-접속이 확보되면 현재 guest 서비스·메모리·디스크·OOM·공통 잠금부터 확인한다.
-예산 안에서 비공개 합성 CLI smoke를 실행하고 source/artifact/runtime 대응을
-검증한 뒤 소유 자원을 정리하고 전체 Goal 완료 조건을 다시 대조한다.
-이번 새 Goal의 접속 차단 확인은 1회다. 이전 Goal의 3회 확인은 과거 기록이며
-재사용하지 않는다. 구현·CI·데모 gate는 유지하되 VM gate와 최종 정리 증거가
-없으므로 전체 Goal은 미완료다.
+향후 VM 요청은 현재 접속 경로·청구량·guest 자원·공통 잠금·복구 절차부터 다시
+확인해야 한다. 로컬·CI 결과를 배포 완료나 실서비스 운영 근거로 승격하지 않는다.
 
 ## Canonical Sources
 
-- Implementation plans: `docs/superpowers/plans/`
-- Improvement backlog: `docs/IMPROVEMENTS.md`
-- Architecture catalog: `docs/architecture/improvement-catalog.md`
-- Decision tech specs: `docs/decisions/tech-spec/README.md`
-- History: `git log`
-
-## Next Loop Candidates
-
-Use `BACKLOG.md` first, then choose one coherent slice. Do not mix workflow,
-docs-truth, and feature changes in the same loop unless one cannot be verified
-without the other.
+- Original loop contract: `GOAL.md` (the latest user scope above takes precedence)
+- Current evidence: `GATES.md`
+- Closed queue: `BACKLOG.md`
+- Decisions and history: `DECISIONS.md`, `WORKLOG.md`
+- Plans: `docs/superpowers/plans/`
+- Architecture: `docs/architecture/improvement-catalog.md`

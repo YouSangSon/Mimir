@@ -1,5 +1,12 @@
 # Work Log
 
+## 2026-10-25 — VM 제외 / 포트폴리오 종료 범위
+
+- 사용자 최신 요청 "우선 안되면 vm은 건너뛰어"에 따라 이번 목표의 VM 배포·runtime 검증을 제외했다. 추가 SSH 재시도나 대체 인프라는 만들지 않는다. 제외는 검증 통과가 아니며 guest 내부·Linux runtime은 미검증으로 남긴다.
+- 마지막 직접 SSH는 port22 연결 timeout8.03초/exit255였다. 같은 맥의 GitHub22/443 연결은 성공했고 VM443·ping도 응답하지 않았다. 제공사 화면은 같은 IP를 실행중으로 표시했지만 서버 내부 원인은 확정하지 않았다. 마지막 소유 Orca terminal도 ptyKilled=true로 종료했으며 VM 잠금·workload·credential 변경은 없었다.
+- 구현·테스트·실행 설정은 main410c876 이후 바뀌지 않았다. PR20 CI40146225888은746개/프로덕션97%로 통과해 mainffbd336에 반영됐으며, 실제 CLI16개 합성 데모·browser 성공/실패 근거도 유지한다. 이번 변경은 PLAN/GATES/BACKLOG/WORKLOG의 완료 범위 기록뿐이다.
+- 최종 문서 CI/main 반영과 branch·소유 자원 정리 근거는 resume `자료수집/2026-10-25/mimir-portfolio/completion/`에 보존한다. 기존 사용자 untracked3개, 과거 main 복구 이력과 미병합 macro-policy branch는 보존한다. 상세 구현·실패 이력은 아래의 당시 기록을 유지한다.
+
 ## 2026-10-25 — 새 Goal의 접속 재확인
 
 - 새 첨부 지시를 완독했으며 이전 파일과 byte가 같다. 과거 중단 예약 시각은 지났고 timer handle은 완료됐다. 새 사용량·크레딧 기준과 차단 확인 횟수로 재개하며 기존 구현·증거는 보존한다.
